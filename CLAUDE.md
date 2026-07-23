@@ -26,7 +26,7 @@ Nigdy nie zbudował całego programu od początku do końca.
 Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
 `https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap: przygotowanie środowiska. Sesja 1 i Sesja 2 (BRONZE) ukończone.**
+**Etap: przygotowanie środowiska. Sesja 1, 2 i 3 (BRONZE) ukończone.**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
@@ -42,9 +42,21 @@ Stare repo `gpw-pulse` zostaje tylko jako podgląd.
   repozytorium `GPW---pulse` założone na GitHubie i połączone (`git remote add origin`,
   `git push -u origin main`) — **udało się, dane są na GitHubie.**
 
-**Do zrobienia (Sesja 3):**
-- Napisać program, który pobiera dane **jednej** spółki przez `requests`
-  i wypisuje je na ekran (jeszcze bez zapisu do pliku).
+**Zrobione (2026-07-23):**
+- Sesja 3: stooq.pl zablokował programowe pobieranie (zabezpieczenie
+  antybotowe, zagadka JS pod `/q/d/l/`) — zmiana źródła danych na
+  **Yahoo Finance** (`https://query1.finance.yahoo.com/v8/finance/chart/{TICKER}.WA`,
+  `.WA` = GPW). Wymaga nagłówka `User-Agent` (np. `"Mozilla/5.0"`),
+  dane w formacie JSON.
+- Napisany program: pobiera dane jednej spółki (CBF.WA) przez `requests`,
+  wyciąga `timestamp` i `close` z zagnieżdżonego JSON-a, zamienia timestamp
+  na datę (`datetime.fromtimestamp()`), łączy przez `zip()`, wypisuje
+  5 dni danych (data + cena zamknięcia).
+- Nauczona eksploracja nieznanej struktury JSON: `type()`, `.keys()`, `len()`.
+
+**Do zrobienia (Sesja 4):**
+- Do ustalenia — np. to samo dla pozostałych spółek (XTB, Synektik),
+  albo zapis danych do pliku zamiast tylko wypisywania na ekran.
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
