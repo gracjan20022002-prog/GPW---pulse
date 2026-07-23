@@ -23,29 +23,33 @@ Nigdy nie zbudował całego programu od początku do końca.
 
 ## Stan projektu
 
-Repo robocze: folder lokalny `GPW - pulse` (docelowo repo na GitHubie: `gpw-pulse-v2`).
+Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
+`https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap: przygotowanie środowiska. Sesja 1 (BRONZE) ukończona, w trakcie Sesji 2.**
+**Etap: przygotowanie środowiska. Sesja 1 i Sesja 2 (BRONZE) ukończone.**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
-- Sesja 1 planu bronze ukończona: sprawdzone stooq.pl, ręcznie pobrane pliki CSV
-  dla trzech spółek — **XTB, Cyber_Folks, Synektik** (zamiast PKN/PKO/CDR z planu —
-  dozwolona zmiana, plan mówił „możesz wybrać inne").
+- Sesja 1: sprawdzone stooq.pl, ręcznie pobrane pliki CSV dla trzech spółek —
+  **XTB, Cyber_Folks, Synektik** (zamiast PKN/PKO/CDR z planu — dozwolona
+  zmiana, plan mówił „możesz wybrać inne"). Pliki w `companies/`
+  (`xtb_d.csv`, `cbf_d.csv`, `snt_d.csv`).
   Link do danych: `https://stooq.pl/q/d/?f=20230722&t=20260722&s=xtb&c=0`
   (to strona z tabelą/eksportem, nie bezpośredni plik — trzeba kliknąć „pobierz").
   Kolumny w pliku: Data, Otwarcie, Najwyzszy, Najnizszy, Zamkniecie, Wolumen.
   748 wierszy (747 danych + nagłówek), zakres dat 24.07.2023–22.07.2026 (~3 lata).
+- Sesja 2: `.gitignore` (wyklucza `.venv/`), `git init`, pierwszy commit,
+  repozytorium `GPW---pulse` założone na GitHubie i połączone (`git remote add origin`,
+  `git push -u origin main`) — **udało się, dane są na GitHubie.**
 
-**Do zrobienia (Sesja 2):**
-- Potwierdzić, że `.venv` włącza się w terminalu (`(.venv)` widoczne).
-- Wybrać interpreter Pythona w VS Code (`.venv`).
-- Założyć puste repozytorium na GitHubie i połączyć z tym folderem (`git init`,
-  pierwszy commit, `git push`).
+**Do zrobienia (Sesja 3):**
+- Napisać program, który pobiera dane **jednej** spółki przez `requests`
+  i wypisuje je na ekran (jeszcze bez zapisu do pliku).
 
-**Uwaga dla siebie:** użytkownik pracuje w Claude Code uruchomionym z poziomu
-VS Code (nie w osobnym terminalu VS Code) — instrukcje terminalowe kierować
-do tego samego okna, w którym toczy się rozmowa.
+**Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
+nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
+dokładne polecenia do wpisania, nie wykonuję ich za niego (poza czytaniem
+plików/stanu, żeby wiedzieć, co się dzieje).
 
 ## Gdzie co jest
 
