@@ -26,7 +26,7 @@ Nigdy nie zbudował całego programu od początku do końca.
 Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
 `https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap: przygotowanie środowiska. Sesja 1, 2 i 3 (BRONZE) ukończone.**
+**Etap: przygotowanie środowiska. Sesja 1, 2, 3 i 4 (BRONZE) ukończone.**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
@@ -54,9 +54,23 @@ Stare repo `gpw-pulse` zostaje tylko jako podgląd.
   5 dni danych (data + cena zamknięcia).
 - Nauczona eksploracja nieznanej struktury JSON: `type()`, `.keys()`, `len()`.
 
-**Do zrobienia (Sesja 4):**
-- Do ustalenia — np. to samo dla pozostałych spółek (XTB, Synektik),
-  albo zapis danych do pliku zamiast tylko wypisywania na ekran.
+**Zrobione (2026-07-25):**
+- Sesja 4: rozszerzony zakres danych o `params = {"range": "3y", "interval": "1d"}`
+  (750 dni zamiast 5). Wyciąganie cen zamknięcia z zagnieżdżonego JSON-a
+  (`indicators.quote[0].close`), pętla `for tick in ticker:` po liście
+  trzech spółek (`CBF.WA`, `XTB.WA`, `SNT.WA`), zapis do osobnego pliku
+  `.txt` na spółkę przez `with open(...) as plik: ... plik.write(...)`.
+- Duża reorganizacja projektu: kod (`kod/`) i notatki (`notatki/`) przeniesione
+  do folderu projektu `GPW - pulse` (wcześniej rozjechane między dwoma
+  miejscami w `Obsidian-DE`, częściowo zdublowane). `.gitignore` wyklucza
+  `notatki/dziennik/` (prywatny) i `notatki/.obsidian/` (config aplikacji)
+  z GitHuba. `README.md` zaktualizowany pod nową strukturę. Stare CSV ze
+  stooq usunięte z `companies/`, zastąpione plikami `.txt` z Yahoo Finance.
+
+**Do zrobienia (Sesja 5):**
+- Obsługa błędów: `try/except` i `logging`, żeby jedna zepsuta spółka
+  (zły ticker, brak internetu) nie zatrzymywała całego programu — błąd
+  ma się zalogować, a pozostałe spółki mają pobrać się normalnie.
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
@@ -65,4 +79,7 @@ plików/stanu, żeby wiedzieć, co się dzieje).
 
 ## Gdzie co jest
 
-Plany, słownik, dziennik: `DE/Obsidian-DE/`. Nauka Pythona: `DE/Python_l/`.
+Kod, dane i notatki (plany, słownik, dziennik) są teraz razem w folderze
+projektu: `kod/`, `companies/`, `notatki/` (dziennik i `.obsidian` poza
+gitem, tylko lokalnie). Nauka Pythona (osobny projekt, niepowiązany):
+`DE/Python_l/`.
