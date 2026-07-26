@@ -26,7 +26,7 @@ Nigdy nie zbudował całego programu od początku do końca.
 Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
 `https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap: przygotowanie środowiska. Sesja 1, 2, 3 i 4 (BRONZE) ukończone.**
+**Etap: przygotowanie środowiska. Sesja 1–5 (BRONZE) ukończone, Sesja 6 w trakcie.**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
@@ -67,10 +67,17 @@ Stare repo `gpw-pulse` zostaje tylko jako podgląd.
   z GitHuba. `README.md` zaktualizowany pod nową strukturę. Stare CSV ze
   stooq usunięte z `companies/`, zastąpione plikami `.txt` z Yahoo Finance.
 
-**Do zrobienia (Sesja 5):**
-- Obsługa błędów: `try/except` i `logging`, żeby jedna zepsuta spółka
-  (zły ticker, brak internetu) nie zatrzymywała całego programu — błąd
-  ma się zalogować, a pozostałe spółki mają pobrać się normalnie.
+**Zrobione (2026-07-26):**
+- Sesja 5: `try/except` + `logging` w `kod/Data ingestion 2.py` — pojedynczy zły
+  ticker (test: `676.WA`, status 404) loguje się do `errors.log` i nie zatrzymuje
+  pobierania pozostałych spółek.
+- Sesja 6 (start): nowy plik `kod/test_plikow.py` — sprawdzenie #1 (czy plik
+  istnieje) i #2 (czy ma prawidłowy format: 2 elementy po `split(",")`, data
+  długości 19 znaków). Wprowadzone `BASE_DIR` liczone przez `__file__`, żeby
+  ścieżki nie zależały od working directory terminala.
+
+**Do zrobienia (Sesja 6, kontynuacja):**
+- Sprawdzenie #3 (liczba danych) i #4 (poprawny format/typ danych) w `test_plikow.py`.
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
