@@ -3,16 +3,37 @@
 Projekt nauki data engineeringu — pobieranie i przetwarzanie danych giełdowych
 (GPW) dla wybranych spółek.
 
+**Etap BRONZE (surowe dane):** ukończony. Program pobiera dzienne notowania
+trzech spółek GPW (CBF, XTB, SNT) z Yahoo Finance za ostatnie 3 lata, zapisuje
+je na dysk i sam sprawdza, czy zapisane dane są poprawne.
+
 ---
 
 ## Struktura folderu
 
 | Folder | Co w nim jest |
 |---|---|
-| **kod/** | skrypty Pythona projektu |
-| **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) |
+| **kod/** | skrypty Pythona projektu (patrz tabela niżej) |
+| **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) + `errors.log` |
 | **notatki/** | notatki do nauki i projektu (patrz niżej) |
 | **CLAUDE.md** | zasady pracy z asystentem nad tym projektem |
+
+### Skrypty w `kod/`
+
+| Plik | Co robi |
+|---|---|
+| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`) |
+| `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
+| `Bronze.py`, `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
+
+### Dane w `companies/`
+
+Jeden plik `.txt` na spółkę, jeden wiersz na dzień notowania:
+```
+2023-07-24 00:00:00, 12.34
+```
+`errors.log` zbiera błędy pobierania (np. nieistniejący ticker) — nie trafia
+na GitHub (patrz `.gitignore`).
 
 ---
 

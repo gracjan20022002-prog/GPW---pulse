@@ -2,9 +2,12 @@
 import requests
 from datetime import datetime
 import logging
-ticker = ["CBF.WA", "XTB.WA", "SNT.WA", "676.WA"]
+import os
+print(os.path.abspath(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ticker = ["CBF.WA", "XTB.WA", "SNT.WA"]
 logging.basicConfig(
-    filename = "errors.log",
+    filename = os.path.join(BASE_DIR, "companies", "errors.log"),
     level = logging.ERROR,
     format = "%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -20,7 +23,7 @@ for tick in ticker:
             timestamp = head["timestamp"]
             close = head["indicators"]["quote"][0]["close"]
             con = list(zip(timestamp, close))
-            with open(f"{tick}.txt", "w", encoding = "utf-8") as plik:
+            with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
                 for t, c in con:
                     data = datetime.fromtimestamp(t)
                     plik.write(f"{data}, {c}\n")

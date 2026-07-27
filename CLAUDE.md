@@ -26,7 +26,7 @@ Nigdy nie zbudował całego programu od początku do końca.
 Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
 `https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap: przygotowanie środowiska. Sesja 1–5 (BRONZE) ukończone, Sesja 6 w trakcie.**
+**Etap: przygotowanie środowiska. Sesja 1–6 (BRONZE) ukończone, Sesja 7 w planach.**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
@@ -76,8 +76,26 @@ Stare repo `gpw-pulse` zostaje tylko jako podgląd.
   długości 19 znaków). Wprowadzone `BASE_DIR` liczone przez `__file__`, żeby
   ścieżki nie zależały od working directory terminala.
 
-**Do zrobienia (Sesja 6, kontynuacja):**
-- Sprawdzenie #3 (liczba danych) i #4 (poprawny format/typ danych) w `test_plikow.py`.
+**Zrobione (2026-07-27):**
+- Sesja 6 (dokończona): w `kod/test_plikow.py` dodane sprawdzenie #3 (liczba
+  danych — licznik poprawnych wierszy porównywany z progiem 700) i #4
+  (typ danych — `datetime.strptime(...)` i `float(...)` w `try/except
+  ValueError`, sprawdzają, czy tekst da się naprawdę odczytać jako data
+  i liczba, nie tylko czy ma odpowiedni kształt).
+- Po drodze znalezione i poprawione dwa bugi: (1) sprawdzenie liczby wierszy
+  było wewnątrz pętli zamiast po niej, (2) licznik zwiększał się nawet przy
+  nieudanej konwersji typu, bo `licznik += 1` było poza `try`.
+- Znaleziony i poprawiony bug przy ręcznym teście złego tickera:
+  `os.path.exists()` był tylko wypisywany, nigdy nie użyty do decyzji —
+  program wywalał się `FileNotFoundError`. Dodane `if result: ... else: ...`.
+- Potwierdzona wcześniejsza poprawka w `Data ingestion 2.py`: zapis danych
+  i `errors.log` liczą ścieżkę przez `BASE_DIR`.
+
+**Do zrobienia (Sesja 7 — zamknięcie etapu BRONZE):**
+- Przejrzeć cały kod od góry do dołu, poprawić nazwy zmiennych na czytelne.
+- Zaktualizować `README.md` pod aktualny stan projektu.
+- Finalny commit i push na GitHub, zamykający etap BRONZE.
+- Po tej sesji: start etapu SILVER (czyszczenie danych, `pandas`).
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
