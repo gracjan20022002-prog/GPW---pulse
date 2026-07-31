@@ -26,7 +26,7 @@ Nigdy nie zbudował całego programu od początku do końca.
 Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
 `https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap: przygotowanie środowiska. Sesja 1–6 (BRONZE) ukończone, Sesja 7 w planach.**
+**Etap BRONZE ukończony (Sesja 1–7). Następny etap: SILVER (czyszczenie danych, `pandas`).**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
@@ -91,11 +91,39 @@ Stare repo `gpw-pulse` zostaje tylko jako podgląd.
 - Potwierdzona wcześniejsza poprawka w `Data ingestion 2.py`: zapis danych
   i `errors.log` liczą ścieżkę przez `BASE_DIR`.
 
-**Do zrobienia (Sesja 7 — zamknięcie etapu BRONZE):**
-- Przejrzeć cały kod od góry do dołu, poprawić nazwy zmiennych na czytelne.
-- Zaktualizować `README.md` pod aktualny stan projektu.
-- Finalny commit i push na GitHub, zamykający etap BRONZE.
-- Po tej sesji: start etapu SILVER (czyszczenie danych, `pandas`).
+**Zrobione (2026-07-27, Sesja 7 — zamknięcie etapu BRONZE):**
+- Przejrzany cały kod z `kod/` (Claude — przegląd, bez pisania kodu za Gracjana).
+  Znalezione: `Bronze.py` i `Data ingestion.py` były identyczną kopią
+  (eksploracja z Sesji 3).
+- `README.md` zaktualizowany: opis etapu BRONZE, tabela skryptów w `kod/`,
+  opis formatu danych w `companies/`.
+- Commit `7a800ae` ("Sesja 6: sprawdzenia #3 i #4...") wypchnięty na GitHub.
+- Gracjan usunął `kod/Bronze.py` (duplikat) własną decyzją i wypchnął zmianę —
+  potwierdzone: `git status` czysty, `main` zsynchronizowany z `origin/main`.
+- `kod/Data ingestion.py` (drugi duplikat) **zostaje** — świadoma decyzja
+  Gracjana, żeby zachować go jako materiał referencyjny z Sesji 3.
+- Testowy zły ticker `676.WA` w `kod/Data ingestion 2.py` — zostawiony,
+  nieporuszany dalej (nie było wyraźnej decyzji o usunięciu).
+
+**Etap BRONZE zamknięty.**
+
+**Zrobione (2026-07-27, dodatkowo — plan Silver):**
+Na prośbę Gracjana napisany szczegółowy plan całego etapu SILVER:
+`notatki/plany/Plan-02-silver.md`. Zawiera: konkretne problemy w danych
+z `companies/` do naprawienia w tym etapie (typy zapisane jako tekst,
+możliwe braki cen, trzy osobne pliki zamiast jednej tabeli, brak nazw
+kolumn), wyjaśnienie „wektoryzacji" (operacje na całej kolumnie pandas
+zamiast pętli `for`), ściągę funkcji pandas potrzebnych na tym etapie
+(`read_csv`, `head`/`info`/`describe`/`dtypes`, wybieranie kolumn/wierszy,
+`to_datetime`/`to_numeric`, `isna`/`dropna`/`fillna`, `duplicated`/
+`drop_duplicates`, `concat`, `sort_values`, `to_csv`) z przykładami na
+danych **spoza** projektu (zgodnie z zasadą #1), oraz podział na 7 sesji
+w stylu `Plan-01-bronze.md` (jedna nowa rzecz na sesję).
+
+**Do zrobienia:** start Sesji 1 etapu SILVER — instalacja pandas, pierwsze
+wczytanie jednego pliku przez `pd.read_csv(...)`. Szczegóły w
+`notatki/plany/Plan-02-silver.md`. Gracjan zdecyduje, kiedy zacznie
+(niekoniecznie tego samego dnia co zamknięcie Bronze).
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
