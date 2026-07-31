@@ -120,10 +120,39 @@ zamiast pętli `for`), ściągę funkcji pandas potrzebnych na tym etapie
 danych **spoza** projektu (zgodnie z zasadą #1), oraz podział na 7 sesji
 w stylu `Plan-01-bronze.md` (jedna nowa rzecz na sesję).
 
-**Do zrobienia:** start Sesji 1 etapu SILVER — instalacja pandas, pierwsze
-wczytanie jednego pliku przez `pd.read_csv(...)`. Szczegóły w
-`notatki/plany/Plan-02-silver.md`. Gracjan zdecyduje, kiedy zacznie
-(niekoniecznie tego samego dnia co zamknięcie Bronze).
+**Zrobione (2026-07-31, Sesje 1–4 etapu SILVER):**
+- Domknięte zaległości z 27-go: `.gitignore` dodany o `GPW - Python.code-workspace`
+  (plik lokalnego edytora, nietrafiający do repo), commit zamknięcia Sesji 7
+  i planu Silver wypchnięty na GitHub.
+- Nowy plik `kod/silver 1.py`. Sesja 1: `pd.read_csv("companies/CBF.WA.txt",
+  header=None, names=["data", "cena"], skipinitialspace=True)` — pierwsze
+  wczytanie danych jednej spółki do `DataFrame`, obejrzane przez `.head()`,
+  `.info()`, `.dtypes`.
+- Sesja 2: naprawa typów przez wektoryzację — `pd.to_datetime(plik["data"])`,
+  `pd.to_numeric(plik["cena"], errors="coerce")`. Wynik: `data` →
+  `datetime64[us]`, `cena` → `float64`.
+- Sesja 3: `plik.isna().sum()` — zero braków w obu kolumnach.
+- Sesja 4: `plik.duplicated().sum()` — zero duplikatów.
+- Wszystkie cztery sesje zrobione w jednej rozmowie (Gracjan sam zdecydował
+  jechać bez przerwy) — jedna nowa rzecz na sesję nadal zachowana, tylko
+  bez przerwy między sesjami tego dnia.
+- **Odkrycie po drodze:** `cena` wyszła z `read_csv` od razu jako `float64`
+  (automatyczne wnioskowanie typu przez pandas, bo brak było braków w danych)
+  — inaczej niż zakładał plan Silver, który spodziewał się tekstu do
+  ręcznej konwersji. `pd.to_numeric` i tak zastosowany, jako zabezpieczenie
+  na wypadek innych plików spółek.
+- **Poprawiona nieścisłość w dokumentacji:** `notatki/plany/Plan-02-silver.md`
+  (problem #4) twierdził, że godzina w danych to zawsze `00:00:00` — dane
+  z `CBF.WA.txt` pokazują konsekwentnie `09:00:00`. Poprawione w tym pliku.
+- Drobna uwaga na później (nie zrobione teraz, żeby nie przeciążać sesji):
+  `kod/silver 1.py` wczytuje plik ścieżką względną (`"companies/CBF.WA.txt"`),
+  nie przez `BASE_DIR` jak `test_plikow.py` — działa tylko przy odpaleniu
+  z folderu głównego repo. Do rozważenia przy porządkach w Sesji 7 Silver.
+
+**Do zrobienia:** Sesja 5 etapu SILVER — wczytanie trzech plików spółek w
+pętli, dodanie kolumny `spolka` do każdej tabeli, połączenie przez
+`pd.concat([...], ignore_index=True)`. Szczegóły w
+`notatki/plany/Plan-02-silver.md`.
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję

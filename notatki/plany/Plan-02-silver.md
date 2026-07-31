@@ -36,9 +36,10 @@ Sprawdziłem pliki w `companies/`. Konkretne rzeczy do naprawienia w etapie Silv
    `SNT.WA.txt` — każdy osobno. Do dalszej pracy (i do etapu GOLD) potrzebujemy
    **jednej** tabeli ze wszystkimi trzema spółkami, z kolumną mówiącą, który
    wiersz do kogo należy.
-4. **Godzina zawsze `00:00:00`.** To niepotrzebny balast w dacie — dane są
-   dzienne, godzina nic nie wnosi. Nie musimy jej koniecznie usuwać, ale
-   warto to zauważyć.
+4. **Godzina w dacie.** ~~Zakładałem tu wcześniej, że to zawsze `00:00:00`~~
+   — poprawka po Sesji 1: w `CBF.WA.txt` to konsekwentnie `09:00:00`, nie
+   `00:00:00`. To i tak niepotrzebny balast w dacie — dane są dzienne,
+   godzina nic nie wnosi — ale warto mieć poprawny fakt, nie założenie.
 5. **Brak nazw kolumn.** Plik `.txt` nie mówi, że pierwsza wartość to data,
    a druga to cena — to wiesz tylko Ty, bo pisałeś program. Tabela powinna
    mieć nazwane kolumny.

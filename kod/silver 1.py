@@ -1,0 +1,10 @@
+import pandas as pd
+plik = pd.read_csv("companies/CBF.WA.txt", header = None, names = ["data", "cena"], skipinitialspace=True)
+print(plik.head())
+plik.info()
+print(plik.dtypes)
+plik["data"] = pd.to_datetime(plik["data"])
+plik["cena"] = pd.to_numeric(plik["cena"], errors="coerce")
+print(plik.dtypes)
+print(plik.isna().sum())
+print(plik.duplicated().sum())
