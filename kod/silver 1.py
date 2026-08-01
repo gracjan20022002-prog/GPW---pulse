@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 # plik = pd.read_csv("companies/CBF.WA.txt", header = None, names = ["data", "cena"], skipinitialspace=True)
 # print(plik.head())
 # plik.info()
@@ -8,11 +9,11 @@ import pandas as pd
 # print(plik.dtypes)
 # print(plik.isna().sum())
 # print(plik.duplicated().sum())
-
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ticker = ["CBF.WA", "XTB.WA", "SNT.WA"]
 dft = []
 for t in ticker:
-    df = pd.read_csv(f"companies/{t}.txt", header=None, names=["data", "cena"], skipinitialspace=True)
+    df = pd.read_csv(os.path.join(BASE_DIR, "companies", f"{t}.txt"), header=None, names=["data", "cena"], skipinitialspace=True)
     df["data"] = pd.to_datetime(df["data"])
     df["cena"] = pd.to_numeric(df["cena"], errors="coerce")
     df["spolka"] = t
@@ -24,3 +25,5 @@ dane = dane.sort_values(["spolka", "data"])
 print(dane.describe())
 print(dane.head(10))
 dane.to_csv("silver/clean_data.csv", index=False)
+print(dane.isna().sum())
+print(dane.duplicated().sum())

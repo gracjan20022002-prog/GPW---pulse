@@ -172,12 +172,41 @@ w stylu `Plan-01-bronze.md` (jedna nowa rzecz na sesję).
   `dane_czyste.csv` z planu). `index=False`, żeby nie dopisywać kolumny
   z numerami wierszy. Sprawdzone: plik istnieje, dane się zgadzają.
 
-**Do zrobienia (dokończenie Sesji 7, ten sam dzień, sesja jeszcze otwarta):**
-- `README.md` — dopisać sekcję o etapie Silver.
-- `git add` / `commit` / `push` — na razie nic nie scommitowane
-  (`CLAUDE.md`, `kod/silver 1.py` zmodyfikowane, `silver/` nieśledzony).
-- Dopiero po tym: zamknięcie etapu SILVER. Szczegóły w
-  `notatki/plany/Plan-02-silver.md`.
+**Zrobione (2026-08-01, dokończenie Sesji 7 — zamknięcie etapu SILVER):**
+- `README.md` zaktualizowany: sekcja o etapie Silver, `silver/` w strukturze,
+  `silver 1.py` w tabeli skryptów, format danych wyjściowych. Poprawione też
+  dwie stare nieścisłości: usunięty z tabeli nieistniejący już `Bronze.py`,
+  przykładowa godzina w danych `companies/` poprawiona na `09:00:00`.
+- Commit `768cf77` i push wykonane przez Gracjana — `git status` czysty,
+  `main` zsynchronizowany z `origin/main`.
+
+**Etap SILVER zamknięty.**
+
+**Zrobione (2026-08-01, dodatkowo — werdykt Silver + plan Gold):**
+- Na prośbę Gracjana sprawdzone (przez dwóch agentów Explore, bezpośrednio
+  na plikach i historii gita), czy etap SILVER jest w 100% kompletny.
+  Werdykt: **dane są w 100% czyste** (2250 wierszy = 750×3, zero braków,
+  zero duplikatów, zero cen ≤ 0 — sprawdzone wprost na `clean_data.csv`),
+  ale **proces ma dwie dziury**: (1) sprawdzenia `isna().sum()` /
+  `duplicated().sum()` z Sesji 3–4 istniały tylko na wersji
+  jednospółkowej (`plik`, CBF.WA) w commicie `c5f993f` — przy przepisaniu
+  na pętlę + `pd.concat` w commicie `768cf77` zostały zakomentowane razem
+  ze starym blokiem i nigdy nie odtworzone na finalnej tabeli `dane`;
+  (2) ścieżki nadal na sztywno, nie przez `BASE_DIR` (zauważone już
+  31.07, odłożone do "Sesji 7"). **Gracjan poprawił obie rzeczy od razu
+  tego samego dnia**, sam, w `kod/silver 1.py`: dodał `BASE_DIR` (wzorzec
+  z `Data ingestion 2.py`) i przywrócił `dane.isna().sum()` /
+  `dane.duplicated().sum()` na finalnej tabeli przed `to_csv`. Sprawdzone
+  uruchomieniem: oba wypisują zero.
+- Napisany szczegółowy plan etapu GOLD: `notatki/plany/Plan-03-gold.md`,
+  w tym samym stylu i szczegółowości co `Plan-02-silver.md` (siedem sesji,
+  „wielka nowa idea" = `groupby`, ściąga z przykładami na budce z lodami,
+  zakres zgodny z `Plan-ogolny.md`: zmiana procentowa, która spółka rosła
+  najszybciej, który miesiąc miał najwięcej wahań — bez wykresów, te są
+  w Etapie 4).
+
+**Do zrobienia:** Sesja 1 etapu GOLD — wczytanie `silver/clean_data.csv`
+w nowym pliku `kod/gold 1.py`. Szczegóły w `notatki/plany/Plan-03-gold.md`.
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
