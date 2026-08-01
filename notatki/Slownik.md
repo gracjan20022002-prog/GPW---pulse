@@ -120,6 +120,38 @@ Biblioteka do pracy z tabelami w Pythonie. *Excel sterowany kodem.*
 ### DataFrame
 Tabela w pandas. Wiersze i kolumny, jak arkusz.
 
+### Series
+Jedna kolumna z tabeli (albo jeden wiersz) w pandas, wyciągnięta pojedynczym nawiasem.
+*`tabela["cena"]` to Series — jedna kolumna cen, nie cała tabela.*
+
+### dtype
+Typ danych jednej kolumny w pandas — liczby, tekst albo daty. Cała kolumna ma zawsze jeden typ.
+*`.dtypes` pokazuje, że kolumna „cena" to `float64`, a „spolka" to tekst.*
+
+### NaN
+*Not a Number* — specjalna wartość pandas oznaczająca „tu nic nie ma". To nie to samo co zero albo pusty tekst.
+*Dzień bez ceny zamknięcia po nieudanej konwersji zamienia się w `NaN`, nie w `0`.*
+
+### Wektoryzacja
+Operacja na całej kolumnie naraz, zamiast na jednym elemencie po drugim w pętli `for`.
+*`tabela["cena"] * 2` mnoży od razu wszystkie ceny — bez pętli po każdym wierszu.*
+
+### groupby
+Podział tabeli na grupy i liczenie czegoś osobno w każdej grupie, bez pisania pętli samemu.
+*`tabela.groupby("spolka")["cena"].mean()` — średnia cena osobno dla każdej spółki, jedną linijką.*
+
+### pct_change
+Funkcja pandas liczącą zmianę procentową względem poprzedniego wiersza.
+*Cena wczoraj 100 zł, dziś 110 zł → `pct_change()` da `0.10`, czyli +10%.*
+
+### merge
+Sklejenie dwóch tabel obok siebie po wspólnej kolumnie. Inaczej niż `concat`, które skleja tabele jedna pod drugą.
+*Tabela z cenami spółek i tabela z ich sektorami, połączone po kolumnie „spolka" — każda spółka dostaje swój sektor w tym samym wierszu.*
+
+### Odchylenie standardowe
+Jedna liczba mówiąca, jak bardzo wartości „skaczą" wokół średniej. Duże odchylenie = duże wahania.
+*Miesiąc, w którym cena akcji codziennie mocno skakała w górę i w dół, ma wyższe odchylenie standardowe niż spokojny miesiąc.*
+
 ### Parquet
 Format zapisu tabel — mniejszy i szybszy niż CSV, ale nie otworzysz go w Notatniku.
 
@@ -193,6 +225,10 @@ Systemy, przez które spółki ogłaszają ważne wiadomości.
 
 ### Sesja
 Jeden dzień handlu. Na GPW od 9:00 do 17:00.
+
+### Zmienność / wolatylność
+Jak bardzo cena danej spółki waha się w krótkim czasie. Wysoka zmienność = duże, częste ruchy ceny w obie strony.
+*Mała, mało znana spółka potrafi zmienić się o kilkanaście procent w jeden dzień — to wysoka zmienność.*
 
 ---
 

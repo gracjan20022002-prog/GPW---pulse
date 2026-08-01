@@ -8,7 +8,8 @@ ticker = ["CBF.WA", "XTB.WA", "SNT.WA"]
 logging.basicConfig(
     filename = os.path.join(BASE_DIR, "companies", "errors.log"),
     level = logging.ERROR,
-    format = "%(asctime)s - %(levelname)s - %(message)s"
+    format = "%(asctime)s - %(levelname)s - %(message)s",
+    encoding = "utf-8"
 )
 for tick in ticker:
     try:
