@@ -149,10 +149,35 @@ w stylu `Plan-01-bronze.md` (jedna nowa rzecz na sesję).
   nie przez `BASE_DIR` jak `test_plikow.py` — działa tylko przy odpaleniu
   z folderu głównego repo. Do rozważenia przy porządkach w Sesji 7 Silver.
 
-**Do zrobienia:** Sesja 5 etapu SILVER — wczytanie trzech plików spółek w
-pętli, dodanie kolumny `spolka` do każdej tabeli, połączenie przez
-`pd.concat([...], ignore_index=True)`. Szczegóły w
-`notatki/plany/Plan-02-silver.md`.
+**Zrobione (2026-08-01, Sesje 5–6 etapu SILVER):**
+- Sesja 5: w `kod/silver 1.py` — pętla `for t in ticker:` po trzech
+  spółkach, wczytanie każdego pliku przez f-string (`f"companies/{t}.txt"`),
+  naprawa typów jak w Sesji 1–2, dodanie kolumny `df["spolka"] = t`,
+  zbieranie tabel w liście przez `.append()`, połączenie przez
+  `pd.concat(dft, ignore_index=True)`. Wynik: `dane.shape` → `(2250, 3)`,
+  `dane["spolka"].unique()` → `['CBF.WA', 'XTB.WA', 'SNT.WA']`.
+- Po drodze poprawione: brak `errors="coerce"` w pętli (niespójność z
+  górnym blokiem), i przypadkowe zakomentowanie `import pandas as pd` przy
+  zamianie górnego bloku (Sesje 1–4) na komentarz-dokumentację —
+  `NameError: name 'pd' is not defined`, poprawione.
+- Sesja 6: `dane.sort_values(["spolka", "data"])` (sortowanie po dwóch
+  kolumnach — grupowanie po spółce, potem chronologicznie), `dane.describe()`
+  jako test sensowności (`cena` min `29.62`, max `394.00`, bez zer/ujemnych).
+  Zauważone: `.describe()` liczy też `data`, `std` dla dat wychodzi `NaN` —
+  normalne zachowanie pandas, nic do naprawiania.
+
+**Zrobione (2026-08-01, Sesja 7 etapu SILVER — część 1):**
+- `dane.to_csv("silver/clean_data.csv", index=False)` — nowy folder
+  `silver/`, plik `clean_data.csv` (własna nazwa, zamiast roboczej
+  `dane_czyste.csv` z planu). `index=False`, żeby nie dopisywać kolumny
+  z numerami wierszy. Sprawdzone: plik istnieje, dane się zgadzają.
+
+**Do zrobienia (dokończenie Sesji 7, ten sam dzień, sesja jeszcze otwarta):**
+- `README.md` — dopisać sekcję o etapie Silver.
+- `git add` / `commit` / `push` — na razie nic nie scommitowane
+  (`CLAUDE.md`, `kod/silver 1.py` zmodyfikowane, `silver/` nieśledzony).
+- Dopiero po tym: zamknięcie etapu SILVER. Szczegóły w
+  `notatki/plany/Plan-02-silver.md`.
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję

@@ -7,6 +7,11 @@ Projekt nauki data engineeringu — pobieranie i przetwarzanie danych giełdowyc
 trzech spółek GPW (CBF, XTB, SNT) z Yahoo Finance za ostatnie 3 lata, zapisuje
 je na dysk i sam sprawdza, czy zapisane dane są poprawne.
 
+**Etap SILVER (czyszczenie danych, `pandas`):** w trakcie. Trzy osobne pliki
+spółek są wczytywane, naprawiane (typy danych), sprawdzane pod kątem braków
+i duplikatów, łączone w jedną tabelę, sortowane i zapisywane jako jeden
+czysty plik: `silver/clean_data.csv`.
+
 ---
 
 ## Struktura folderu
@@ -15,6 +20,7 @@ je na dysk i sam sprawdza, czy zapisane dane są poprawne.
 |---|---|
 | **kod/** | skrypty Pythona projektu (patrz tabela niżej) |
 | **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) + `errors.log` |
+| **silver/** | wynik etapu Silver — jedna czysta tabela ze wszystkich spółek (`clean_data.csv`) |
 | **notatki/** | notatki do nauki i projektu (patrz niżej) |
 | **CLAUDE.md** | zasady pracy z asystentem nad tym projektem |
 
@@ -24,16 +30,25 @@ je na dysk i sam sprawdza, czy zapisane dane są poprawne.
 |---|---|
 | `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`) |
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
-| `Bronze.py`, `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
+| `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
+| `silver 1.py` | Etap Silver — wczytuje trzy pliki spółek (`pandas`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, łączy w jedną tabelę (`pd.concat`), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
 
 ### Dane w `companies/`
 
 Jeden plik `.txt` na spółkę, jeden wiersz na dzień notowania:
 ```
-2023-07-24 00:00:00, 12.34
+2023-07-24 09:00:00, 12.34
 ```
 `errors.log` zbiera błędy pobierania (np. nieistniejący ticker) — nie trafia
 na GitHub (patrz `.gitignore`).
+
+### Dane w `silver/`
+
+Jedna tabela, wszystkie trzy spółki razem, z nagłówkiem:
+```
+data,cena,spolka
+2023-07-24 09:00:00,78.800003,CBF.WA
+```
 
 ---
 
