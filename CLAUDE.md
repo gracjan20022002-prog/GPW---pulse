@@ -26,7 +26,7 @@ Nigdy nie zbudował całego programu od początku do końca.
 Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
 `https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap BRONZE ukończony (Sesja 1–7). Następny etap: SILVER (czyszczenie danych, `pandas`).**
+**Etap BRONZE i SILVER ukończone. Etap GOLD w toku (Sesje 1–3 z 7 zrobione).**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
@@ -205,8 +205,64 @@ w stylu `Plan-01-bronze.md` (jedna nowa rzecz na sesję).
   najszybciej, który miesiąc miał najwięcej wahań — bez wykresów, te są
   w Etapie 4).
 
-**Do zrobienia:** Sesja 1 etapu GOLD — wczytanie `silver/clean_data.csv`
-w nowym pliku `kod/gold 1.py`. Szczegóły w `notatki/plany/Plan-03-gold.md`.
+**Zrobione (2026-08-01, dodatkowo — porządki przed startem Gold):**
+- Słownik (`notatki/Slownik.md`) domknięty (na prośbę Gracjana, wpisy
+  napisał Claude): zaległe z Silver (`Series`, `dtype`, `NaN`,
+  wektoryzacja) i nowe z Gold (`groupby`, `pct_change`, `merge`,
+  odchylenie standardowe, zmienność/wolatylność).
+- Bug znaleziony w `kod/Data ingestion 2.py`: `logging.basicConfig()` bez
+  `encoding="utf-8"` psuł polskie znaki w `companies/errors.log`. Gracjan
+  poprawił sam; po drodze brakujący przecinek (`SyntaxError`), złapany
+  przez `python -m py_compile` (bezpieczne — sama składnia, bez
+  uruchamiania pobierania i bez ruszania `companies/*.txt`). Poprawione.
+- Commit `67e5644`, push — `git status` czysty.
+
+**Zrobione (2026-08-03, Sesje 1–3 etapu GOLD):**
+- Nowy plik `kod/gold 1.py`. Sesja 1: wczytanie `silver/clean_data.csv` przez
+  `pd.read_csv(...)` (z `BASE_DIR`). Po drodze poprawione dwa błędy
+  w parametrach, skopiowanych z Silver (tam plik surowy, bez nagłówka,
+  2 kolumny): (1) `header=None, names=["data","cena"]` na pliku, który **ma**
+  już nagłówek i **3** kolumny (`data,cena,spolka`) — nagłówek wpadał jako
+  wiersz danych, trzecia kolumna się gubiła; (2) nawet po usunięciu
+  `header=None`, samo podanie `names=` bez jawnego `header=` dalej zachowuje
+  się jak `header=None` — udokumentowana, nieoczywista cecha pandas.
+  Ostateczne rozwiązanie: `pd.read_csv(...)` bez `names=` w ogóle, bo plik
+  już ma właściwe nazwy kolumn w nagłówku. Sprawdzone: `gold.shape` →
+  `(2250, 3)`, `dtypes` przed konwersją pokazuje `data` jako tekst (u
+  Gracjana pandas nazywa to `str`, nowsze wersje biblioteki inaczej niż
+  starsze `object` — ta sama koncepcja), po `pd.to_datetime()` →
+  `datetime64[us]`.
+- Sesja 2: `gold["zmiana_proc"] = gold.groupby("spolka")["cena"].pct_change()
+  * 100` — dzienna zmiana procentowa, liczona osobno w każdej spółce (żeby
+  nie było fałszywej "zmiany" na granicy dwóch spółek sklejonych przez
+  `concat` z Silver). Po drodze poprawiony poważniejszy błąd: pierwsza wersja
+  przypadkiem nadpisywała kolumnę `cena` wynikiem `pct_change()` zamiast
+  zapisać go w nowej kolumnie — oryginalne ceny by zniknęły, a są potrzebne
+  w Sesji 3. Sprawdzone na granicy CBF.WA/SNT.WA (`gold.iloc[748:753]`):
+  pierwszy wiersz każdej spółki ma `NaN`, reszta wartości zgodna
+  matematycznie.
+- Sesja 3: `gold.groupby("spolka")["cena"].agg(["first", "last"])
+  .reset_index()` — pierwsza i ostatnia cena na spółkę (nowość:
+  `.agg([...])` liczy kilka podsumowań na grupę naraz; `.reset_index()`
+  przywraca `spolka` z indeksu na zwykłą kolumnę), plus nowa kolumna
+  z całkowitą zmianą procentową `(last - first) / first * 100` (nawias
+  wokół różnicy obowiązkowy — bez niego kolejność działań w Pythonie
+  policzyłaby dzielenie przed odejmowaniem). Po drodze kilka błędów: wynik
+  `agg`/`reset_index()` najpierw tylko wypisywany, nigdzie niezapisany (ten
+  sam wzorzec co w Sesji 2 z `pct_change`); próba zapisania wyniku do pustej
+  listy zamiast tabeli; odwołania do kolumn `first`/`last` zrobione przez
+  pomyłkę na `gold` zamiast na nowej, osobnej tabeli (3 wiersze, nie 2250);
+  `sort_values` bez `by=`. Finalny wynik, posortowany malejąco: **SNT.WA**
+  70,80→360,00 zł (**+408,47%**), **XTB.WA** 40,02→137,00 zł (**+242,33%**),
+  **CBF.WA** 78,80→192,50 zł (**+144,29%**) — zgodne z tym, co plan
+  zapowiadał o dużej zmienności SNT.WA.
+- Nazewnictwo kolumn miejscami odbiega od planu — świadomy wybór Gracjana:
+  `roznica` zamiast `zmiana_calkowita_proc` w Sesji 3 (ta tabela w planie
+  nazywa się `wzrost` — do pamiętania w Sesji 6 przy `merge`).
+- `kod/gold 1.py` jeszcze niezacommitowany na koniec dnia.
+
+**Do zrobienia:** Sesja 4 etapu GOLD — wyciąganie miesiąca z kolumny `data`
+(`dt.to_period("M")`). Szczegóły w `notatki/plany/Plan-03-gold.md`.
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
