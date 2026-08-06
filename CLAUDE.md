@@ -26,7 +26,8 @@ Nigdy nie zbudował całego programu od początku do końca.
 Repo robocze: folder lokalny `GPW - pulse`, połączony z repozytorium na GitHubie:
 `https://github.com/gracjan20022002-prog/GPW---pulse`.
 Stare repo `gpw-pulse` zostaje tylko jako podgląd.
-**Etap BRONZE i SILVER ukończone. Etap GOLD w toku (Sesje 1–3 z 7 zrobione).**
+**Etap BRONZE i SILVER ukończone. Etap GOLD — Sesje 1–7 z 7 zrobione, dane
+zapisane w `gold/`; commit i push jeszcze do wykonania (patrz „Do zrobienia").**
 
 **Zrobione (2026-07-22):**
 - `.venv` utworzone lokalnie, `requests` zainstalowany.
@@ -261,8 +262,88 @@ w stylu `Plan-01-bronze.md` (jedna nowa rzecz na sesję).
   nazywa się `wzrost` — do pamiętania w Sesji 6 przy `merge`).
 - `kod/gold 1.py` jeszcze niezacommitowany na koniec dnia.
 
-**Do zrobienia:** Sesja 4 etapu GOLD — wyciąganie miesiąca z kolumny `data`
-(`dt.to_period("M")`). Szczegóły w `notatki/plany/Plan-03-gold.md`.
+**Zrobione (2026-08-06, Sesje 4–7 etapu GOLD — zapis wyników):**
+- Sesja 4: `gold["max_zmienny_miesiac"] = gold["data"].dt.to_period("M")` —
+  miesiąc wyciągnięty z daty przez akcesor `.dt`. Sprawdzone: `nunique()`
+  dało **37**, nie ~36 jak zakładał pierwszy szacunek (3 lata × 12) — zakres
+  dat zaczyna i kończy się w połowie lipca (24.07.2023–24.07.2026), nie na
+  granicy roku: 6 miesięcy z 2023 + 12 z 2024 + 12 z 2025 + 7 z 2026 = 37.
+  Nie błąd, tylko dokładniejsze liczenie zakresu.
+- Sesja 5: `zmiana_msc = gold.groupby(["spolka", "max_zmienny_miesiac"])
+  ["zmiana_proc"].std().reset_index().sort_values(by="zmiana_proc",
+  ascending=False)` — odchylenie standardowe dziennej zmiany, osobno dla
+  każdej pary spółka+miesiąc. Po drodze trzy błędy: (1) `sort_values()`
+  policzone i nigdzie niezapisane — ten sam wzorzec „policzone i zapomniane"
+  co w Sesji 2–3; (2) `sort_values(by=...)` wywołane na Series (przed
+  `.reset_index()`) — `by=` istnieje tylko dla DataFrame, Series ma jeden
+  zestaw wartości i nie trzeba mu mówić, po czym sortować; poprawiona
+  kolejność: `.std()` → `.reset_index()` → `.sort_values(by=...)`;
+  (3) przypadkowe `.head(1)` wsadzone w środek tej linii (między wybraniem
+  kolumny a `.std()`) — dawało jedną liczbę (`numpy.float64`) na całą
+  tabelę zamiast wyniku na grupę, stąd `AttributeError: 'numpy.float64'
+  object has no attribute 'reset_index'`.
+- Wyjaśnione przy tej okazji: `pct_change()` zachowuje kształt tabeli (tyle
+  samo wierszy), `.std()` po `groupby` go zwija (jeden wiersz na grupę) —
+  wyniku takiej operacji nie da się wsadzić jako nowej kolumny do `gold`
+  (2250 wierszy vs ~111 grup spółka+miesiąc), długości się nie zgadzają.
+- Sesja 6: `sp_rank = zmiana_msc.groupby("spolka").head(1).merge(calk_zmiana,
+  on="spolka")` — wybranie najbardziej zmiennego miesiąca każdej spółki
+  (tabela już posortowana, więc pierwszy wiersz w grupie = rekord) i
+  sklejenie z tabelą z Sesji 3. Po drodze błędy: `.groupby(...).head(1)`
+  wywołane na `gold` (surowe dane dzienne) zamiast na `zmiana_msc`; `.merge()`
+  wywołane z dwiema tabelami podanymi jako tekst w cudzysłowie, zamiast
+  jedną prawdziwą tabelą jako argumentem.
+- Sesja 7 — nazewnictwo i decyzja o strukturze: długa dyskusja, czy końcowa
+  tabela ma sens dla osoby z zewnątrz. Rozważone i odrzucone: jedna wielka
+  tabela ze wszystkim naraz; tabela z wszystkimi wierszami + flaga przez
+  `.transform("max")` (rozsmarowanie maksimum grupy na każdy wiersz, bez
+  zwijania — inne niż `.agg()`/`.std()`). **Decyzja: dwie końcowe tabele** —
+  dzienna (`gold`: cena + zmiana % dzień po dniu) i podsumowująca (`sp_rank`:
+  jeden wiersz na spółkę) — czyli to, co już zakładał `Plan-03-gold.md`.
+- Kolumny w `calk_zmiana` przemianowane: `first`/`last`→`pierwsza_cena`/
+  `ostatnia_cena`, `calk_roznica`→`zmiana_caly_okres`. Kolumna `zmiana_proc`
+  w `zmiana_msc` (odchylenie miesięczne) **świadomie zostawiona** pod tą
+  samą nazwą co dzienna `zmiana_proc` w `gold` — Gracjan zdecydował się nie
+  zmieniać, mimo znanej kolizji nazw (dwa różne znaczenia, jedna nazwa).
+- Błędy przy `.rename()`/`.agg()` po drodze: (1) `.agg(["cena_pocz",
+  "cena_konc"])` — nieprawidłowe, `.agg([...])` przyjmuje tylko prawdziwe
+  nazwy funkcji (`"first"`, `"last"`), własne nazwy nadaje się później przez
+  `.rename()`; (2) `.rename(columns={"first":...})` wywołane na `zmiana_msc`,
+  gdzie te kolumny w ogóle nie istnieją — pandas po cichu ignoruje
+  niedopasowane nazwy (bez błędu), więc nic się nie zmieniało; (3) wynik
+  `.rename()` na `calk_zmiana` policzony, ale nieprzypisany z powrotem do
+  zmiennej — kolejne „policzone i zapomniane".
+- Rozważone i **odłożone na później** (nie zrobione teraz, żeby domknąć
+  zapis): różnica ceny w złotówkach (`ostatnia_cena - pierwsza_cena`) i
+  najbardziej zmienny **pojedynczy dzień** (nie tylko miesiąc). Do tego
+  wprowadzona koncepcja `.idxmax()` (numer wiersza z maksimum w grupie, nie
+  sama wartość) + `.loc[]` (wyciągnięcie całego wiersza po tym numerze) —
+  jeszcze niezaimplementowane.
+- Poprawione ścieżki zapisu w `gold 1.py`: brak `BASE_DIR` w dwóch liniach
+  `.to_csv()` na końcu pliku, a potem źle domknięty nawias — `index=False`
+  wpadło do wnętrza `os.path.join(...)` zamiast być osobnym argumentem
+  `.to_csv()` (`os.path.join()` nie ma parametru `index`, stąd `TypeError`).
+- **Zapisane pliki:** `gold/dane_dzienne.csv` (pełna tabela dzienna, 2250
+  wierszy) i `gold/ranking.csv` (`sp_rank`, 3 wiersze — jeden na spółkę;
+  kolumny: `spolka`, `max_zmienny_miesiac`, `zmiana_proc` [odchylenie w tym
+  miesiącu], `pierwsza_cena`, `ostatnia_cena`, `zmiana_caly_okres`). Wartości
+  `zmiana_caly_okres` niezmienione względem Sesji 3 (rename nie zmienia
+  danych): SNT.WA **+408,47%**, XTB.WA **+242,33%**, CBF.WA **+144,29%**.
+- Po drodze też naprawiony `kod/silver 1.py`: `.to_csv("silver/clean_data.csv"...)`
+  używał ścieżki względnej — dokończone użycie `BASE_DIR` (wzorzec
+  wprowadzony do tego pliku 01.08, ale wtedy nie doprowadzony do tej
+  konkretnej linii zapisu) na `os.path.join(BASE_DIR, "silver",
+  "clean_data.csv")`.
+- Drobna, niepilna uwaga zauważona w `silver 1.py`: `dane.isna().sum()` /
+  `dane.duplicated().sum()` wykonują się **po** `.to_csv()`, nie przed —
+  nie psuje danych (to tylko odczyt), ale sens tych sprawdzeń to złapanie
+  problemu przed zapisem, nie po. Nieporuszane teraz, do rozważenia później.
+
+**Do zrobienia:** commit i push zmian z dzisiejszej sesji (`kod/gold 1.py`,
+`kod/silver 1.py`, nowe pliki `gold/dane_dzienne.csv`, `gold/ranking.csv`) —
+to zamknie etap GOLD. Opcjonalnie później: różnica ceny w zł i najbardziej
+zmienny dzień w `sp_rank` (`.idxmax()` + `.loc[]`, patrz wyżej); aktualizacja
+`README.md` o etap Gold (jeszcze nie zrobiona).
 
 **Ważna zasada pracy (potwierdzona 2026-07-22):** Gracjan robi **wszystko sam** —
 nie tylko kod Pythona, ale też komendy gita i terminala. Ja tłumaczę i podaję
