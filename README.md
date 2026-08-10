@@ -18,9 +18,10 @@ całkowita zmiana procentowa za cały okres i miesiąc z największymi wahaniami
 cen. Wynik to dwa pliki: `gold/dane_dzienne.csv` (pełne dane dzienne ze
 wskaźnikami) i `gold/ranking.csv` (podsumowanie — jeden wiersz na spółkę).
 
-**Etap 4 (pokazanie wyniku):** w toku. Wykresy — najpierw w Pythonie
-(`matplotlib`), potem bardziej profesjonalnie w Power BI — start nauki
-automatyzacji pobierania danych i dalsza rozbudowa projektu pod portfolio.
+**Etap 4 (pokazanie wyniku):** w toku. Część A (wykresy w Pythonie,
+`matplotlib`) ukończona — patrz `wykresy/` niżej. Dalej: wykresy bardziej
+profesjonalnie w Power BI, start nauki automatyzacji pobierania danych,
+dalsza rozbudowa projektu pod portfolio.
 Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
 
 ---
@@ -33,6 +34,7 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 | **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) + `errors.log` |
 | **silver/** | wynik etapu Silver — jedna czysta tabela ze wszystkich spółek (`clean_data.csv`) |
 | **gold/** | wynik etapu Gold — dzienne dane ze wskaźnikami (`dane_dzienne.csv`) i ranking spółek (`ranking.csv`) |
+| **wykresy/** | wykresy z Etapu 4, Część A (Python/`matplotlib`) — pliki `.png` |
 | **notatki/** | notatki do nauki i projektu (patrz niżej) |
 | **CLAUDE.md** | zasady pracy z asystentem nad tym projektem |
 
@@ -45,6 +47,8 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 | `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
 | `silver 1.py` | Etap Silver — wczytuje trzy pliki spółek (`pandas`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, łączy w jedną tabelę (`pd.concat`), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
 | `gold 1.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` |
+| `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
+| `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
 
 ### Dane w `companies/`
 
@@ -82,6 +86,16 @@ standardowe:
 spolka,max_zmienny_miesiac,zmiana_proc,pierwsza_cena,ostatnia_cena,zmiana_caly_okres
 SNT.WA,2025-06,4.086839,70.800003,360.0,408.474554
 ```
+
+### Wyniki w `wykresy/`
+
+Dwa wykresy z Części A Etapu 4, wygenerowane przez `kod/wykresy.py` i
+`kod/ranking.py`:
+
+- `wykres3spolek.png` — cena wszystkich trzech spółek w czasie, jedna linia
+  na spółkę, z legendą.
+- `ranking.png` — wykres słupkowy: całkowita zmiana procentowa każdej
+  spółki za cały okres (24.07.2023–24.07.2026).
 
 ---
 

@@ -6,10 +6,11 @@ Gracjan, uczy się data engineeringu. GitHub: `gracjan20022002-prog`.
 
 **Zna:** `if/else`, pętle `for`, listy, słowniki, funkcje `def` z typami,
 `try/except`, `logging`, `requests` i API, zapis do plików, list comprehensions,
-`lambda`/`map`/`filter`/`zip`, pandas w praktyce (Bronze/Silver/Gold ukończone).
+`lambda`/`map`/`filter`/`zip`, pandas w praktyce (Bronze/Silver/Gold ukończone),
+podstawy `matplotlib` (`plot`, `bar`, `savefig`, formatowanie osi).
 
-**Nie zna jeszcze:** klas, testów jednostkowych, wykresów, narzędzi BI
-(Power BI/Databricks), automatyzacji/harmonogramów.
+**Nie zna jeszcze:** klas, testów jednostkowych, narzędzi BI (Power BI/
+Databricks), automatyzacji/harmonogramów.
 
 ## Zasady — obowiązkowe
 
@@ -32,11 +33,12 @@ Repo: folder `GPW - pulse`, GitHub: `github.com/gracjan20022002-prog/GPW---pulse
 `gold/`. Pełna historia sesji: dziennik (`notatki/dziennik/`, lokalnie) i
 `README.md` (na GitHubie).
 
-**W toku: Etap 4.** Zakres (rozbudowany na życzenie Gracjana, rośnie na
-bieżąco): wykresy — najpierw Python/matplotlib, potem bardziej profesjonalnie
-w Power BI; wstęp do automatyzacji pobierania danych (codziennie/co tydzień);
-rozbudowa projektu pod portfolio. Databricks — osobny, późniejszy krok, nie
-część Etapu 4. Plan: `notatki/plany/Plan-04-pokazanie-wyniku.md`.
+**W toku: Etap 4** (plan żywy, rośnie na bieżąco:
+`notatki/plany/Plan-04-pokazanie-wyniku.md`). **Część A (wykresy w Pythonie,
+`matplotlib`) ukończona** — `kod/wykresy.py`, `kod/ranking.py`, wynik
+w `wykresy/`. Dalej: Część B (Power BI), Część C (wstęp do automatyzacji
+pobierania danych), Część D (domknięcie pod portfolio). Databricks — osobny,
+późniejszy krok, nie część Etapu 4.
 
 ## Gdzie co jest
 
