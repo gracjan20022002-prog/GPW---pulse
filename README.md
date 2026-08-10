@@ -7,10 +7,21 @@ Projekt nauki data engineeringu — pobieranie i przetwarzanie danych giełdowyc
 trzech spółek GPW (CBF, XTB, SNT) z Yahoo Finance za ostatnie 3 lata, zapisuje
 je na dysk i sam sprawdza, czy zapisane dane są poprawne.
 
-**Etap SILVER (czyszczenie danych, `pandas`):** w trakcie. Trzy osobne pliki
+**Etap SILVER (czyszczenie danych, `pandas`):** ukończony. Trzy osobne pliki
 spółek są wczytywane, naprawiane (typy danych), sprawdzane pod kątem braków
 i duplikatów, łączone w jedną tabelę, sortowane i zapisywane jako jeden
 czysty plik: `silver/clean_data.csv`.
+
+**Etap GOLD (liczenie wskaźników, `pandas`):** ukończony. Z czystej tabeli
+liczona jest dzienna zmiana procentowa ceny (osobno dla każdej spółki),
+całkowita zmiana procentowa za cały okres i miesiąc z największymi wahaniami
+cen. Wynik to dwa pliki: `gold/dane_dzienne.csv` (pełne dane dzienne ze
+wskaźnikami) i `gold/ranking.csv` (podsumowanie — jeden wiersz na spółkę).
+
+**Etap 4 (pokazanie wyniku):** w toku. Wykresy — najpierw w Pythonie
+(`matplotlib`), potem bardziej profesjonalnie w Power BI — start nauki
+automatyzacji pobierania danych i dalsza rozbudowa projektu pod portfolio.
+Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
 
 ---
 
@@ -21,6 +32,7 @@ czysty plik: `silver/clean_data.csv`.
 | **kod/** | skrypty Pythona projektu (patrz tabela niżej) |
 | **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) + `errors.log` |
 | **silver/** | wynik etapu Silver — jedna czysta tabela ze wszystkich spółek (`clean_data.csv`) |
+| **gold/** | wynik etapu Gold — dzienne dane ze wskaźnikami (`dane_dzienne.csv`) i ranking spółek (`ranking.csv`) |
 | **notatki/** | notatki do nauki i projektu (patrz niżej) |
 | **CLAUDE.md** | zasady pracy z asystentem nad tym projektem |
 
@@ -32,6 +44,7 @@ czysty plik: `silver/clean_data.csv`.
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
 | `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
 | `silver 1.py` | Etap Silver — wczytuje trzy pliki spółek (`pandas`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, łączy w jedną tabelę (`pd.concat`), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
+| `gold 1.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` |
 
 ### Dane w `companies/`
 
@@ -48,6 +61,26 @@ Jedna tabela, wszystkie trzy spółki razem, z nagłówkiem:
 ```
 data,cena,spolka
 2023-07-24 09:00:00,78.800003,CBF.WA
+```
+
+### Dane w `gold/`
+
+Dwa pliki, wynik etapu Gold.
+
+`dane_dzienne.csv` — pełna tabela dzienna (2250 wierszy), ta sama co
+w `silver/`, plus dzienna zmiana procentowa i miesiąc (pierwszy dzień każdej
+spółki ma pusty `zmiana_proc` — nie ma dnia wcześniej, z czym porównać):
+```
+data,cena,spolka,zmiana_proc,max_zmienny_miesiac
+2023-07-24 09:00:00,78.800003,CBF.WA,,2023-07
+```
+
+`ranking.csv` — podsumowanie, jeden wiersz na spółkę: pierwsza i ostatnia
+cena, zmiana za cały okres, najbardziej zmienny miesiąc i jego odchylenie
+standardowe:
+```
+spolka,max_zmienny_miesiac,zmiana_proc,pierwsza_cena,ostatnia_cena,zmiana_caly_okres
+SNT.WA,2025-06,4.086839,70.800003,360.0,408.474554
 ```
 
 ---
@@ -75,7 +108,7 @@ data,cena,spolka
 
 1. [[Plan-ogolny]] — zobacz całość projektu
 2. [[Codzienna-rutyna]] — przejdź część A, jednorazową
-3. [[Plan-01-bronze]] — sesja 1 czeka
+3. [[Plan-04-pokazanie-wyniku]] — Etap 4, aktualnie w toku
 4. [[Slownik]] — zaglądaj, gdy spotkasz nieznane słowo
 
 ---
@@ -102,6 +135,9 @@ Napisz `[[Slownik]]`, a Obsidian sam zrobi odnośnik.
 
 - [[Plan-ogolny]]
 - [[Plan-01-bronze]]
+- [[Plan-02-silver]]
+- [[Plan-03-gold]]
+- [[Plan-04-pokazanie-wyniku]]
 - [[Codzienna-rutyna]]
 - [[Stare-repo-co-to-bylo]]
 - [[Slownik]]

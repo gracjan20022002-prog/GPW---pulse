@@ -82,12 +82,17 @@ w którym miesiącu było najwięcej wahań.
 
 *Efekt: tabela z gotowymi odpowiedziami, nie z surowymi liczbami.*
 
-### Etap 4 — Pokazanie wyniku (3 dni)
+### Etap 4 — Pokazanie wyniku (3 dni ~~— nieaktualne~~, patrz niżej)
 
 Wykres i krótki opis. Plus porządny plik `README` na GitHubie —
 to pierwsza rzecz, którą zobaczy pracodawca.
 
 *Efekt: projekt, który da się pokazać.*
+
+**Aktualizacja 2026-08-10:** zakres tego etapu rozszerzony na prośbę
+Gracjana — wykresy w Pythonie i Power BI, wstęp do automatyzacji, ogólna
+rozbudowa pod portfolio. Realistyczny czas: ok. 3 tygodnie, nie 3 dni.
+Szczegóły: [[Plan-04-pokazanie-wyniku]].
 
 ---
 
