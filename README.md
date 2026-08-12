@@ -19,9 +19,15 @@ cen. Wynik to dwa pliki: `gold/dane_dzienne.csv` (pełne dane dzienne ze
 wskaźnikami) i `gold/ranking.csv` (podsumowanie — jeden wiersz na spółkę).
 
 **Etap 4 (pokazanie wyniku):** w toku. Część A (wykresy w Pythonie,
-`matplotlib`) ukończona — patrz `wykresy/` niżej. Dalej: wykresy bardziej
-profesjonalnie w Power BI, start nauki automatyzacji pobierania danych,
-dalsza rozbudowa projektu pod portfolio.
+`matplotlib`) ukończona — patrz `wykresy/` niżej. Część B (dashboard
+w Power BI — wykres liniowy, wykres słupkowy, filtr) zbudowana, plik
+`wykresy/PowerBi_do_dopracowania.pbix`; stylizacja i eksport/publikacja
+odłożone na później. Część C (wstęp do automatyzacji): pipeline
+uruchamiany ręcznie potwierdzony, `Data ingestion 2.py` podpięty pod
+Harmonogram zadań Windows (codziennie); docelowo cały pipeline ma zostać
+przeniesiony na Databricks krok po kroku, na razie zostaje lokalnie.
+Dalej: dokończenie Części C (pełny łańcuch przez `.bat`), Część D —
+rozbudowa projektu pod portfolio.
 Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
 
 ---
@@ -34,7 +40,7 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 | **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) + `errors.log` |
 | **silver/** | wynik etapu Silver — jedna czysta tabela ze wszystkich spółek (`clean_data.csv`) |
 | **gold/** | wynik etapu Gold — dzienne dane ze wskaźnikami (`dane_dzienne.csv`) i ranking spółek (`ranking.csv`) |
-| **wykresy/** | wykresy z Etapu 4, Część A (Python/`matplotlib`) — pliki `.png` |
+| **wykresy/** | wykresy z Etapu 4, Część A (Python/`matplotlib`) — pliki `.png`; Część B — dashboard Power BI (`PowerBi_do_dopracowania.pbix`) |
 | **notatki/** | notatki do nauki i projektu (patrz niżej) |
 | **CLAUDE.md** | zasady pracy z asystentem nad tym projektem |
 
@@ -49,6 +55,7 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 | `gold 1.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
+| `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |
 
 ### Dane w `companies/`
 
