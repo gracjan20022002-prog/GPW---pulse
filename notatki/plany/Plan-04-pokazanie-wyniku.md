@@ -361,6 +361,25 @@ modyfikacji plików w `companies/`.
 **Skąd wiesz, że gotowe:** harmonogram uruchomił prawdziwy skrypt
 samodzielnie przynajmniej raz — widać to po dacie modyfikacji plików.
 
+**Stan (zapisane w trakcie sesji):** wyzwalacz ustawiony — codziennie
+o 10:25, na razie tylko jedno ogniwo (`Data ingestion 2.py`). Zapisane,
+weryfikacja czy faktycznie odpaliło się samo — dopiero następnego dnia
+(nie sprawdzane tego samego dnia, w którym ustawiono).
+
+---
+
+### Zaległość do zrobienia koniecznie: cały pipeline jednym zadaniem (`.bat`)
+
+Na razie Harmonogram uruchamia tylko `Data ingestion 2.py`. `silver 1.py`
+i `gold 1.py` wciąż trzeba odpalać ręcznie. Docelowo: napisać
+`pipeline.bat`, który wywoła po kolei `Data ingestion 2.py` →
+`silver 1.py` → `gold 1.py` (pełne ścieżki do `python.exe` z `.venv` +
+skryptu w każdej linijce), i podpiąć Harmonogram pod ten `.bat` zamiast
+pod pojedynczy skrypt. Mechanizm już wytłumaczony Gracjanowi (czym jest
+`.bat`, dlaczego `cmd` czeka na koniec jednego kroku przed startem
+następnego, pułapka: `.bat` domyślnie **nie zatrzymuje się** sam po
+błędzie) — kod pisze Gracjan sam, gdy do tego dojdzie.
+
 ---
 
 # Część D — Domknięcie: portfolio
@@ -416,9 +435,19 @@ Gracjana, nie poślizg).
 ## Gdzie zapisać wynik
 
 - `wykresy/` — nowy folder, pliki `.png` z Części A.
-- Plik Power BI (`.pbix`) z Części B — gdzie dokładnie (w repo czy poza
-  nim) do ustalenia przy Sesji B1, kiedy będzie wiadomo, ile waży.
+- Plik Power BI (`.pbix`) z Części B — zapisany w repo,
+  `wykresy/PowerBi_do_dopracowania.pbix`.
 - `notatki/Wnioski.md` — opis wniosków z Sesji D2.
+
+## Decyzja: stylizacja i publikacja Power BI odłożone
+
+Sesje B1–B3 zrobione (import danych, wykres liniowy, dashboard z wykresem
+słupkowym i fragmentatorem). Gracjan chciał jeszcze: zmienić tło, dodać
+więcej wykresów, warunkowe kolory na słupkach — ale zdecydował to odłożyć,
+bo na razie mniej ważne niż reszta Etapu 4. Sesja B4 (eksport/publikacja)
+też odłożona. Plik `.pbix` zapisany, dashboard działa — wracamy do
+stylizacji/eksportu ewentualnie przy Części D (porządki pod portfolio) albo
+później, jeśli Gracjan zechce.
 
 ---
 
@@ -426,7 +455,14 @@ Gracjana, nie poślizg).
 
 - ❌ Databricks — osobny, późniejszy krok (to migracja całego pipeline'u
   do chmury, nie wykres — już był na liście „co dalej po miesiącu"
-  w `Plan-ogolny.md`).
+  w `Plan-ogolny.md`). Doprecyzowane w Sesji C3: Gracjan sprawdzał, czy
+  darmowy Databricks Free Edition daje radę (ma harmonogramy zadań, ale
+  ograniczony, niepublikowany dostęp do internetu na wychodząco — niepewne,
+  czy dopuszcza `query1.finance.yahoo.com`, którego używa
+  `Data ingestion 2.py`). Decyzja: na razie zostajemy przy lokalnym
+  Harmonogramie Windows; do Databricks pipeline będzie **stopniowo
+  przenoszony krok po kroku** (nie jednorazowa migracja całości), dopiero
+  po zamknięciu Etapu 4.
 - ❌ więcej niż trzy spółki — jw., późniejszy krok.
 - ❌ pełna produkcyjna automatyzacja (monitoring, powiadomienia o
   błędach, restarty) — Część C to świadomie tylko wstęp.
