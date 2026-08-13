@@ -4,8 +4,10 @@ Projekt nauki data engineeringu — pobieranie i przetwarzanie danych giełdowyc
 (GPW) dla wybranych spółek.
 
 **Etap BRONZE (surowe dane):** ukończony. Program pobiera dzienne notowania
-trzech spółek GPW (CBF, XTB, SNT) z Yahoo Finance za ostatnie 3 lata, zapisuje
-je na dysk i sam sprawdza, czy zapisane dane są poprawne.
+trzech spółek GPW (CBF, XTB, SNT) z Yahoo Finance (okno 3 lat od API), doklejane
+do istniejącej historii w pliku zamiast ją nadpisywać — dzięki temu ruchome
+okno 3 lat nie kasuje starszych dat przy kolejnych odświeżeniach. Program sam
+sprawdza, czy zapisane dane są poprawne.
 
 **Etap SILVER (czyszczenie danych, `pandas`):** ukończony. Trzy osobne pliki
 spółek są wczytywane, naprawiane (typy danych), sprawdzane pod kątem braków
@@ -22,12 +24,14 @@ wskaźnikami) i `gold/ranking.csv` (podsumowanie — jeden wiersz na spółkę).
 `matplotlib`) ukończona — patrz `wykresy/` niżej. Część B (dashboard
 w Power BI — wykres liniowy, wykres słupkowy, filtr) zbudowana, plik
 `wykresy/PowerBi_do_dopracowania.pbix`; stylizacja i eksport/publikacja
-odłożone na później. Część C (wstęp do automatyzacji): pipeline
-uruchamiany ręcznie potwierdzony, `Data ingestion 2.py` podpięty pod
-Harmonogram zadań Windows (codziennie); docelowo cały pipeline ma zostać
-przeniesiony na Databricks krok po kroku, na razie zostaje lokalnie.
-Dalej: dokończenie Części C (pełny łańcuch przez `.bat`), Część D —
-rozbudowa projektu pod portfolio.
+odłożone na później. Część C (automatyzacja) ukończona: `kod/pipeline.bat` łączy cały łańcuch
+(`Data ingestion 2.py` → `silver 1.py` → `gold 1.py`) w jedno zadanie
+Harmonogramu Windows (codziennie o 10:25, z opcją dogonienia pominiętego
+uruchomienia). Naprawiony błąd utraty historii sprzed 3 lat (skrypt scala
+świeże dane z istniejącym plikiem zamiast go nadpisywać) — patrz opis
+Bronze wyżej. Docelowo cały pipeline ma zostać przeniesiony na Databricks
+krok po kroku, na razie zostaje lokalnie.
+Dalej: Część D — rozbudowa projektu pod portfolio.
 Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
 
 ---
@@ -48,7 +52,7 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 
 | Plik | Co robi |
 |---|---|
-| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`) |
+| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`) |
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
 | `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
 | `silver 1.py` | Etap Silver — wczytuje trzy pliki spółek (`pandas`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, łączy w jedną tabelę (`pd.concat`), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
@@ -56,6 +60,7 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
 | `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |
+| `pipeline.bat` | Etap 4, Część C — łączy trzy kroki (`Data ingestion 2.py`, `silver 1.py`, `gold 1.py`) w jedno zadanie Harmonogramu; trzy niezależne linie bez `&&` (łączenie przez `&&`/`^` powodowało, że `silver 1.py` cicho nie zapisywał danych mimo że `gold 1.py` i tak się uruchamiał — porzucone na rzecz pewności działania) |
 
 ### Dane w `companies/`
 
@@ -78,7 +83,7 @@ data,cena,spolka
 
 Dwa pliki, wynik etapu Gold.
 
-`dane_dzienne.csv` — pełna tabela dzienna (2250 wierszy), ta sama co
+`dane_dzienne.csv` — pełna tabela dzienna (2245 wierszy), ta sama co
 w `silver/`, plus dzienna zmiana procentowa i miesiąc (pierwszy dzień każdej
 spółki ma pusty `zmiana_proc` — nie ma dnia wcześniej, z czym porównać):
 ```

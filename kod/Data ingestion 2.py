@@ -12,6 +12,19 @@ logging.basicConfig(
     encoding = "utf-8"
 )
 for tick in ticker:
+    dane = {}                        
+    try:                              
+        with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "r", encoding="utf-8") as plik:
+            for linia in plik:
+                linia = linia.strip()
+                if linia:
+                    data_str, cena_str = linia.split(", ")
+                    try:
+                        dane[data_str] = float(cena_str)
+                    except ValueError:
+                        pass
+    except FileNotFoundError:
+        pass
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{tick}"
         params = {"range": "3y", "interval": "1d"}
@@ -22,14 +35,14 @@ for tick in ticker:
             head = response.json()["chart"]["result"][0]
             timestamp = head["timestamp"]
             close = head["indicators"]["quote"][0]["close"]
-            con = list(zip(timestamp, close))
-            with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
-                for t, c in con:
-                    data = datetime.fromtimestamp(t)
-                    plik.write(f"{data}, {c}\n")
+            con = list(zip(timestamp, close))   
             for t, c in con:
                 data = datetime.fromtimestamp(t)
-                print(data, c)
+                dane[str(data)] = c
+            posortowane = sorted(dane.keys())
+            with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
+                for data in posortowane:
+                    plik.write(f"{data}, {dane[data]}\n")
         else:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
