@@ -2,9 +2,9 @@ import requests
 from datetime import datetime
 import logging
 import os
+from config import ticker
 print(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ticker = ["CBF.WA", "XTB.WA", "SNT.WA"]
 logging.basicConfig(
     filename = os.path.join(BASE_DIR, "companies", "errors.log"),
     level = logging.ERROR,

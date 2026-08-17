@@ -1,0 +1,1 @@
+ticker = ["CBF.WA", "XTB.WA", "SNT.WA"]
