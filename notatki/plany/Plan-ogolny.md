@@ -105,7 +105,10 @@ Kolejność, w jakiej będziemy dokładać, gdy poczujesz się pewnie:
 3. testy sprawdzające, czy dane są sensowne
 4. raporty giełdowe ESPI (trudne: trzeba czytać strony internetowe)
 5. sztuczna inteligencja do rozpoznawania typu raportu
-6. Databricks — przeniesienie tego samego do chmury
+6. ~~Databricks~~ — **Aktualizacja 2026-08-19:** zamiast Databricks,
+   konkretny kierunek: migracja do AWS (Kafka → S3 → Glue → Athena),
+   zainspirowana tutorialem o danych giełdowych. Już rozpoczęta —
+   szczegóły: [[Plan-05-aws-migracja]].
 
 ---
 

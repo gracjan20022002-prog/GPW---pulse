@@ -1,3 +1,4 @@
+# Kolejność testu zgodności layer'ów - Data ingestion 2, silver 1, gold 1
 import pandas as pd
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

@@ -267,6 +267,82 @@ trzech osobnych.*
 
 ---
 
+## AWS i Kafka
+
+### Kafka / broker
+Program, który pośredniczy w przesyłaniu wiadomości między innymi
+programami — nadawca i odbiorca nie muszą nic o sobie nawzajem wiedzieć,
+tylko o samej Kafce. „Broker" to sam serwer Kafki, ta część, która
+faktycznie przechowuje i przekazuje wiadomości.
+*Jak poczta — nadawca zanosi list na pocztę, odbiorca odbiera go z poczty,
+nie muszą się nigdy spotkać.*
+
+### Topic
+Nazwany „kanał" w Kafce, na który wysyła się wiadomości i z którego się
+je odbiera. Jedna Kafka może mieć wiele topiców naraz.
+*`gpw_tracker` to topic z cenami spółek — inny topic mógłby nosić zupełnie
+inne, niepowiązane dane.*
+
+### Producent / Konsument
+Producent wysyła wiadomości na topic. Konsument je odbiera, czytając ten
+sam topic. Nie łączą się bezpośrednio ze sobą — oboje rozmawiają tylko
+z brokerem, i mogą działać na zupełnie różnych komputerach.
+
+### KRaft
+Nowszy sposób, w jaki Kafka pilnuje porządku w klastrze (kto jest kim,
+co się dzieje) — bez osobnego programu (ZooKeepera), który kiedyś był do
+tego wymagany.
+
+### Listener / `advertised.listeners`
+`listeners` to adres, na którym broker faktycznie nasłuchuje. `advertised.listeners`
+to adres, który broker **podaje klientom**, żeby wiedzieli, gdzie się
+zgłosić. Zwykle to samo, ale nie zawsze — na EC2 broker nasłuchuje
+„wszędzie" (`0.0.0.0`), a reklamuje publiczny adres IP, bo to jedyny,
+który widać z zewnątrz.
+
+### Hairpin NAT
+Sytuacja, w której serwer w chmurze nie potrafi połączyć się sam ze sobą
+przez swój własny publiczny adres IP — bo ten adres nie istnieje fizycznie
+na jego karcie sieciowej, tylko jest przekierowaniem od dostawcy chmury.
+*Dlatego test „z tej samej instancji, przez publiczny IP" czasem nie
+działa, mimo że wszystko jest poprawnie skonfigurowane — a z zewnątrz
+działa bez problemu.*
+
+### EC2
+Usługa AWS dająca wirtualny komputer w chmurze, dostępny przez internet —
+instalujesz i uruchamiasz na nim cokolwiek, jakby to był Twój własny
+serwer.
+
+### Security Group
+Wirtualny firewall instancji EC2 — lista reguł „co wolno wejść, a co nie"
+(np. który port, z jakiego adresu IP). Bez odpowiedniej reguły nikt
+z zewnątrz się nie połączy, nawet jeśli program w środku działa poprawnie.
+
+### S3 / bucket
+S3 to magazyn plików w chmurze AWS — jak dysk, tylko dostępny przez
+internet. „Bucket" to pojedynczy magazyn w S3, ma swoją unikalną (w całym
+AWS, nie tylko u Ciebie) nazwę.
+
+### IAM / access key
+IAM to system AWS pilnujący, kto (jaki użytkownik albo program) ma prawo
+robić co na koncie. Access key + secret key to „login i hasło" dla
+programu, nie człowieka — pozwalają np. skryptowi w Pythonie łączyć się
+z S3 bez klikania w konsoli.
+*Nigdy nie trafiają do kodu ani do gita — trzymane osobno, poza
+projektem.*
+
+### Daemon (`-daemon`)
+Proces działający w tle, niezależnie od okna terminala, w którym go
+uruchomiono. Zamknięcie terminala go nie zabija.
+*Jak pralka, którą włączasz i wychodzisz z domu — dalej pierze, mimo że
+Ciebie już nie ma w pokoju.*
+
+### Cron
+Odpowiednik Harmonogramu zadań Windows, ale na Linuksie — samodzielnie
+uruchamia wybrany program o wybranej porze, bez klikania.
+
+---
+
 ## Kod
 
 ### Funkcja (`def`)
@@ -366,3 +442,4 @@ Jak bardzo cena danej spółki waha się w krótkim czasie. Wysoka zmienność =
 - [[Plan-02-silver]]
 - [[Plan-03-gold]]
 - [[Plan-04-pokazanie-wyniku]]
+- [[Plan-05-aws-migracja]]

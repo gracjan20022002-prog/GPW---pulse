@@ -11,7 +11,8 @@ podstawy `matplotlib` (`plot`, `bar`, `savefig`, formatowanie osi), podstawy
 Power BI, Harmonogram zadań Windows, podstawy `pytest` (`assert`,
 `@pytest.mark.parametrize`).
 
-**Nie zna jeszcze:** klas, Databricks (rozpoznanie w Planie-04, nieużywany).
+**Nie zna jeszcze:** klas. AWS/Kafka/Linux — pierwszy raz 19.08, z dużym
+prowadzeniem krok po kroku (SSH, EC2, KRaft, Security Groups, PowerShell).
 
 ## Zasady — obowiązkowe
 
@@ -34,16 +35,20 @@ Repo: folder `GPW - pulse`, GitHub: `github.com/gracjan20022002-prog/GPW---pulse
 `gold/`. Pełna historia sesji: dziennik (`notatki/dziennik/`, lokalnie) i
 `README.md` (na GitHubie).
 
-**W toku: Etap 4** (plan żywy, rośnie na bieżąco:
-`notatki/plany/Plan-04-pokazanie-wyniku.md`). Części **A** (wykresy
-w Pythonie), **B** (dashboard Power BI — stylizacja/eksport odłożone) i
-**C** (`pipeline.bat` + Harmonogram, kilkudniowy samodzielny przebieg
-potwierdzony) **ukończone**. Dalej: **Część D** (domknięcie pod portfolio).
-Databricks — osobny, późniejszy krok, nie część Etapu 4.
+**Etap 4** (plan: `notatki/plany/Plan-04-pokazanie-wyniku.md`) — Części
+**A** (wykresy w Pythonie), **B** (dashboard Power BI — stylizacja/eksport
+odłożone) i **C** (`pipeline.bat` + Harmonogram, samodzielny przebieg
+potwierdzony) ukończone. Zostaje **Część D** (domknięcie pod portfolio) —
+w kolejce.
 
-Dodatkowo, poza planem (17.08): wspólna lista spółek w `kod/config.py`,
-`requirements.txt`, `pytest` w `test_plikow.py`, `dropna()` na braki cen
-w `silver 1.py`.
+**W toku: Etap 5 — migracja do AWS** (19–20.08, plan:
+`notatki/plany/Plan-05-aws-migracja.md`, zastępuje wcześniejszy luźny
+pomysł Databricks). Docelowa architektura: EC2 (Kafka z KRaft) → S3 →
+Glue → Athena. Zrobione: klaster Kafka na EC2 (listener zewnętrzny
+i lokalny), pierwszy Producent w Pythonie, historia cen wysłana do S3.
+Dalej: bieżące dane przez Kafkę (Część B), Konsument (Część C).
+Instancja EC2 zatrzymywana między sesjami — publiczny IP zmienia się przy
+każdym starcie, wymaga aktualizacji configu.
 
 ## Gdzie co jest
 

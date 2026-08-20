@@ -3,6 +3,9 @@ from datetime import datetime
 import logging
 import os
 from config import ticker
+from kafka import KafkaProducer
+from json import dumps
+import boto3
 print(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 logging.basicConfig(
@@ -47,4 +50,14 @@ for tick in ticker:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
         logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}")
-        
+
+producer = KafkaProducer(
+    bootstrap_servers=['51.21.247.85:9092'],
+    value_serializer=lambda x: dumps(x).encode('utf-8')
+)
+producer.send('gpw_tracker', value={"spółka":"CBF.WA", "rok":"2026"})
+producer.flush()
+s3 = boto3.client("s3")
+for tick in ticker:
+    path = os.path.join(BASE_DIR, "companies", f"{tick}.txt")
+    s3.upload_file(path, "gpw-tracker-bucket", f"bronze/{tick}")
