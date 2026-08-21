@@ -14,6 +14,13 @@ logging.basicConfig(
     format = "%(asctime)s - %(levelname)s - %(message)s",
     encoding = "utf-8"
 )
+
+
+producer = KafkaProducer(
+    bootstrap_servers=['51.21.247.85:9092'],
+    value_serializer=lambda x: dumps(x).encode('utf-8')
+)
+
 for tick in ticker:
     dane = {}                        
     try:                              
@@ -28,6 +35,7 @@ for tick in ticker:
                         pass
     except FileNotFoundError:
         pass
+    stare_daty = set(dane.keys())
     try:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{tick}"
         params = {"range": "3y", "interval": "1d"}
@@ -43,6 +51,9 @@ for tick in ticker:
                 data = datetime.fromtimestamp(t)
                 dane[str(data)] = c
             posortowane = sorted(dane.keys())
+            nowe_daty = set(dane.keys()) - stare_daty
+            for data in nowe_daty:
+                producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": data, "cena": dane[data]})
             with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
                 for data in posortowane:
                     plik.write(f"{data}, {dane[data]}\n")
@@ -50,13 +61,8 @@ for tick in ticker:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
         logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}")
-
-producer = KafkaProducer(
-    bootstrap_servers=['51.21.247.85:9092'],
-    value_serializer=lambda x: dumps(x).encode('utf-8')
-)
-producer.send('gpw_tracker', value={"spółka":"CBF.WA", "rok":"2026"})
 producer.flush()
+
 s3 = boto3.client("s3")
 for tick in ticker:
     path = os.path.join(BASE_DIR, "companies", f"{tick}.txt")
