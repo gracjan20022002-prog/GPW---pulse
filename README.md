@@ -29,10 +29,20 @@ odłożone na później. Część C (automatyzacja) ukończona: `kod/pipeline.ba
 Harmonogramu Windows (codziennie o 10:25, z opcją dogonienia pominiętego
 uruchomienia). Naprawiony błąd utraty historii sprzed 3 lat (skrypt scala
 świeże dane z istniejącym plikiem zamiast go nadpisywać) — patrz opis
-Bronze wyżej. Docelowo cały pipeline ma zostać przeniesiony na Databricks
-krok po kroku, na razie zostaje lokalnie.
+Bronze wyżej. Zostaje lokalnie, jako działające zabezpieczenie, dopóki
+Etap 5 (niżej) nie przejmie go w pełni.
 Dalej: Część D — rozbudowa projektu pod portfolio.
 Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
+
+**Etap 5 (migracja do AWS):** w toku. Docelowa architektura: EC2 (Kafka
+z KRaft) → S3 → Glue → Athena. Zrobione: broker Kafki na EC2, Producent
+wysyłający nowe ceny przez Kafkę (`kod/Data ingestion 2.py`), historia
+cen wgrana do S3, Konsument (`kod/kafka_consumer.py`) zapisujący bieżące
+dane do S3 z podziałem na spółki (partycje `spolka=TICKER`, pod kątem
+przyszłej Athena) — wszystko przetestowane lokalnie. Dalej: Glue Crawler
++ Athena, podłączenie Silver/Gold/Power BI do S3, przeniesienie obu
+skryptów na EC2 z automatyzacją przez `cron`.
+Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
 
 ---
 
@@ -46,13 +56,15 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 | **gold/** | wynik etapu Gold — dzienne dane ze wskaźnikami (`dane_dzienne.csv`) i ranking spółek (`ranking.csv`) |
 | **wykresy/** | wykresy z Etapu 4, Część A (Python/`matplotlib`) — pliki `.png`; Część B — dashboard Power BI (`PowerBi_do_dopracowania.pbix`) |
 | **notatki/** | notatki do nauki i projektu (patrz niżej) |
+| **aws/** | klucz SSH do EC2 i notatki połączenia — poza gitem (`.gitignore`), zawiera dane dostępowe |
 | **CLAUDE.md** | zasady pracy z asystentem nad tym projektem |
 
 ### Skrypty w `kod/`
 
 | Plik | Co robi |
 |---|---|
-| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`) |
+| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Etap 5: wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`, historię wgrywa do S3 (`boto3`) |
+| `kafka_consumer.py` | Etap 5, Część C — Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker`, grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...` |
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
 | `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
 | `silver 1.py` | Etap Silver — wczytuje trzy pliki spółek (`pandas`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, łączy w jedną tabelę (`pd.concat`), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
@@ -135,7 +147,8 @@ Dwa wykresy z Części A Etapu 4, wygenerowane przez `kod/wykresy.py` i
 1. [[Plan-ogolny]] — zobacz całość projektu
 2. [[Codzienna-rutyna]] — przejdź część A, jednorazową
 3. [[Plan-04-pokazanie-wyniku]] — Etap 4, aktualnie w toku
-4. [[Slownik]] — zaglądaj, gdy spotkasz nieznane słowo
+4. [[Plan-05-aws-migracja]] — Etap 5, aktualnie w toku
+5. [[Slownik]] — zaglądaj, gdy spotkasz nieznane słowo
 
 ---
 
@@ -164,6 +177,7 @@ Napisz `[[Slownik]]`, a Obsidian sam zrobi odnośnik.
 - [[Plan-02-silver]]
 - [[Plan-03-gold]]
 - [[Plan-04-pokazanie-wyniku]]
+- [[Plan-05-aws-migracja]]
 - [[Codzienna-rutyna]]
 - [[Stare-repo-co-to-bylo]]
 - [[Slownik]]

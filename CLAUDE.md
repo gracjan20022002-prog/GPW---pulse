@@ -36,19 +36,18 @@ Repo: folder `GPW - pulse`, GitHub: `github.com/gracjan20022002-prog/GPW---pulse
 `README.md` (na GitHubie).
 
 **Etap 4** (plan: `notatki/plany/Plan-04-pokazanie-wyniku.md`) — Części
-**A** (wykresy w Pythonie), **B** (dashboard Power BI — stylizacja/eksport
-odłożone) i **C** (`pipeline.bat` + Harmonogram, samodzielny przebieg
-potwierdzony) ukończone. Zostaje **Część D** (domknięcie pod portfolio) —
-w kolejce.
+**A** (wykresy), **B** (dashboard Power BI, stylizacja odłożona) i **C**
+(`pipeline.bat` + Harmonogram) ukończone. Zostaje **Część D** (domknięcie
+pod portfolio).
 
-**W toku: Etap 5 — migracja do AWS** (19–20.08, plan:
-`notatki/plany/Plan-05-aws-migracja.md`, zastępuje wcześniejszy luźny
-pomysł Databricks). Docelowa architektura: EC2 (Kafka z KRaft) → S3 →
-Glue → Athena. Zrobione: klaster Kafka na EC2 (listener zewnętrzny
-i lokalny), pierwszy Producent w Pythonie, historia cen wysłana do S3.
-Dalej: bieżące dane przez Kafkę (Część B), Konsument (Część C).
-Instancja EC2 zatrzymywana między sesjami — publiczny IP zmienia się przy
-każdym starcie, wymaga aktualizacji configu.
+**W toku: Etap 5 — migracja do AWS** (od 19.08, plan:
+`notatki/plany/Plan-05-aws-migracja.md`, zastępuje wcześniejszy pomysł
+Databricks). Architektura: EC2 (Kafka) → S3 → Glue → Athena. Zrobione
+lokalnie: broker na EC2, Producent (nowe ceny przez Kafkę, Część B),
+Konsument (zapis do S3 z podziałem na spółki, Część C). Dalej:
+Glue/Athena (Część D), przeniesienie obu skryptów na EC2 + `cron`
+(Część F). EC2 zatrzymywać (Stop) po sesji — IP może się zmienić przy
+starcie.
 
 ## Gdzie co jest
 
