@@ -42,12 +42,16 @@ pod portfolio).
 
 **W toku: Etap 5 — migracja do AWS** (od 19.08, plan:
 `notatki/plany/Plan-05-aws-migracja.md`, zastępuje wcześniejszy pomysł
-Databricks). Architektura: EC2 (Kafka) → S3 → Glue → Athena. Zrobione
-lokalnie: broker na EC2, Producent (nowe ceny przez Kafkę, Część B),
-Konsument (zapis do S3 z podziałem na spółki, Część C). Dalej:
-Glue/Athena (Część D), przeniesienie obu skryptów na EC2 + `cron`
-(Część F). EC2 zatrzymywać (Stop) po sesji — IP może się zmienić przy
-starcie.
+Databricks). Architektura: EC2 (Kafka) → S3 → Glue → Athena. Zrobione:
+broker na EC2, Producent (nowe ceny przez Kafkę, Część B — automatyczny
+codzienny upload do `bronze/` w S3 wyłączony 24.08, `bronze/` to teraz
+zamrożona historia, nie odświeżana), Konsument (S3 z podziałem na spółki,
+Część C), Glue Crawler + Athena na `bronze/` i `live/`, oba partycjonowane
+po spółce (Część D). Python już łączy się z Athena przez `pyathena` —
+podstawa pod Część E. Dalej: Część E (Silver/Gold/Power BI czytają
+z Athena), Część F (`cron` na EC2 dla obu skryptów). EC2 zatrzymywać
+(Stop) po sesji — IP może się zmienić przy starcie (24.08 wyjątkowo
+zostawione włączone na życzenie).
 
 ## Gdzie co jest
 

@@ -36,12 +36,16 @@ Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokaza
 
 **Etap 5 (migracja do AWS):** w toku. Docelowa architektura: EC2 (Kafka
 z KRaft) → S3 → Glue → Athena. Zrobione: broker Kafki na EC2, Producent
-wysyłający nowe ceny przez Kafkę (`kod/Data ingestion 2.py`), historia
-cen wgrana do S3, Konsument (`kod/kafka_consumer.py`) zapisujący bieżące
-dane do S3 z podziałem na spółki (partycje `spolka=TICKER`, pod kątem
-przyszłej Athena) — wszystko przetestowane lokalnie. Dalej: Glue Crawler
-+ Athena, podłączenie Silver/Gold/Power BI do S3, przeniesienie obu
-skryptów na EC2 z automatyzacją przez `cron`.
+wysyłający nowe ceny przez Kafkę (`kod/Data ingestion 2.py`), Konsument
+(`kod/kafka_consumer.py`) zapisujący bieżące dane do S3 z podziałem na
+spółki (partycje `spolka=TICKER`). Historia cen wgrana do S3 raz
+(`bronze/`, przeorganizowana 24.08 pod te same partycje) — automatyczny
+codzienny upload do `bronze/` wyłączony, żeby nie dublował tego, co już
+niesie Kafka. Glue Crawler + Athena działają na obu tabelach (`bronze`
+i `live`), Python łączy się z Athena przez `pyathena` (`kod/pyathena
+test.py`) — podstawa pod kolejny krok. Dalej: podłączenie Silver/Gold/Power
+BI do Athena (Część E), przeniesienie obu skryptów na EC2 z automatyzacją
+przez `cron` (Część F).
 Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
 
 ---
@@ -63,7 +67,7 @@ Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migrac
 
 | Plik | Co robi |
 |---|---|
-| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Etap 5: wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`, historię wgrywa do S3 (`boto3`) |
+| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Etap 5: wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`. Jednorazowy upload historii do S3 (`boto3`) zrobiony 20.08, kod od 24.08 zakomentowany — `bronze/` w S3 zostaje zamrożoną historią, nie odświeżaną co dzień |
 | `kafka_consumer.py` | Etap 5, Część C — Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker`, grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...` |
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
 | `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
