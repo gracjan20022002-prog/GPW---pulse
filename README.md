@@ -45,13 +45,13 @@ dane do S3 z podziałem na spółki (partycje `spolka=TICKER`). Historia cen
 wgrana do S3 raz (`bronze/`, przeorganizowana 24.08 pod te same partycje)
 — automatyczny codzienny upload do `bronze/` wyłączony, żeby nie dublował
 tego, co już niesie Kafka. Glue Crawler + Athena działają na obu tabelach
-(`bronze` i `live`). **Część E (w toku):** pierwsza wersja Silver czytająca
-z Athena przez `pyathena` istnieje jako osobny szkic
-(`kod/pyathena silver.py`), jeszcze niepodłączony do `pipeline.bat` —
-`silver 1.py` na razie nadal czyta lokalne pliki spółek. Dalej: dokończenie
-Części E (podmiana + Power BI), potem **Część F** — broker jako usługa
-`systemd`, Producent i Konsument przeniesione na EC2 i uruchamiane przez
-`cron`, niezależnie od komputera Gracjana.
+(`bronze` i `live`). **Część E:** od 31.08 `silver 1.py` czyta dane
+z Athena przez `pyathena` (zapytanie SQL łączące `bronze` i `live`) zamiast
+lokalnych plików spółek — przetestowane osobno i przez cały `pipeline.bat`.
+Zostaje jeszcze podłączenie Power BI, odłożone na osobną sesję. Dalej:
+**Część F** — broker jako usługa `systemd`, Producent i Konsument
+przeniesione na EC2 i uruchamiane przez `cron`, niezależnie od komputera
+Gracjana; szczegółowa rozpiska w planie niżej.
 Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
 
 ---
@@ -77,7 +77,7 @@ Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migrac
 | `kafka_consumer.py` | Etap 5, Część C — Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker`, grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...` |
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
 | `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
-| `silver 1.py` | Etap Silver — od 25.08 (Etap 5, Część E) czyta dane z Athena przez `pyathena` (zapytanie SQL łączące tabele `bronze` i `live`) zamiast lokalnych plików spółek, naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
+| `silver 1.py` | Etap Silver — od 31.08 (Etap 5, Część E) czyta dane z Athena przez `pyathena` (zapytanie SQL łączące tabele `bronze` i `live`) zamiast lokalnych plików spółek, naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
 | `gold 1.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |

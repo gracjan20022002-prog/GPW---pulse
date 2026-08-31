@@ -3,8 +3,10 @@ from json import loads, dumps
 from datetime import datetime
 import boto3
 from config import ticker
+import os
+BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "13.63.105.190:9092")
 consumer = KafkaConsumer(
-    bootstrap_servers=['13.63.105.190:9092'],
+    bootstrap_servers=[BOOTSTRAP],
     group_id='gpw_consumer',
     auto_offset_reset='latest',
     value_deserializer=lambda x: loads(x.decode('utf-8')),

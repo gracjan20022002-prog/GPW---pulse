@@ -149,12 +149,108 @@ Szczegóły: dziennik 20.08.
 | **B** | Producent: nowe, bieżące ceny → Kafka. Historia → S3 bezpośrednio | ✅ zrobione — historia wgrana raz 20.08, automatyczny codzienny upload do `bronze/` wyłączony 24.08 (zostaje zamrożoną historią, zgodnie z pierwotnym planem) |
 | **C** | Konsument: nowy skrypt, czyta z Kafki, zapisuje bieżące dane do S3 (większe, rzadsze pliki) | ✅ zrobione 21.08 |
 | **D** | Glue Crawler + Athena: automatyczny schemat i zapytania SQL na S3 | ✅ zrobione 24.08 — obie tabele (`bronze`, `live`), partycjonowane po `spolka` |
-| **E** | Podłączenie Silver/Gold/Power BI do nowego źródła (S3/Athena) | 🔶 w toku: szkic gotowy (`kod/pyathena silver.py`, zapytanie SQL łączące `bronze`+`live`), jeszcze niepodłączony do `pipeline.bat`; `silver 1.py` na razie nadal lokalny; Power BI zostaje |
-| **F** | `cron` na EC2 — Producent uruchamia się sam, codziennie, niezależnie od komputera Gracjana | nierozpoczęte — ale główna przeszkoda (zmieniający się publiczny IP po każdym Stop/Start) rozwiązana 25.08 Elastic IP, więc ta część powinna być teraz prostsza niż pierwotnie zakładano |
+| **E** | Podłączenie Silver/Gold/Power BI do nowego źródła (S3/Athena) | ✅ zrobione 31.08: `silver 1.py` przerobiony na wzór szkicu `pyathena silver.py` (zapytanie SQL łączące `bronze`+`live`), przetestowany osobno i przez cały `pipeline.bat`. Zostaje jeszcze podłączenie Power BI — odłożone na osobną sesję |
+| **F** | `cron`/`systemd` na EC2 — broker, Producent i Konsument działają same, codziennie, niezależnie od komputera Gracjana | 🔶 rozpisane szczegółowo 31.08, implementacja jeszcze nie zaczęta — patrz „Część F — rozpiska" niżej |
 
 Jak w Etapie 4 — ta tabela to punkt startowy, nie sztywny plan. Szczegóły
 (konkretne sesje, ściągi na nowe narzędzia) dopiszemy, gdy dojdziemy do
 każdej części po kolei.
+
+---
+
+## Część F — rozpiska
+
+**Cel:** cały łańcuch zbierania danych (broker, Producent, Konsument) działa
+sam na EC2 — bez ręcznego SSH na start, bez zależności od tego, czy
+komputer Gracjana jest akurat włączony.
+
+### F1 — Broker jako usługa `systemd`
+
+Dziś broker startuje się ręcznie: SSH na EC2, `export KAFKA_HEAP_OPTS=...`,
+potem `bin/kafka-server-start.sh config/server.properties` — i to za
+każdym razem od nowa, bo zmienna środowiskowa nie przeżywa nowej sesji SSH
+([[project-etap5-ec2-networking]]).
+
+`systemd` to mechanizm Linuksa do zarządzania usługami działającymi
+w tle — start, stop, restart, i (to najważniejsze tutaj) automatyczny
+start razem z systemem, bez żadnej interwencji. Kroki:
+
+1. Plik jednostki `kafka.service` w `/etc/systemd/system/`, który:
+   - uruchamia `bin/kafka-server-start.sh config/server.properties` jako
+     `ec2-user`,
+   - ustawia `KAFKA_HEAP_OPTS` przez `Environment=...` w samym pliku —
+     koniec z ręcznym `export` co sesję,
+   - ma `Restart=on-failure`, żeby sam się podniósł, gdyby padł.
+2. `sudo systemctl enable kafka` — broker odpala się sam przy każdym
+   starcie instancji.
+3. `systemctl start/stop/status kafka` — do ręcznego sterowania
+   i sprawdzania, czy żyje.
+
+### F2 — Producent i Konsument przeniesione na EC2
+
+Oba skrypty (`Data ingestion 2.py`, `kafka_consumer.py`) muszą fizycznie
+znaleźć się na EC2:
+
+1. Python + `pip install kafka-python boto3` w osobnym `venv` na EC2
+   (Amazon Linux nie ma tego domyślnie) — `pandas` niepotrzebny, bo Silver
+   i Gold zostają lokalnie.
+2. Kod na EC2 — najprościej `git clone` całego repo z GitHuba na instancję;
+   przy zmianach — `git pull`.
+3. Adres brokera w obu skryptach zmienia się na `localhost:9094` (listener
+   `INTERNAL`, gotowy od 20.08) — łączą się teraz lokalnie na tej samej
+   maszynie, nie przez internet i publiczny IP.
+4. Dostęp do S3 dla `boto3` w Konsumencie — **nie** kopiować kluczy
+   dostępowych na dysk EC2. Właściwy sposób: **IAM Role** przypięta do
+   instancji (rola uprawnień, którą EC2 „nosi na sobie" — `boto3` korzysta
+   z niej automatycznie, bez żadnego pliku z kluczami). Trzeba sprawdzić,
+   czy instancja już taką rolę ma.
+
+### F3 — `cron` dla obu skryptów
+
+Gdy oba działają ręcznie z poziomu EC2 (przez SSH), dopisać wpisy
+w `crontab -e` (jako `ec2-user`), żeby odpalały się same, codziennie,
+Producent przed Konsumentem.
+
+Uwaga: `cron` ma bardzo ubogie środowisko (nie wczytuje `.bashrc`) — w każdej
+linijce potrzebna **pełna ścieżka** do Pythona z `venv`, dokładnie tak, jak
+`pipeline.bat` robi to dziś na Windowsie.
+
+### F4 — Lokalny `pipeline.bat`: co dalej z nim
+
+Skoro Producent działa już na EC2, lokalny `pipeline.bat` powinien
+przestać go uruchamiać — inaczej dwaj niezależni Producenci (Windows i EC2)
+pobieraliby i wysyłali te same dane osobno. Docelowo `pipeline.bat` zostaje
+z dwiema liniami: `silver 1.py` i `gold 1.py` (obie już czytają z Athena,
+nie potrzebują lokalnego Producenta).
+
+### Do przemyślenia — zanim/w trakcie roboty
+
+1. **EC2 24/7 czy dalej Stop/Start?** Największe pytanie tej części. Cały
+   sens Części F to automatyzacja bez Twojego udziału — a `cron`
+   i `systemd` nie zadziałają na wyłączonej maszynie. To wprost koliduje
+   z zasadą niżej („Czego NIE robimy" — zatrzymywać EC2 po sesji). Sprawdź
+   typ instancji i limit godzin Free Tier (zwykle 750h/miesiąc — to prawie
+   cały miesiąc dla jednej instancji), żeby wiedzieć, czy 24/7 mieści się
+   w darmowym limicie, czy zacznie kosztować.
+2. **Skąd Producent na EC2 będzie wiedział, które daty już wysłał?** Dziś
+   porównuje z lokalnym plikiem `companies/{tick}.txt`
+   ([[project-etap5-pipeline-gap]] ma więcej o tym, jak te pliki są dziś
+   używane). Na EC2 najprościej zrobić to samo — osobna, własna kopia na
+   EC2, niezależna od Twojej na Windowsie. Prostsze na start, można
+   zmienić później.
+3. **Jak kod trafia na EC2 i zostaje aktualny?** Ręczny `git clone`
+   + `git pull` przy każdej zmianie wystarczy na ten projekt — nie trzeba
+   niczego bardziej rozbudowanego (żadnego CI/CD).
+4. **IAM Role dla EC2** — sprawdzić i ewentualnie donadać uprawnienia do
+   S3, zanim `kafka_consumer.py` na EC2 będzie mógł tam zapisywać.
+5. **Jak zobaczysz błąd, jeśli coś padnie na EC2?** Lokalnie masz
+   `companies/errors.log` na wyciągnięcie ręki (tak jak dzisiaj, przy
+   naprawie Harmonogramu). Na EC2 ten sam log siedzi na zdalnym dysku —
+   trzeba będzie zerknąć przez SSH, albo później pomyśleć o czymś, co da
+   znać samo. Nie blokuje startu Części F.
+
+Nowe pojęcia tej części (`systemd`, IAM Role/instance profile) — dopisać
+do [[Slownik]].
 
 ---
 
@@ -170,7 +266,8 @@ każdej części po kolei.
   zakresem, tak jak dotychczas.
 - ❌ Zostawianie instancji EC2 uruchomionej bez potrzeby — zatrzymywać
   (Stop, nie Terminate) po każdej sesji, żeby nie zużywać niepotrzebnie
-  godzin free tier.
+  godzin free tier. **(⚠️ w napięciu z celem Części F — patrz punkt 1
+  w „Do przemyślenia" wyżej; do rozstrzygnięcia, zanim ruszy F3/`cron`.)**
 
 ---
 

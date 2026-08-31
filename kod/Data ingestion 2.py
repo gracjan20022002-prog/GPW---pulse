@@ -15,10 +15,10 @@ logging.basicConfig(
     format = "%(asctime)s - %(levelname)s - %(message)s",
     encoding = "utf-8"
 )
-
+BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "13.63.105.190:9092")
 try:
     producer = KafkaProducer(
-        bootstrap_servers=['13.63.105.190:9092'],
+        bootstrap_servers=[BOOTSTRAP],
         value_serializer=lambda x: dumps(x).encode('utf-8')
 )
 except KafkaError:
