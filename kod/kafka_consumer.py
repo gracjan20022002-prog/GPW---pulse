@@ -4,7 +4,7 @@ from datetime import datetime
 import boto3
 from config import ticker
 consumer = KafkaConsumer(
-    bootstrap_servers=['51.21.247.85:9092'],
+    bootstrap_servers=['13.63.105.190:9092'],
     group_id='gpw_consumer',
     auto_offset_reset='latest',
     value_deserializer=lambda x: loads(x.decode('utf-8')),
@@ -25,4 +25,4 @@ if odebrane:
         nowy_plik = datetime.now().strftime(f"%Y-%m-%dT%H-%M-%S-{tick}") + ".json"
         s3.put_object(Bucket="gpw-tracker-bucket", Key=f"live/spolka={tick}/{nowy_plik}", Body=zawartosc.encode("utf-8"))
 consumer.commit()
-print(f"Odebrano {len(odebrane)} wiadomości")
+print(f"Odebrano {sum(len(w) for w in odebrane.values())} wiadomości")

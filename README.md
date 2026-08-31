@@ -35,17 +35,23 @@ Dalej: Część D — rozbudowa projektu pod portfolio.
 Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
 
 **Etap 5 (migracja do AWS):** w toku. Docelowa architektura: EC2 (Kafka
-z KRaft) → S3 → Glue → Athena. Zrobione: broker Kafki na EC2, Producent
-wysyłający nowe ceny przez Kafkę (`kod/Data ingestion 2.py`), Konsument
-(`kod/kafka_consumer.py`) zapisujący bieżące dane do S3 z podziałem na
-spółki (partycje `spolka=TICKER`). Historia cen wgrana do S3 raz
-(`bronze/`, przeorganizowana 24.08 pod te same partycje) — automatyczny
-codzienny upload do `bronze/` wyłączony, żeby nie dublował tego, co już
-niesie Kafka. Glue Crawler + Athena działają na obu tabelach (`bronze`
-i `live`), Python łączy się z Athena przez `pyathena` (`kod/pyathena
-test.py`) — podstawa pod kolejny krok. Dalej: podłączenie Silver/Gold/Power
-BI do Athena (Część E), przeniesienie obu skryptów na EC2 z automatyzacją
-przez `cron` (Część F).
+z KRaft) → S3 → Glue → Athena. Zrobione: broker Kafki na EC2 — od 25.08
+pod stałym adresem (Elastic IP), koniec z ręczną aktualizacją adresu po
+każdym Stop/Start. Producent wysyłający nowe ceny przez Kafkę
+(`kod/Data ingestion 2.py`, od 31.08 odporny na brak brokera — brak
+połączenia z Kafką jest łapany i logowany, nie przerywa już pobierania
+i zapisu lokalnego), Konsument (`kod/kafka_consumer.py`) zapisujący bieżące
+dane do S3 z podziałem na spółki (partycje `spolka=TICKER`). Historia cen
+wgrana do S3 raz (`bronze/`, przeorganizowana 24.08 pod te same partycje)
+— automatyczny codzienny upload do `bronze/` wyłączony, żeby nie dublował
+tego, co już niesie Kafka. Glue Crawler + Athena działają na obu tabelach
+(`bronze` i `live`). **Część E (w toku):** pierwsza wersja Silver czytająca
+z Athena przez `pyathena` istnieje jako osobny szkic
+(`kod/pyathena silver.py`), jeszcze niepodłączony do `pipeline.bat` —
+`silver 1.py` na razie nadal czyta lokalne pliki spółek. Dalej: dokończenie
+Części E (podmiana + Power BI), potem **Część F** — broker jako usługa
+`systemd`, Producent i Konsument przeniesione na EC2 i uruchamiane przez
+`cron`, niezależnie od komputera Gracjana.
 Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
 
 ---
@@ -67,11 +73,11 @@ Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migrac
 
 | Plik | Co robi |
 |---|---|
-| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Etap 5: wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`. Jednorazowy upload historii do S3 (`boto3`) zrobiony 20.08, kod od 24.08 zakomentowany — `bronze/` w S3 zostaje zamrożoną historią, nie odświeżaną co dzień |
+| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Etap 5: wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`. Jednorazowy upload historii do S3 (`boto3`) zrobiony 20.08, kod od 24.08 zakomentowany — `bronze/` w S3 zostaje zamrożoną historią, nie odświeżaną co dzień |
 | `kafka_consumer.py` | Etap 5, Część C — Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker`, grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...` |
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
 | `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
-| `silver 1.py` | Etap Silver — wczytuje trzy pliki spółek (`pandas`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, łączy w jedną tabelę (`pd.concat`), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
+| `silver 1.py` | Etap Silver — od 25.08 (Etap 5, Część E) czyta dane z Athena przez `pyathena` (zapytanie SQL łączące tabele `bronze` i `live`) zamiast lokalnych plików spółek, naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
 | `gold 1.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
@@ -99,7 +105,7 @@ data,cena,spolka
 
 Dwa pliki, wynik etapu Gold.
 
-`dane_dzienne.csv` — pełna tabela dzienna (2245 wierszy), ta sama co
+`dane_dzienne.csv` — pełna tabela dzienna (2268 wierszy), ta sama co
 w `silver/`, plus dzienna zmiana procentowa i miesiąc (pierwszy dzień każdej
 spółki ma pusty `zmiana_proc` — nie ma dnia wcześniej, z czym porównać):
 ```

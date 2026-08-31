@@ -146,11 +146,11 @@ Szczegóły: dziennik 20.08.
 | Część | Co | Status |
 |---|---|---|
 | **A** | Kafka z KRaft na EC2, dostępna z zewnątrz i lokalnie (dwa listenery) | ✅ zrobione 19–20.08 |
-| **B** | Producent: nowe, bieżące ceny → Kafka. Historia → S3 bezpośrednio | 🔶 w toku: mechanizm i backfill historii do S3 gotowe; wysyłanie nowych dat jeszcze nie wpisane do kodu |
-| **C** | Konsument: nowy skrypt, czyta z Kafki, zapisuje bieżące dane do S3 (większe, rzadsze pliki) | nierozpoczęte |
-| **D** | Glue Crawler + Athena: automatyczny schemat i zapytania SQL na S3 | nierozpoczęte |
-| **E** | Podłączenie Silver/Gold/Power BI do nowego źródła (S3/Athena) | nierozpoczęte |
-| **F** | `cron` na EC2 — Producent uruchamia się sam, codziennie, niezależnie od komputera Gracjana | nierozpoczęte |
+| **B** | Producent: nowe, bieżące ceny → Kafka. Historia → S3 bezpośrednio | ✅ zrobione — historia wgrana raz 20.08, automatyczny codzienny upload do `bronze/` wyłączony 24.08 (zostaje zamrożoną historią, zgodnie z pierwotnym planem) |
+| **C** | Konsument: nowy skrypt, czyta z Kafki, zapisuje bieżące dane do S3 (większe, rzadsze pliki) | ✅ zrobione 21.08 |
+| **D** | Glue Crawler + Athena: automatyczny schemat i zapytania SQL na S3 | ✅ zrobione 24.08 — obie tabele (`bronze`, `live`), partycjonowane po `spolka` |
+| **E** | Podłączenie Silver/Gold/Power BI do nowego źródła (S3/Athena) | 🔶 w toku: szkic gotowy (`kod/pyathena silver.py`, zapytanie SQL łączące `bronze`+`live`), jeszcze niepodłączony do `pipeline.bat`; `silver 1.py` na razie nadal lokalny; Power BI zostaje |
+| **F** | `cron` na EC2 — Producent uruchamia się sam, codziennie, niezależnie od komputera Gracjana | nierozpoczęte — ale główna przeszkoda (zmieniający się publiczny IP po każdym Stop/Start) rozwiązana 25.08 Elastic IP, więc ta część powinna być teraz prostsza niż pierwotnie zakładano |
 
 Jak w Etapie 4 — ta tabela to punkt startowy, nie sztywny plan. Szczegóły
 (konkretne sesje, ściągi na nowe narzędzia) dopiszemy, gdy dojdziemy do

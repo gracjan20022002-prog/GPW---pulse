@@ -5,6 +5,7 @@ import os
 from config import ticker
 from kafka import KafkaProducer
 from json import dumps
+from kafka.errors import KafkaError
 # import boto3
 print(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -15,11 +16,15 @@ logging.basicConfig(
     encoding = "utf-8"
 )
 
-
-producer = KafkaProducer(
-    bootstrap_servers=['51.21.247.85:9092'],
-    value_serializer=lambda x: dumps(x).encode('utf-8')
+try:
+    producer = KafkaProducer(
+        bootstrap_servers=['13.63.105.190:9092'],
+        value_serializer=lambda x: dumps(x).encode('utf-8')
 )
+except KafkaError:
+    logging.error(f"Wystąpił błąd przy pobieraniu danych spółki.")
+    producer = None
+
 
 for tick in ticker:
     dane = {}                        
@@ -48,12 +53,14 @@ for tick in ticker:
             close = head["indicators"]["quote"][0]["close"]
             con = list(zip(timestamp, close))   
             for t, c in con:
-                data = datetime.fromtimestamp(t)
-                dane[str(data)] = c
+                if t and c is not None:
+                    data = datetime.fromtimestamp(t)
+                    dane[str(data)] = c
             posortowane = sorted(dane.keys())
             nowe_daty = set(dane.keys()) - stare_daty
             for data in nowe_daty:
-                producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": data, "cena": dane[data]})
+                if producer is not None:
+                    producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": data, "cena": dane[data]})
             with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
                 for data in posortowane:
                     plik.write(f"{data}, {dane[data]}\n")
@@ -61,7 +68,8 @@ for tick in ticker:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
         logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}")
-producer.flush()
+if producer is not None:
+    producer.flush()
 
 # s3 = boto3.client("s3")
 # for tick in ticker:
