@@ -48,10 +48,15 @@ tego, co już niesie Kafka. Glue Crawler + Athena działają na obu tabelach
 (`bronze` i `live`). **Część E:** od 31.08 `silver 1.py` czyta dane
 z Athena przez `pyathena` (zapytanie SQL łączące `bronze` i `live`) zamiast
 lokalnych plików spółek — przetestowane osobno i przez cały `pipeline.bat`.
-Zostaje jeszcze podłączenie Power BI, odłożone na osobną sesję. Dalej:
-**Część F** — broker jako usługa `systemd`, Producent i Konsument
-przeniesione na EC2 i uruchamiane przez `cron`, niezależnie od komputera
-Gracjana; szczegółowa rozpiska w planie niżej.
+Zostaje jeszcze podłączenie Power BI, odłożone na osobną sesję. **Część F
+(w toku):** EC2 zostaje teraz włączone 24/7 (koniec z zatrzymywaniem po
+sesji). Broker działa jako usługa `systemd` (`kafka.service`, przeżywa
+restart instancji bez ręcznego SSH). Producent i Konsument uruchamiane też
+bezpośrednio na EC2 (adres brokera przez zmienną `KAFKA_BOOTSTRAP` —
+publiczny IP na Windowsie, `localhost:9094` na EC2), z rolą IAM zamiast
+kluczy dla zapisu do S3 — przetestowane end-to-end. Zostaje jeszcze `cron`
+(automatyczne codzienne uruchomienie) i wyłączenie Producenta z lokalnego
+`pipeline.bat`; szczegółowa rozpiska w planie niżej.
 Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
 
 ---

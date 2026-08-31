@@ -150,7 +150,7 @@ Szczegóły: dziennik 20.08.
 | **C** | Konsument: nowy skrypt, czyta z Kafki, zapisuje bieżące dane do S3 (większe, rzadsze pliki) | ✅ zrobione 21.08 |
 | **D** | Glue Crawler + Athena: automatyczny schemat i zapytania SQL na S3 | ✅ zrobione 24.08 — obie tabele (`bronze`, `live`), partycjonowane po `spolka` |
 | **E** | Podłączenie Silver/Gold/Power BI do nowego źródła (S3/Athena) | ✅ zrobione 31.08: `silver 1.py` przerobiony na wzór szkicu `pyathena silver.py` (zapytanie SQL łączące `bronze`+`live`), przetestowany osobno i przez cały `pipeline.bat`. Zostaje jeszcze podłączenie Power BI — odłożone na osobną sesję |
-| **F** | `cron`/`systemd` na EC2 — broker, Producent i Konsument działają same, codziennie, niezależnie od komputera Gracjana | 🔶 rozpisane szczegółowo 31.08, implementacja jeszcze nie zaczęta — patrz „Część F — rozpiska" niżej |
+| **F** | `cron`/`systemd` na EC2 — broker, Producent i Konsument działają same, codziennie, niezależnie od komputera Gracjana | 🔶 w toku: F1 (broker jako `systemd`) i F2 (Producent+Konsument na EC2, rola IAM) zrobione i przetestowane end-to-end 31.08. Zostaje F3 (`cron`) i F4 (wyłączenie lokalnego Producenta z `pipeline.bat`) — patrz „Część F — rozpiska" niżej |
 
 Jak w Etapie 4 — ta tabela to punkt startowy, nie sztywny plan. Szczegóły
 (konkretne sesje, ściągi na nowe narzędzia) dopiszemy, gdy dojdziemy do
@@ -164,7 +164,12 @@ każdej części po kolei.
 sam na EC2 — bez ręcznego SSH na start, bez zależności od tego, czy
 komputer Gracjana jest akurat włączony.
 
-### F1 — Broker jako usługa `systemd`
+### F1 — Broker jako usługa `systemd` ✅ zrobione i przetestowane 31.08
+
+Zweryfikowane dwa razy: po zwykłym `daemon-reload`+`start`, i (ważniejsze)
+po wymuszonym Stop+Start całej instancji w trakcie tej samej sesji (powód:
+osobny problem z pamięcią, patrz niżej) — broker wstał sam, bez żadnej
+ręcznej interwencji, za oba razy.
 
 Dziś broker startuje się ręcznie: SSH na EC2, `export KAFKA_HEAP_OPTS=...`,
 potem `bin/kafka-server-start.sh config/server.properties` — i to za
@@ -186,7 +191,34 @@ start razem z systemem, bez żadnej interwencji. Kroki:
 3. `systemctl start/stop/status kafka` — do ręcznego sterowania
    i sprawdzania, czy żyje.
 
-### F2 — Producent i Konsument przeniesione na EC2
+### F2 — Producent i Konsument przeniesione na EC2 ✅ zrobione i przetestowane end-to-end 31.08
+
+Potwierdzone realną wiadomością (testową, bo akurat żadna nowa data z Yahoo
+nie czekała) przechodzącą całą drogę: Producent → Kafka (`localhost:9094`)
+→ Konsument → zapis w S3 przez rolę IAM, bez żadnych kluczy na dysku.
+
+Po drodze cztery rzeczy, które nie poszły za pierwszym razem — zapamiętać
+na przyszłość:
+- **`requests` też trzeba zainstalować** w `venv` na EC2, nie tylko
+  `kafka-python`/`boto3` — potrzebuje go Producent (zapytania do Yahoo
+  Finance), łatwo o tym zapomnieć, bo to jedyny z trójki skryptów, który
+  tego używa.
+- **`git clone` tworzy folder tam, gdzie akurat jesteś** — pierwsza próba
+  wylądowała w `~/kafka_2.13-4.3.1/GPW---pulse` (bo to nawykowe pierwsze
+  „cd" po SSH), nie w `~/GPW---pulse`. Po przeniesieniu (`mv`) `venv`
+  trzeba było zbudować od nowa — plik `venv/bin/activate` (i `pip`
+  w środku) ma zaszytą na sztywno pełną ścieżkę z miejsca, gdzie powstał,
+  i przeniesienie folderu go cicho psuje.
+- **`git commit` to nie to samo co `git push`** — commit na Windowsie
+  zaktualizował tylko lokalną historię; dopóki nie poszedł `git push`,
+  `git pull` na EC2 uparcie ściągał starą wersję kodu, mimo poprawnie
+  ustawionej zmiennej `KAFKA_BOOTSTRAP` — myląca sytuacja, dopóki nie
+  porównano pliku na GitHubie z lokalnym.
+- **Osobny, niezwiązany problem odkryty po drodze: brak pamięci.** Broker
+  Kafki + oba skrypty Pythona naraz na małej instancji (913 MB RAM) to
+  sporo jak na tak mało pamięci — a swap dodany 19.08 nigdy nie przetrwał
+  restartu (nie był w `/etc/fstab`), więc zniknął i SSH przestało
+  odpowiadać. Naprawione trwale — pełny opis w [[project-etap5-ec2-networking]].
 
 Oba skrypty (`Data ingestion 2.py`, `kafka_consumer.py`) muszą fizycznie
 znaleźć się na EC2:
@@ -225,13 +257,11 @@ nie potrzebują lokalnego Producenta).
 
 ### Do przemyślenia — zanim/w trakcie roboty
 
-1. **EC2 24/7 czy dalej Stop/Start?** Największe pytanie tej części. Cały
-   sens Części F to automatyzacja bez Twojego udziału — a `cron`
-   i `systemd` nie zadziałają na wyłączonej maszynie. To wprost koliduje
-   z zasadą niżej („Czego NIE robimy" — zatrzymywać EC2 po sesji). Sprawdź
-   typ instancji i limit godzin Free Tier (zwykle 750h/miesiąc — to prawie
-   cały miesiąc dla jednej instancji), żeby wiedzieć, czy 24/7 mieści się
-   w darmowym limicie, czy zacznie kosztować.
+1. ~~EC2 24/7 czy dalej Stop/Start?~~ **Rozstrzygnięte 31.08: EC2 zostaje
+   włączone 24/7.** Instancja to `t3.micro`; Gracjan ma jeszcze ~173 dni
+   darmowego okresu, limit 750h/miesiąc i tak pokrywa ciągłą pracę jednej
+   instancji. Zasada niżej („Czego NIE robimy" — zatrzymywać EC2 po sesji)
+   jest przez to nieaktualna.
 2. **Skąd Producent na EC2 będzie wiedział, które daty już wysłał?** Dziś
    porównuje z lokalnym plikiem `companies/{tick}.txt`
    ([[project-etap5-pipeline-gap]] ma więcej o tym, jak te pliki są dziś
@@ -241,8 +271,9 @@ nie potrzebują lokalnego Producenta).
 3. **Jak kod trafia na EC2 i zostaje aktualny?** Ręczny `git clone`
    + `git pull` przy każdej zmianie wystarczy na ten projekt — nie trzeba
    niczego bardziej rozbudowanego (żadnego CI/CD).
-4. **IAM Role dla EC2** — sprawdzić i ewentualnie donadać uprawnienia do
-   S3, zanim `kafka_consumer.py` na EC2 będzie mógł tam zapisywać.
+4. ~~IAM Role dla EC2~~ **Zrobione 31.08** — `GPWTrackerEC2Role`
+   (`AmazonS3FullAccess`) stworzona i przypięta, zapis do S3 z EC2
+   potwierdzony działający.
 5. **Jak zobaczysz błąd, jeśli coś padnie na EC2?** Lokalnie masz
    `companies/errors.log` na wyciągnięcie ręki (tak jak dzisiaj, przy
    naprawie Harmonogramu). Na EC2 ten sam log siedzi na zdalnym dysku —
@@ -264,10 +295,10 @@ do [[Slownik]].
   zostaje jako działające zabezpieczenie.
 - ❌ Więcej niż trzy spółki, dane szybsze niż raz na sekundę/minutę — poza
   zakresem, tak jak dotychczas.
-- ❌ Zostawianie instancji EC2 uruchomionej bez potrzeby — zatrzymywać
-  (Stop, nie Terminate) po każdej sesji, żeby nie zużywać niepotrzebnie
-  godzin free tier. **(⚠️ w napięciu z celem Części F — patrz punkt 1
-  w „Do przemyślenia" wyżej; do rozstrzygnięcia, zanim ruszy F3/`cron`.)**
+- ~~❌ Zostawianie instancji EC2 uruchomionej bez potrzeby~~ **Nieaktualne
+  od 31.08** — decyzja zmieniona, EC2 zostaje włączone 24/7 (patrz punkt 1
+  w „Do przemyślenia" wyżej), właśnie po to, żeby Część F mogła działać
+  bez udziału Gracjana.
 
 ---
 
