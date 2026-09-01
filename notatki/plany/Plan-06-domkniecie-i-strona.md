@@ -25,7 +25,7 @@ pytaniami, dopisywany w miarę postępu.
 | # | Wątek | Status |
 |---|---|---|
 | 1 | Domknięcie Etapu 4, Część D (README, wnioski, porządki) | opisane w Plan-04, nietknięte |
-| 2 | Spójność projektu — nazewnictwo, porządki w plikach | nowy dziś, gotowy do zrobienia |
+| 2 | Spójność projektu — nazewnictwo, porządki w plikach | ✅ zrobione 01.09 |
 | 3 | Dokąd trafiają Silver/Gold (zostają lokalnie? EC2? S3?) | decyzja do podjęcia, osobna sesja |
 | 4 | **Etap 6 — strona internetowa** | wstępny szkic, duży, nowy obszar |
 | 5 | Etap 5, Część E — Power BI → Athena | świadomie odłożone (dziś: „jeszcze trochę") |
@@ -47,9 +47,18 @@ Pełny opis w [[Plan-04-pokazanie-wyniku]], sekcja „Część D". Trzy sesje,
 
 ---
 
-## Wątek 2 — Spójność: nazewnictwo i porządki
+## Wątek 2 — Spójność: nazewnictwo i porządki ✅ zrobione 01.09
 
-Dziś w `kod/` mieszają się dwa style nazw:
+`kod/` ujednolicone do `snake_case` (`data_ingestion.py`, `silver.py`,
+`gold.py`, `pyathena_silver_test.py`); stary, nieużywany
+`Data ingestion.py` usunięty, nie przemianowany (kolizja nazw ze
+`data_ingestion.py`). `pipeline.bat` i `crontab` na EC2 zaktualizowane.
+Po drodze znaleziony i naprawiony konflikt `git pull` na EC2 — szczegóły
+w dzienniku 01.09 i [[project-etap5-part-f-plan]].
+
+Opis poniżej zostawiony jako zapis stanu sprzed zmiany:
+
+Przed zmianą w `kod/` mieszały się dwa style nazw:
 
 - Ze spacjami i wielką literą: `Data ingestion.py`, `Data ingestion 2.py`,
   `gold 1.py`, `silver 1.py`, `pyathena silver test.py`
@@ -162,14 +171,10 @@ Zapisane dawno, wciąż aktualne, kolejność orientacyjna:
 
 ---
 
-## Co robimy dziś konkretnie
+## Zrobione 01.09
 
-Patrz też rozmowa w dzienniku — rekomendacja: **Wątek 2 (spójność
-nazewnictwa)**, nie Wątek 3 (Silver/Gold). Powód: Wątek 3 to nowa decyzja
-architektoniczna zasługująca na osobną, wypoczętą sesję, a dzisiejsza
-„jedna nowa rzecz" (`cron`) już się wydarzyła. Nazewnictwo jest mniejsze,
-bezpieczniejsze, i dobrze domyka dzisiejszy dzień — z zastrzeżeniem
-z Wątku 2 o koszcie zmiany nazw, których `crontab` już dziś się nauczył.
+Wątek 2 (spójność nazewnictwa) — patrz wyżej i dziennik 01.09. Następna
+sesja: Wątek 1 (Część D) albo decyzja z Wątku 3 (Silver/Gold), do wyboru.
 
 ---
 

@@ -34,30 +34,29 @@ Etap 5 (niżej) nie przejmie go w pełni.
 Dalej: Część D — rozbudowa projektu pod portfolio.
 Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
 
-**Etap 5 (migracja do AWS):** w toku. Docelowa architektura: EC2 (Kafka
-z KRaft) → S3 → Glue → Athena. Zrobione: broker Kafki na EC2 — od 25.08
-pod stałym adresem (Elastic IP), koniec z ręczną aktualizacją adresu po
-każdym Stop/Start. Producent wysyłający nowe ceny przez Kafkę
-(`kod/Data ingestion 2.py`, od 31.08 odporny na brak brokera — brak
-połączenia z Kafką jest łapany i logowany, nie przerywa już pobierania
-i zapisu lokalnego), Konsument (`kod/kafka_consumer.py`) zapisujący bieżące
-dane do S3 z podziałem na spółki (partycje `spolka=TICKER`). Historia cen
-wgrana do S3 raz (`bronze/`, przeorganizowana 24.08 pod te same partycje)
-— automatyczny codzienny upload do `bronze/` wyłączony, żeby nie dublował
-tego, co już niesie Kafka. Glue Crawler + Athena działają na obu tabelach
-(`bronze` i `live`). **Część E:** od 31.08 `silver 1.py` czyta dane
-z Athena przez `pyathena` (zapytanie SQL łączące `bronze` i `live`) zamiast
-lokalnych plików spółek — przetestowane osobno i przez cały `pipeline.bat`.
-Zostaje jeszcze podłączenie Power BI, odłożone na osobną sesję. **Część F
-(w toku):** EC2 zostaje teraz włączone 24/7 (koniec z zatrzymywaniem po
-sesji). Broker działa jako usługa `systemd` (`kafka.service`, przeżywa
-restart instancji bez ręcznego SSH). Producent i Konsument uruchamiane też
-bezpośrednio na EC2 (adres brokera przez zmienną `KAFKA_BOOTSTRAP` —
-publiczny IP na Windowsie, `localhost:9094` na EC2), z rolą IAM zamiast
-kluczy dla zapisu do S3 — przetestowane end-to-end. Zostaje jeszcze `cron`
-(automatyczne codzienne uruchomienie) i wyłączenie Producenta z lokalnego
-`pipeline.bat`; szczegółowa rozpiska w planie niżej.
+**Etap 5 (migracja do AWS):** architektura w pełni ukończona
+i zautomatyzowana (01.09). EC2 (Kafka z KRaft, jako usługa `systemd`) →
+S3 → Glue → Athena → Silver/Gold. EC2 ma stały adres (Elastic IP) i zostaje
+włączone 24/7 (decyzja 31.08). Producent (`kod/data_ingestion.py`)
+i Konsument (`kod/kafka_consumer.py`) działają **same, codziennie, przez
+`cron` na EC2** (od 01.09) — niezależnie od tego, czy komputer Gracjana
+jest włączony; adres brokera przez zmienną `KAFKA_BOOTSTRAP`
+(`localhost:9094` wewnątrz EC2), zapis do S3 przez rolę IAM, bez kluczy na
+dysku. Historia cen (`bronze/`) wgrana do S3 raz, zamrożona — bieżące dane
+niesie już tylko Kafka, do `live/` (obie tabele partycjonowane po spółce,
+Glue Crawler + Athena). **Część E:** `silver.py` czyta dane z Athena przez
+`pyathena` (zapytanie SQL łączące `bronze` i `live`) zamiast lokalnych
+plików spółek. Zostaje jeszcze podłączenie Power BI, odłożone na osobną
+sesję. **Część F ukończona:** broker (`systemd`), Producent+Konsument
+(`cron` na EC2) i lokalny `pipeline.bat` (od 01.09 tylko `silver.py`
++ `gold.py`, bez lokalnego Producenta — EC2 przejął to zadanie w całości).
 Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
+
+**Dalsze kroki:** zebrane w
+[`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
+— domknięcie Etapu 4 Część D, decyzja gdzie docelowo mają działać/lądować
+Silver i Gold, i nowy kierunek: strona internetowa pokazująca wynik
+projektu. Na razie szkic z otwartymi pytaniami.
 
 ---
 
@@ -78,16 +77,17 @@ Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migrac
 
 | Plik | Co robi |
 |---|---|
-| `Data ingestion 2.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Etap 5: wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`. Jednorazowy upload historii do S3 (`boto3`) zrobiony 20.08, kod od 24.08 zakomentowany — `bronze/` w S3 zostaje zamrożoną historią, nie odświeżaną co dzień |
-| `kafka_consumer.py` | Etap 5, Część C — Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker`, grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...` |
+| `data_ingestion.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker` — połączenie z brokerem też w `try/except`, brak Kafki nie przerywa pobierania/zapisu lokalnego. Od 01.09 uruchamiany codziennie przez `cron` na EC2 (nazwa do 01.09: `Data ingestion 2.py`) |
+| `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. Od 01.09 uruchamiany codziennie przez `cron` na EC2, kilka minut po `data_ingestion.py` |
 | `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
-| `Data ingestion.py` | Wczesna eksploracja odpowiedzi API Yahoo Finance (Sesja 3) — materiał referencyjny, nieużywany przez resztę programu |
-| `silver 1.py` | Etap Silver — od 31.08 (Etap 5, Część E) czyta dane z Athena przez `pyathena` (zapytanie SQL łączące tabele `bronze` i `live`) zamiast lokalnych plików spółek, naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` |
-| `gold 1.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` |
+| `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
+| `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (zapytanie SQL łączące tabele `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`) |
+| `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`) |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
 | `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |
-| `pipeline.bat` | Etap 4, Część C — łączy trzy kroki (`Data ingestion 2.py`, `silver 1.py`, `gold 1.py`) w jedno zadanie Harmonogramu; trzy niezależne linie bez `&&` (łączenie przez `&&`/`^` powodowało, że `silver 1.py` cicho nie zapisywał danych mimo że `gold 1.py` i tak się uruchamiał — porzucone na rzecz pewności działania) |
+| `pipeline.bat` | Łączy kroki Silver i Gold (`silver.py`, `gold.py`) w jedno zadanie Harmonogramu; dwie niezależne linie bez `&&` (łączenie przez `&&`/`^` powodowało, że `silver 1.py` cicho nie zapisywał danych mimo że `gold 1.py` i tak się uruchamiał — porzucone na rzecz pewności działania). Do 01.09 uruchamiał jako pierwszy krok też pobieranie danych — od Etapu 5 Części F to zadanie przejęło EC2 |
+| `pyathena_silver_test.py` | Szkic/materiał referencyjny z Etapu 5, Części E — pierwsza wersja zapytania SQL do Athena przez `pyathena`, zanim trafiła do `silver.py`. Zachowany jako własna notatka, nie wpięty w `pipeline.bat` |
 
 ### Dane w `companies/`
 
@@ -161,17 +161,19 @@ Dwa wykresy z Części A Etapu 4, wygenerowane przez `kod/wykresy.py` i
 
 1. [[Plan-ogolny]] — zobacz całość projektu
 2. [[Codzienna-rutyna]] — przejdź część A, jednorazową
-3. [[Plan-04-pokazanie-wyniku]] — Etap 4, aktualnie w toku
-4. [[Plan-05-aws-migracja]] — Etap 5, aktualnie w toku
-5. [[Slownik]] — zaglądaj, gdy spotkasz nieznane słowo
+3. [[Plan-04-pokazanie-wyniku]] — Etap 4, Część D wciąż w toku
+4. [[Plan-05-aws-migracja]] — Etap 5, architektura ukończona
+5. [[Plan-06-domkniecie-i-strona]] — co dalej: domknięcie, Silver/Gold, strona
+6. [[Slownik]] — zaglądaj, gdy spotkasz nieznane słowo
 
 ---
 
 ## Zasady prowadzenia notatek
 
-**Dziennik uzupełniasz sam, po każdej sesji.**
-Claude może pomóc, ale najważniejsza jest rubryka
-„czego się nauczyłem" — pisana **Twoimi słowami**.
+**Dziennik pisze Claude, na koniec każdej sesji** (od 01.09 — wcześniej
+robił to Gracjan sam). Rubryka „czego się nauczyłem" zawsze zostaje pusta,
+z listą tematów sesji jako podpowiedzią — tę część Gracjan uzupełnia sam,
+**własnymi słowami**.
 
 Jeśli nie potrafisz czegoś zapisać własnymi słowami — to znaczy,
 że jeszcze tego nie rozumiesz. To dobry sprawdzian.
@@ -193,6 +195,7 @@ Napisz `[[Slownik]]`, a Obsidian sam zrobi odnośnik.
 - [[Plan-03-gold]]
 - [[Plan-04-pokazanie-wyniku]]
 - [[Plan-05-aws-migracja]]
+- [[Plan-06-domkniecie-i-strona]]
 - [[Codzienna-rutyna]]
 - [[Stare-repo-co-to-bylo]]
 - [[Slownik]]

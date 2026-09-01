@@ -20,9 +20,10 @@ prowadzeniem krok po kroku (SSH, EC2, KRaft, Security Groups, PowerShell).
    przykłady na **innych** danych. Kod pomocniczy — tylko na prośbę i za zgodą.
 2. **Prosty język.** Krótkie zdania, trudne słowa tłumaczone od razu.
 3. **Małe kroki.** Jedna nowa rzecz na sesję (sesja = 1,5–2 h dziennie).
-4. **Dokumentacja:** `README.md` aktualizujesz Ty, na bieżąco, na koniec
-   każdej sesji. Szczegóły sesji (błędy, poprawki, decyzje) idą do dziennika
-   Obsidiana, **nie tutaj** — ten plik ma zostać krótki (~200–300 słów):
+4. **Dokumentacja:** `README.md` **i** dziennik (`notatki/dziennik/`)
+   aktualizujesz Ty, na bieżąco, na koniec każdej sesji — Gracjan już
+   tego nie robi sam. Szczegóły sesji (błędy, poprawki, decyzje) idą do
+   dziennika, **nie tutaj** — ten plik ma zostać krótki (~200–300 słów):
    tylko kto, zasady, aktualny stan.
 5. **Terminal i git zawsze robi Gracjan sam.** Ty podajesz dokładne komendy,
    nie wykonujesz ich za niego (poza czytaniem plików/stanu).
@@ -40,18 +41,17 @@ Repo: folder `GPW - pulse`, GitHub: `github.com/gracjan20022002-prog/GPW---pulse
 (`pipeline.bat` + Harmonogram) ukończone. Zostaje **Część D** (domknięcie
 pod portfolio).
 
-**W toku: Etap 5 — migracja do AWS** (od 19.08, plan:
-`notatki/plany/Plan-05-aws-migracja.md`, zastępuje wcześniejszy pomysł
-Databricks). Architektura: EC2 (Kafka) → S3 → Glue → Athena. Zrobione:
-broker na EC2, Producent (nowe ceny przez Kafkę, Część B — automatyczny
-codzienny upload do `bronze/` w S3 wyłączony 24.08, `bronze/` to teraz
-zamrożona historia, nie odświeżana), Konsument (S3 z podziałem na spółki,
-Część C), Glue Crawler + Athena na `bronze/` i `live/`, oba partycjonowane
-po spółce (Część D). Python już łączy się z Athena przez `pyathena` —
-podstawa pod Część E. Dalej: Część E (Silver/Gold/Power BI czytają
-z Athena), Część F (`cron` na EC2 dla obu skryptów). EC2 zatrzymywać
-(Stop) po sesji — IP może się zmienić przy starcie (24.08 wyjątkowo
-zostawione włączone na życzenie).
+**Etap 5 — migracja do AWS** (plan: `notatki/plany/Plan-05-aws-migracja.md`)
+— architektura EC2 (Kafka+`systemd`) → S3 → Glue → Athena → Silver/Gold
+**w pełni ukończona i zautomatyzowana** (od 01.09): broker, Producent
+i Konsument działają same przez `cron` na EC2, niezależnie od komputera
+Gracjana. **EC2 zostaje włączone 24/7** (decyzja 31.08 — NIE zatrzymywać
+po sesji). Zostaje tylko Część E: Power BI → Athena (świadomie odłożone).
+
+**`Plan-06-domkniecie-i-strona.md`** (od 01.09) zbiera dalsze kroki:
+domknięcie Części D, decyzja gdzie docelowo mają działać Silver/Gold,
+i nowy kierunek — strona internetowa pokazująca wynik projektu. Na razie
+szkic z otwartymi pytaniami.
 
 ## Gdzie co jest
 
