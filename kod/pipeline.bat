@@ -1,3 +1,2 @@
-"C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\.venv\Scripts\python.exe" "C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\kod\Data ingestion 2.py"
-"C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\.venv\Scripts\python.exe" "C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\kod\silver 1.py"
-"C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\.venv\Scripts\python.exe" "C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\kod\gold 1.py"
+"C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\.venv\Scripts\python.exe" "C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\kod\silver.py"
+"C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\.venv\Scripts\python.exe" "C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\kod\gold.py"

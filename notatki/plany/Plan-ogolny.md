@@ -109,6 +109,11 @@ Kolejność, w jakiej będziemy dokładać, gdy poczujesz się pewnie:
    konkretny kierunek: migracja do AWS (Kafka → S3 → Glue → Athena),
    zainspirowana tutorialem o danych giełdowych. Już rozpoczęta —
    szczegóły: [[Plan-05-aws-migracja]].
+7. **Nowy punkt, Aktualizacja 2026-09-01:** strona internetowa pokazująca
+   wynik projektu — przegląd spółek, wykresy aktualizowane codziennie,
+   słownik giełdowy. Dokłada się do listy, nie zastępuje niczego.
+   Domknięcie starych wątków (Etap 4 Część D, Etap 5 Część E) i szkic tego
+   pomysłu: [[Plan-06-domkniecie-i-strona]].
 
 ---
 
