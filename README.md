@@ -24,13 +24,12 @@ wskaźnikami) i `gold/ranking.csv` (podsumowanie — jeden wiersz na spółkę).
 `matplotlib`) ukończona — patrz `wykresy/` niżej. Część B (dashboard
 w Power BI — wykres liniowy, wykres słupkowy, filtr) zbudowana, plik
 `wykresy/PowerBi_do_dopracowania.pbix`; stylizacja i eksport/publikacja
-odłożone na później. Część C (automatyzacja) ukończona: `kod/pipeline.bat` łączy cały łańcuch
-(`Data ingestion 2.py` → `silver 1.py` → `gold 1.py`) w jedno zadanie
-Harmonogramu Windows (codziennie o 10:25, z opcją dogonienia pominiętego
-uruchomienia). Naprawiony błąd utraty historii sprzed 3 lat (skrypt scala
-świeże dane z istniejącym plikiem zamiast go nadpisywać) — patrz opis
-Bronze wyżej. Zostaje lokalnie, jako działające zabezpieczenie, dopóki
-Etap 5 (niżej) nie przejmie go w pełni.
+odłożone na później. Część C (automatyzacja) ukończona: `kod/pipeline.bat`
+łączy Silver i Gold (`silver.py` → `gold.py`) w jedno zadanie Harmonogramu
+Windows — pobieranie danych przejęło w pełni EC2 (patrz Etap 5), więc
+lokalnie zostały tylko te dwa kroki. Naprawiony dawno błąd utraty historii
+sprzed 3 lat (skrypt scala świeże dane z istniejącym plikiem zamiast go
+nadpisywać) — patrz opis Bronze wyżej.
 Dalej: Część D — rozbudowa projektu pod portfolio.
 Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
 
@@ -50,13 +49,24 @@ plików spółek. Zostaje jeszcze podłączenie Power BI, odłożone na osobną
 sesję. **Część F ukończona:** broker (`systemd`), Producent+Konsument
 (`cron` na EC2) i lokalny `pipeline.bat` (od 01.09 tylko `silver.py`
 + `gold.py`, bez lokalnego Producenta — EC2 przejął to zadanie w całości).
+
+**02.09:** harmonogram przesunięty na **po zamknięciu GPW** — `cron` na
+EC2 zbiera o 18:00/18:02 polskiego, lokalny Harmonogram (nowy task,
+poprzedni się popsuł) o 18:10; wcześniej oba działały o 9:00, w momencie
+otwarcia giełdy, ale Yahoo nie miało jeszcze wtedy danych za dany dzień.
+Tego samego dnia znaleziony i naprawiony błąd: `live` w Athenie przez
+pomyłkę zebrało całą 3-letnią historię zamiast tylko świeżych dni (opisane
+w dzienniku 02.09) — posprzątane w S3, `silver.py` dedupuje teraz po dniu
+i spółce (nie po pełnym znaczniku czasu), dopisany test regresyjny
+w `test_plikow.py`.
 Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
 
 **Dalsze kroki:** zebrane w
 [`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
 — domknięcie Etapu 4 Część D, decyzja gdzie docelowo mają działać/lądować
-Silver i Gold, i nowy kierunek: strona internetowa pokazująca wynik
-projektu. Na razie szkic z otwartymi pytaniami.
+Silver i Gold (**następna sesja**: przeniesienie ich wykonania na EC2),
+i nowy kierunek: strona internetowa pokazująca wynik projektu. Na razie
+szkic z otwartymi pytaniami.
 
 ---
 
@@ -79,9 +89,9 @@ projektu. Na razie szkic z otwartymi pytaniami.
 |---|---|
 | `data_ingestion.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker` — połączenie z brokerem też w `try/except`, brak Kafki nie przerywa pobierania/zapisu lokalnego. Od 01.09 uruchamiany codziennie przez `cron` na EC2 (nazwa do 01.09: `Data ingestion 2.py`) |
 | `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. Od 01.09 uruchamiany codziennie przez `cron` na EC2, kilka minut po `data_ingestion.py` |
-| `test_plikow.py` | Sprawdza pobrane pliki: czy istnieją, czy mają poprawny format wiersza, czy jest wystarczająco dużo danych, czy dane da się odczytać jako data i liczba |
+| `test_plikow.py` | Dwa testy: `test_dzialania` sprawdza pobrane pliki `companies/*.txt` (istnieją, poprawny format wiersza, wystarczająco dużo danych); `test_powtorek` (02.09) sprawdza `silver/clean_data.csv` pod kątem duplikatów — czy nie ma dwóch wierszy z tym samym dniem i tą samą spółką |
 | `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
-| `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (zapytanie SQL łączące tabele `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki i duplikaty, sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`) |
+| `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`) |
 | `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`) |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
@@ -110,7 +120,7 @@ data,cena,spolka
 
 Dwa pliki, wynik etapu Gold.
 
-`dane_dzienne.csv` — pełna tabela dzienna (2268 wierszy), ta sama co
+`dane_dzienne.csv` — pełna tabela dzienna, ta sama co
 w `silver/`, plus dzienna zmiana procentowa i miesiąc (pierwszy dzień każdej
 spółki ma pusty `zmiana_proc` — nie ma dnia wcześniej, z czym porównać):
 ```
@@ -170,13 +180,10 @@ Dwa wykresy z Części A Etapu 4, wygenerowane przez `kod/wykresy.py` i
 
 ## Zasady prowadzenia notatek
 
-**Dziennik pisze Claude, na koniec każdej sesji** (od 01.09 — wcześniej
-robił to Gracjan sam). Rubryka „czego się nauczyłem" zawsze zostaje pusta,
-z listą tematów sesji jako podpowiedzią — tę część Gracjan uzupełnia sam,
-**własnymi słowami**.
-
-Jeśli nie potrafisz czegoś zapisać własnymi słowami — to znaczy,
-że jeszcze tego nie rozumiesz. To dobry sprawdzian.
+**Dziennik pisze Claude, na koniec każdej sesji, w całości** (od 01.09 —
+wcześniej robił to Gracjan sam) — łącznie z rubryką „czego się
+nauczyłem", pisaną w pierwszej osobie na podstawie tego, co faktycznie
+było nowe w danej sesji. Żadnych pustych placeholderów do uzupełnienia.
 
 **Nowy plik w dzienniku dla każdej sesji.** Nazwa: data, np. `2026-07-22.md`.
 

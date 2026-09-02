@@ -2,6 +2,7 @@ import os
 from datetime import datetime
 from config import ticker
 import pytest
+import pandas as pd
 print(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @pytest.mark.parametrize("tick", ticker)
@@ -27,4 +28,10 @@ def test_dzialania(tick):
                 zly_wiersz.append(wiersz)
     assert not zly_wiersz, f"Wiersz jest nieprawidłowy: {zly_wiersz}"           
     assert  licznik >= 700 , f"Za mało wierszy: {licznik}"
-   
+
+def test_powtorek():
+    df = pd.read_csv(os.path.join(BASE_DIR, "silver", "clean_data.csv"))
+    df["data"] = pd.to_datetime(df["data"])
+    df["dzien"] = df["data"].dt.date
+    ile_duplikatow = df.duplicated(subset=["dzien", "spolka"]).sum() 
+    assert ile_duplikatow == 0, f"Znaleziono duplikaty: {df.duplicated(subset=["dzien", "spolka"]).sum()}"

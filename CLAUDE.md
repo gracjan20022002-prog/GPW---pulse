@@ -32,26 +32,20 @@ prowadzeniem krok po kroku (SSH, EC2, KRaft, Security Groups, PowerShell).
 
 Repo: folder `GPW - pulse`, GitHub: `github.com/gracjan20022002-prog/GPW---pulse`.
 
-**Etapy BRONZE, SILVER, GOLD ukończone** — dane w `companies/`, `silver/`,
-`gold/`. Pełna historia sesji: dziennik (`notatki/dziennik/`, lokalnie) i
-`README.md` (na GitHubie).
+**BRONZE, SILVER, GOLD ukończone.** **Etap 4** — Części A, B, C ukończone,
+zostaje **Część D** (domknięcie pod portfolio).
 
-**Etap 4** (plan: `notatki/plany/Plan-04-pokazanie-wyniku.md`) — Części
-**A** (wykresy), **B** (dashboard Power BI, stylizacja odłożona) i **C**
-(`pipeline.bat` + Harmonogram) ukończone. Zostaje **Część D** (domknięcie
-pod portfolio).
+**Etap 5 — migracja do AWS** (`Plan-05-aws-migracja.md`) — EC2
+(Kafka+`systemd`, 24/7) → S3 → Glue → Athena → Silver/Gold, w pełni
+ukończona i zautomatyzowana. Zbieranie na EC2 (`cron`) i lokalny
+Harmonogram — oba **po zamknięciu GPW**, nie o otwarciu (18:00/18:02
+i 18:10 polskiego, od 02.09). 02.09: naprawiony błąd duplikatów
+w Silver/Gold (posprzątane w S3, nowy test). Zostaje Część E: Power BI
+→ Athena (odłożone).
 
-**Etap 5 — migracja do AWS** (plan: `notatki/plany/Plan-05-aws-migracja.md`)
-— architektura EC2 (Kafka+`systemd`) → S3 → Glue → Athena → Silver/Gold
-**w pełni ukończona i zautomatyzowana** (od 01.09): broker, Producent
-i Konsument działają same przez `cron` na EC2, niezależnie od komputera
-Gracjana. **EC2 zostaje włączone 24/7** (decyzja 31.08 — NIE zatrzymywać
-po sesji). Zostaje tylko Część E: Power BI → Athena (świadomie odłożone).
-
-**`Plan-06-domkniecie-i-strona.md`** (od 01.09) zbiera dalsze kroki:
-domknięcie Części D, decyzja gdzie docelowo mają działać Silver/Gold,
-i nowy kierunek — strona internetowa pokazująca wynik projektu. Na razie
-szkic z otwartymi pytaniami.
+**`Plan-06-domkniecie-i-strona.md`** — domknięcie Części D, strona
+internetowa. **Następna sesja:** przeniesienie wykonania Silver/Gold
+na EC2.
 
 ## Gdzie co jest
 

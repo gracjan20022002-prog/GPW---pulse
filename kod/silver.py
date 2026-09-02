@@ -13,6 +13,9 @@ df["data"] = pd.to_datetime(df["data"])
 df["cena"] = pd.to_numeric(df["cena"], errors="coerce")
 df = df.dropna(subset=["cena"])
 dane = df.sort_values(["spolka", "data"])
+dane["dzien"] = dane["data"].dt.date
+dane = dane.drop_duplicates(subset=["dzien", "spolka"], keep = "first")
+dane = dane.drop(columns=["dzien"])
 print(dane.shape)
 assert set(dane["spolka"].unique()) == set(ticker), f"Nieoczekiwane spółki: {dane['spolka'].unique()}"
 assert dane["cena"].isna().sum() == 0, "W kolumnie cena pozostały NaN, pomimo użycia dropna()"
