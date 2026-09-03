@@ -61,10 +61,10 @@ for tick in ticker:
             nowe_daty = set(dane.keys()) - stare_daty
             for data in nowe_daty:
                 if producer is not None:
-                    producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": data, "cena": dane[data]})
+                    producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": f"{data} 17:00:00", "cena": dane[data]})
             with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
                 for data in posortowane:
-                    plik.write(f"{data}, {dane[data]}\n")
+                    plik.write(f"{data} 17:00:00, {dane[data]}\n")
         else:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
