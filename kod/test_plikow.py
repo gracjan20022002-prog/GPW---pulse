@@ -33,5 +33,5 @@ def test_powtorek():
     df = pd.read_csv(os.path.join(BASE_DIR, "silver", "clean_data.csv"))
     df["data"] = pd.to_datetime(df["data"])
     df["dzien"] = df["data"].dt.date
-    ile_duplikatow = df.duplicated(subset=["dzien", "spolka"]).sum() 
-    assert ile_duplikatow == 0, f"Znaleziono duplikaty: {df.duplicated(subset=["dzien", "spolka"]).sum()}"
+    ile_duplikatow = df.duplicated(subset=['dzien', 'spolka']).sum() 
+    assert ile_duplikatow == 0, f"Znaleziono duplikaty: {df.duplicated(subset=['dzien', 'spolka']).sum()}"
