@@ -14,9 +14,9 @@ def test_dzialania(tick):
     with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "r", encoding = "utf-8") as plik:
         for wiersz in plik:
             test = wiersz.split(",")
-            if len(test) == 2 and len(test[0]) == 19:
+            if len(test) == 2:
                 try:
-                    data = datetime.strptime(test[0], "%Y-%m-%d %H:%M:%S")
+                    data = datetime.strptime(test[0].split(" ")[0], "%Y-%m-%d")
                     liczba = float(test[1])
                     licznik += 1
                 except ValueError:

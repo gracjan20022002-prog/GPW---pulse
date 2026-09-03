@@ -34,6 +34,7 @@ for tick in ticker:
                 linia = linia.strip()
                 if linia:
                     data_str, cena_str = linia.split(", ")
+                    data_str = data_str.split(" ")[0]
                     try:
                         dane[data_str] = float(cena_str)
                     except ValueError:
@@ -54,7 +55,7 @@ for tick in ticker:
             con = list(zip(timestamp, close))   
             for t, c in con:
                 if t and c is not None:
-                    data = datetime.fromtimestamp(t)
+                    data = datetime.fromtimestamp(t).date()
                     dane[str(data)] = c
             posortowane = sorted(dane.keys())
             nowe_daty = set(dane.keys()) - stare_daty
