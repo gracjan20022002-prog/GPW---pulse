@@ -224,8 +224,9 @@ Oba skrypty (`Data ingestion 2.py`, `kafka_consumer.py`) muszą fizycznie
 znaleźć się na EC2:
 
 1. Python + `pip install kafka-python boto3` w osobnym `venv` na EC2
-   (Amazon Linux nie ma tego domyślnie) — `pandas` niepotrzebny, bo Silver
-   i Gold zostają lokalnie.
+   (Amazon Linux nie ma tego domyślnie) — ~~`pandas` niepotrzebny, bo Silver
+   i Gold zostają lokalnie~~ **nieaktualne od 03.09:** `pandas` i `pyathena`
+   doinstalowane, Silver i Gold działają na EC2.
 2. Kod na EC2 — najprościej `git clone` całego repo z GitHuba na instancję;
    przy zmianach — `git pull`.
 3. Adres brokera w obu skryptach zmienia się na `localhost:9094` (listener
@@ -271,7 +272,10 @@ nie potrzebują lokalnego Producenta).
 3. **Jak kod trafia na EC2 i zostaje aktualny?** Ręczny `git clone`
    + `git pull` przy każdej zmianie wystarczy na ten projekt — nie trzeba
    niczego bardziej rozbudowanego (żadnego CI/CD).
-4. ~~IAM Role dla EC2~~ **Zrobione 31.08** — `GPWTrackerEC2Role`
+4. ~~IAM Role dla EC2~~ **Zrobione 31.08** — `gpw_tracker_ec2_role`
+   (**uwaga:** do 03.09 stało tu błędnie `GPWTrackerEC2Role`; prawdziwą
+   nazwę pokazuje `aws sts get-caller-identity` na instancji. Od 03.09
+   rola ma też `AmazonAthenaFullAccess`, potrzebne `silver.py`)
    (`AmazonS3FullAccess`) stworzona i przypięta, zapis do S3 z EC2
    potwierdzony działający.
 5. **Jak zobaczysz błąd, jeśli coś padnie na EC2?** Lokalnie masz

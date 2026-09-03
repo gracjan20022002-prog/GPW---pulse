@@ -37,15 +37,21 @@ zostaje **Część D** (domknięcie pod portfolio).
 
 **Etap 5 — migracja do AWS** (`Plan-05-aws-migracja.md`) — EC2
 (Kafka+`systemd`, 24/7) → S3 → Glue → Athena → Silver/Gold, w pełni
-ukończona i zautomatyzowana. Zbieranie na EC2 (`cron`) i lokalny
-Harmonogram — oba **po zamknięciu GPW**, nie o otwarciu (18:00/18:02
-i 18:10 polskiego, od 02.09). 02.09: naprawiony błąd duplikatów
-w Silver/Gold (posprzątane w S3, nowy test). Zostaje Część E: Power BI
-→ Athena (odłożone).
+ukończona i zautomatyzowana. Od 03.09 **cały łańcuch działa na EC2**
+przez `cron`: zbieranie 16:00/16:02 UTC, Silver+Gold 16:10 UTC
+(18:00/18:02 i 18:10 polskiego, po zamknięciu GPW). Lokalny Harmonogram
+zostaje jako wersja zapasowa. Zostaje Część E: Power BI → Athena
+(odłożone).
 
-**`Plan-06-domkniecie-i-strona.md`** — domknięcie Części D, strona
-internetowa. **Następna sesja:** przeniesienie wykonania Silver/Gold
-na EC2.
+03.09 naprawiona pułapka ze strefami czasu (klucz „co już wysłałem"
+liczony z samej daty) i ujednolicona godzina w całych danych na
+`17:00:00` — fixing na zamknięcie GPW; `bronze` i `live` przepisane.
+
+**`Plan-06-domkniecie-i-strona.md`** — osiem wątków. **Następna sesja,
+do wyboru:** Etap 4 Część D (README pod pracodawcę, `Wnioski.md`),
+Wątek 8 (przenoszenie starszych danych z `live` do `bronze`) albo punkt 2
+Wątku 3 (gdzie mają lądować wyniki Silver/Gold — dziś na dysku EC2,
+niewidoczne z zewnątrz).
 
 ## Gdzie co jest
 

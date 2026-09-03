@@ -20,16 +20,18 @@ pytaniami, dopisywany w miarę postępu.
 
 ---
 
-## Sześć wątków, różny stopień gotowości
+## Osiem wątków, różny stopień gotowości
 
 | # | Wątek | Status |
 |---|---|---|
 | 1 | Domknięcie Etapu 4, Część D (README, wnioski, porządki) | opisane w Plan-04, nietknięte |
 | 2 | Spójność projektu — nazewnictwo, porządki w plikach | ✅ zrobione 01.09 |
-| 3 | Dokąd trafiają Silver/Gold (zostają lokalnie? EC2? S3?) | decyzja do podjęcia, osobna sesja |
+| 3 | Dokąd trafiają Silver/Gold (zostają lokalnie? EC2? S3?) | 🔶 punkt 1 (gdzie działa kod) ✅ zrobiony 03.09; punkt 2 (gdzie ląduje wynik) wciąż otwarty |
 | 4 | **Etap 6 — strona internetowa** | wstępny szkic, duży, nowy obszar |
 | 5 | Etap 5, Część E — Power BI → Athena | świadomie odłożone (dziś: „jeszcze trochę") |
 | 6 | Dalsza mapa (więcej spółek, ESPI, AI) | już w `Plan-ogolny.md`, później |
+| 7 | Pułapka ze strefami czasu w `companies/*.txt` | ✅ znaleziona i naprawiona 03.09 |
+| 8 | Przenoszenie starszych danych z `live` do `bronze` | nowy pomysł 03.09, nierozpoczęty |
 
 ---
 
@@ -108,8 +110,20 @@ Koszt: kolejna instalacja (`pandas` w `venv` na EC2, jeśli pkt 1), a
 `t3.micro` już raz padł przez brak pamięci przy mniejszym obciążeniu niż
 broker + 2 skrypty + pandas naraz — do przemyślenia razem z pamięcią/swapem.
 
-**Decyzja odłożona na osobną sesję** — nie dziś, zgodnie z zasadą „jedna
-nowa rzecz na sesję" (dzisiejsza już zajęta: `cron`).
+~~**Decyzja odłożona na osobną sesję**~~ — **punkt 1 zrobiony 03.09.**
+`pandas` i `pyathena` doinstalowane w `venv` na EC2, rola instancji
+(`gpw_tracker_ec2_role` — nie `GPWTrackerEC2Role`, jak błędnie stało
+w Planie-05) rozszerzona o `AmazonAthenaFullAccess`, oba skrypty
+w `crontab` jako jedna linijka `silver.py && gold.py` o 16:10 UTC.
+Obawa o pamięć okazała się nieuzasadniona: swap z 31.08 wciąż żyje
+(2 GiB, zajęte 209 Mi), instalacja i oba biegi przeszły bez problemu.
+Wynik na EC2 potwierdzony jako identyczny z lokalnym (2280 wierszy
+w tej samej chwili). Szczegóły — dziennik 03.09.
+
+**Punkt 2 (gdzie ląduje wynik) zostaje otwarty.** Dziś Silver i Gold
+zapisują pliki na dysk EC2, gdzie nikt ich nie widzi z zewnątrz. To
+pytanie ma sens dopiero razem z Wątkiem 4 (strona) — bo to strona
+zdecyduje, skąd te dane mają być czytane.
 
 ---
 
@@ -171,10 +185,75 @@ Zapisane dawno, wciąż aktualne, kolejność orientacyjna:
 
 ---
 
-## Zrobione 01.09
+## Wątek 7 — Pułapka ze strefami czasu ✅ znaleziona i naprawiona 03.09
 
-Wątek 2 (spójność nazewnictwa) — patrz wyżej i dziennik 01.09. Następna
-sesja: Wątek 1 (Część D) albo decyzja z Wątku 3 (Silver/Gold), do wyboru.
+Producent trzymał w `companies/*.txt` pamięć „co już wysłałem" i porównywał
+**pełny tekst daty z godziną**, a godzina pochodziła z
+`datetime.fromtimestamp()`, czyli ze strefy maszyny: Windows `09:00`,
+EC2 `07:00` dla tej samej chwili. Pliki są przy tym trzymane w gicie —
+więc każda operacja gita podmieniająca ten plik na EC2 (`pull`, a 01.09
+`stash` przy rozwiązywaniu konfliktu) sprawiała, że instancja nie
+rozpoznawała żadnej daty i wysyłała całą trzyletnią historię do Kafki od
+nowa. To jest prawdziwa przyczyna zalewu z 01.09, który kosztował całą
+sesję 02.09 i utratę trzech dni danych.
+
+**Rozwiązanie:** klucz porównawczy liczony z **samej daty** (przy czytaniu
+pliku odcinana godzina, po stronie Yahoo `.date()`), a godzina doklejana
+dopiero na wyjściu — przy zapisie pliku i wysyłce do Kafki. Dzięki temu
+przejście nie wywołało zrzutu: stary wiersz `2026-08-26 09:00:00` i nowy
+`2026-08-26 17:00:00` dają ten sam klucz.
+
+**Przy okazji ujednolicona godzina w całych danych na `17:00:00`** — to
+moment fixingu na zamknięcie GPW, czyli ustalenia kursu, który zapisujemy
+(sprawdzone: notowania ciągłe 9:00–16:50, zamknięcie 17:00, dogrywka do
+17:05). Wcześniej w danych stały trzy różne godziny naraz. Wymagało to
+przepisania `bronze` (2286 wierszy, wgrane na nowo) i przebudowy `live`
+(30 wierszy wysłanych ponownie, 16 starych plików skasowanych). Sam
+zapis daty **musiał** zostać 19-znakowy, bo `pandas` przy mieszance
+„z godziną" i „bez godziny" w jednej kolumnie rzuca `ValueError` — wersja
+z samą datą położyłaby `silver.py`.
+
+---
+
+## Wątek 8 — Przenoszenie starszych danych z `live` do `bronze` (nowy, 03.09)
+
+Pomysł Gracjana z końca sesji 03.09, **nierozpoczęty**. Dziś nic tego nie
+robi: `bronze` zmienia się wyłącznie przy ręcznym wgraniu (dwa razy do tej
+pory — 20.08 i 03.09), a `live` rośnie bez końca, o 3 wiersze i 3 nowe
+pliki na każdą sesję giełdową. Warstwa „zamrożona" się starzeje, a
+strumieniowa zbiera ok. 750 drobnych plików rocznie — klasyczny „small
+files problem", bo Athena płaci stały narzut za każdy plik.
+
+Proponowana częstotliwość (jego): co dwa tygodnie albo co miesiąc.
+
+**Do rozstrzygnięcia w osobnej sesji:** czy uruchamia to czwarta linijka
+`cron` na EC2, czy zostaje czynnością świadomie ręczną; skąd biorą się
+dane do przepisania (Athena zna już jedno i drugie); co dokładnie znaczy
+„starsze" i czy po przeniesieniu kasować wiersze z `live`, czy zostawić
+nakładkę (dziś nieszkodliwą — `silver.py` i tak dedupuje po dniu i spółce,
+a po 03.09 osiem dni siedzi w obu tabelach naraz); i czy przy okazji nie
+zmienić formatu warstwy zamrożonej na taki, który Athena czyta szybciej.
+
+Pasuje naturalnie do punktu 2 Wątku 3 — oba są o tym, żeby dane dało się
+dosięgnąć spoza instancji EC2.
+
+---
+
+## Zrobione 01.09 i 03.09
+
+**01.09** — Wątek 2 (spójność nazewnictwa), patrz wyżej i dziennik 01.09.
+
+**03.09** — Wątek 3 punkt 1: Silver i Gold działają na EC2 przez `cron`,
+potwierdzone tego samego dnia (wpis o 16:10 UTC odpalił się sam — dowodem
+był wynik Golda w `companies/errors.txt`, bo tylko `cron` przekierowuje
+tam wyjście). Odzyskane 9 wierszy utraconych przy sprzątaniu S3 z 02.09.
+Znaleziony i naprawiony Wątek 7, przy okazji ujednolicona godzina w całych
+danych na `17:00:00`. Zapisany nowy Wątek 8.
+
+Następna sesja, do wyboru: Wątek 1 (Etap 4, Część D — README pod
+pracodawcę, `Wnioski.md`), Wątek 8 (przenoszenie `live` → `bronze`)
+albo punkt 2 Wątku 3 (gdzie mają lądować wyniki Silver/Gold, dziś
+niewidoczne spoza EC2).
 
 ---
 
@@ -182,7 +261,9 @@ sesja: Wątek 1 (Część D) albo decyzja z Wątku 3 (Silver/Gold), do wyboru.
 
 - ❌ Projektowanie całej strony naraz (overlay + zakładki + słownik +
   wykresy) — najpierw odpowiedzi na otwarte pytania z Wątku 4.
-- ❌ Przenoszenie Silver/Gold gdziekolwiek dziś — osobna sesja.
+- ~~❌ Przenoszenie Silver/Gold gdziekolwiek dziś — osobna sesja.~~
+  **Nieaktualne od 03.09** — wykonanie przeniesione na EC2 (punkt 1
+  Wątku 3). Zapis wyniku zostaje na razie na dysku EC2.
 - ❌ ESPI, AI-kategoryzacja — dalsza mapa, nie teraz.
 - ❌ Rezygnacja z lokalnego Harmonogramu, dopóki nowe rozwiązanie (jeśli
   powstanie) nie jest sprawdzone.

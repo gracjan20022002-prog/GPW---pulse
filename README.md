@@ -61,12 +61,31 @@ i spółce (nie po pełnym znaczniku czasu), dopisany test regresyjny
 w `test_plikow.py`.
 Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
 
+**03.09 — Silver i Gold działają na EC2.** `pandas` i `pyathena`
+doinstalowane w `venv` na instancji, rola IAM (`gpw_tracker_ec2_role`)
+rozszerzona o `AmazonAthenaFullAccess` — bez tego `silver.py` nie mógł
+odpytać Atheny. Oba skrypty dopisane do `cron` jako jedna linijka
+o 16:10 UTC (18:10 polskiego): `silver.py && gold.py`, czyli Gold rusza
+tylko wtedy, gdy Silver się udał (Gold czyta plik, który tworzy Silver —
+bez `&&` policzyłby wczorajsze dane i zapisał jako dzisiejsze). Cały
+łańcuch — zbieranie, Silver, Gold — chodzi teraz sam na EC2. Lokalny
+Harmonogram zostaje włączony jako wersja zapasowa, do czasu potwierdzenia,
+że `cron` działa stabilnie. Tego samego dnia odzyskane 9 wierszy (26.08,
+27.08, 31.08 × 3 spółki), które przepadły przy wczorajszym sprzątaniu
+w S3 — istniały tam tylko wewnątrz skasowanego zrzutu historii; dane
+odtworzone z lokalnych `companies/*.txt` przez Producenta. Tego samego
+dnia **ujednolicona godzina w całych danych na `17:00:00`** (fixing na
+zamknięcie GPW): `bronze` wgrany na nowo, `live` przebudowany, wcześniej
+stały tam trzy różne godziny naraz. Szczegóły w dzienniku 03.09.
+
 **Dalsze kroki:** zebrane w
 [`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
-— domknięcie Etapu 4 Część D, decyzja gdzie docelowo mają działać/lądować
-Silver i Gold (**następna sesja**: przeniesienie ich wykonania na EC2),
-i nowy kierunek: strona internetowa pokazująca wynik projektu. Na razie
-szkic z otwartymi pytaniami.
+— domknięcie Etapu 4 Część D, decyzja gdzie docelowo mają **lądować**
+wyniki Silver/Gold (dziś: pliki na dysku EC2, niewidoczne z zewnątrz),
+system przenoszący co jakiś czas starsze dane z `live` do `bronze`
+(dziś `bronze` zmienia się tylko przy ręcznym wgraniu, a `live` rośnie
+bez końca), i nowy kierunek: strona internetowa pokazująca wynik
+projektu. Na razie szkic z otwartymi pytaniami.
 
 ---
 
@@ -91,12 +110,12 @@ szkic z otwartymi pytaniami.
 | `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. Od 01.09 uruchamiany codziennie przez `cron` na EC2, kilka minut po `data_ingestion.py` |
 | `test_plikow.py` | Dwa testy: `test_dzialania` sprawdza pobrane pliki `companies/*.txt` (istnieją, poprawny format wiersza, wystarczająco dużo danych); `test_powtorek` (02.09) sprawdza `silver/clean_data.csv` pod kątem duplikatów — czy nie ma dwóch wierszy z tym samym dniem i tą samą spółką |
 | `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
-| `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`) |
-| `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`) |
+| `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`). Od 03.09 uruchamiany codziennie przez `cron` na EC2 o 16:10 UTC, w jednej linijce z `gold.py` (`&&`); do odpytania Atheny potrzebuje polityki `AmazonAthenaFullAccess` na roli instancji |
+| `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`). Od 03.09 uruchamiany przez `cron` na EC2 zaraz po `silver.py` — i **tylko wtedy, gdy tamten się udał** (`&&`), bo czyta plik, który Silver dopiero tworzy |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
 | `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |
-| `pipeline.bat` | Łączy kroki Silver i Gold (`silver.py`, `gold.py`) w jedno zadanie Harmonogramu; dwie niezależne linie bez `&&` (łączenie przez `&&`/`^` powodowało, że `silver 1.py` cicho nie zapisywał danych mimo że `gold 1.py` i tak się uruchamiał — porzucone na rzecz pewności działania). Do 01.09 uruchamiał jako pierwszy krok też pobieranie danych — od Etapu 5 Części F to zadanie przejęło EC2 |
+| `pipeline.bat` | Łączy kroki Silver i Gold (`silver.py`, `gold.py`) w jedno zadanie Harmonogramu; dwie niezależne linie bez `&&` (łączenie przez `&&`/`^` powodowało, że `silver 1.py` cicho nie zapisywał danych mimo że `gold 1.py` i tak się uruchamiał — porzucone na rzecz pewności działania). Do 01.09 uruchamiał jako pierwszy krok też pobieranie danych — od Etapu 5 Części F to zadanie przejęło EC2. Od 03.09 **wersja zapasowa**: to samo liczy się już na EC2 przez `cron`, a lokalny Harmonogram zostaje włączony do czasu potwierdzenia, że tamto działa stabilnie |
 | `pyathena_silver_test.py` | Szkic/materiał referencyjny z Etapu 5, Części E — pierwsza wersja zapytania SQL do Athena przez `pyathena`, zanim trafiła do `silver.py`. Zachowany jako własna notatka, nie wpięty w `pipeline.bat` |
 
 ### Dane w `companies/`
@@ -107,6 +126,21 @@ Jeden plik `.txt` na spółkę, jeden wiersz na dzień notowania:
 ```
 `errors.log` zbiera błędy pobierania (np. nieistniejący ticker) — nie trafia
 na GitHub (patrz `.gitignore`).
+
+Godzina w znaczniku to **`17:00:00` — fixing na zamknięcie GPW**, czyli
+moment, w którym ustala się kurs zamknięcia (a właśnie ten kurs zapisujemy).
+Ujednolicone 03.09 w całych danych, razem z `bronze` i `live` w S3.
+
+**Naprawiony błąd (03.09):** te pliki służą Producentowi za pamięć „co już
+wysłałem", a porównywał on wcześniej **pełny tekst daty z godziną**.
+Godzina brała się z `datetime.fromtimestamp()`, czyli ze strefy czasowej
+maszyny: Windows w Polsce zapisywał `09:00`, EC2 stojące w UTC — `07:00`
+dla tej samej chwili. Ponieważ pliki są jednocześnie trzymane w gicie,
+każda operacja gita podmieniająca ten plik na EC2 sprawiała, że Producent
+nie rozpoznawał żadnej daty i wysyłał całą trzyletnią historię do Kafki
+od nowa (tak stało się 01.09). Od 03.09 klucz porównawczy liczony jest
+z **samej daty**, a godzina doklejana dopiero przy zapisie i wysyłce —
+dzięki temu strefa czasowa maszyny nie ma już znaczenia.
 
 ### Dane w `silver/`
 
