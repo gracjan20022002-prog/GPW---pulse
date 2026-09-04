@@ -78,13 +78,26 @@ dnia **ujednolicona godzina w całych danych na `17:00:00`** (fixing na
 zamknięcie GPW): `bronze` wgrany na nowo, `live` przebudowany, wcześniej
 stały tam trzy różne godziny naraz. Szczegóły w dzienniku 03.09.
 
+**04.09 — `bronze` przeszedł na Parquet.** Nowy skrypt
+`kod/compaction.py` buduje warstwę zamrożoną od nowa: pyta Athenę
+o wszystko sprzed pierwszego dnia bieżącego miesiąca (`bronze UNION
+live`), dedupuje po dniu i spółce, zapisuje po jednym pliku `.parquet` na
+spółkę i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`.
+Zamiast tekstu z przecinkami warstwa trzyma teraz format, który **pamięta
+typy kolumn** (nie trzeba ich zgadywać przy odczycie) i zajmuje prawie
+trzy razy mniej miejsca — a Athena rozlicza się za przeskanowane bajty.
+Typy w tabeli zostały te same (`data` jako `string`, `cena` jako
+`double`), więc `silver.py` nie wymagał ani jednej poprawki. Zostaje
+jeszcze kasowanie z `live` plików w całości pokrytych przez `bronze` —
+następna sesja. Szczegóły w dzienniku 04.09.
+
 **Dalsze kroki:** zebrane w
 [`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
 — domknięcie Etapu 4 Część D, decyzja gdzie docelowo mają **lądować**
 wyniki Silver/Gold (dziś: pliki na dysku EC2, niewidoczne z zewnątrz),
-system przenoszący co jakiś czas starsze dane z `live` do `bronze`
-(dziś `bronze` zmienia się tylko przy ręcznym wgraniu, a `live` rośnie
-bez końca), i nowy kierunek: strona internetowa pokazująca wynik
+domknięcie kompakcji `live` → `bronze` (skrypt przepisuje już warstwę
+zamrożoną, brakuje kasowania starych plików z `live`, które rośnie
+o trzy pliki dziennie), i nowy kierunek: strona internetowa pokazująca wynik
 projektu. Na razie szkic z otwartymi pytaniami.
 
 ---
@@ -95,6 +108,7 @@ projektu. Na razie szkic z otwartymi pytaniami.
 |---|---|
 | **kod/** | skrypty Pythona projektu (patrz tabela niżej) |
 | **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) + `errors.log` |
+| **bronze/** | pliki `.parquet` przygotowane przez `compaction.py` przed wysyłką do S3 — poza gitem (`.gitignore`), to dane, nie kod |
 | **silver/** | wynik etapu Silver — jedna czysta tabela ze wszystkich spółek (`clean_data.csv`) |
 | **gold/** | wynik etapu Gold — dzienne dane ze wskaźnikami (`dane_dzienne.csv`) i ranking spółek (`ranking.csv`) |
 | **wykresy/** | wykresy z Etapu 4, Część A (Python/`matplotlib`) — pliki `.png`; Część B — dashboard Power BI (`PowerBi_do_dopracowania.pbix`) |
@@ -112,6 +126,7 @@ projektu. Na razie szkic z otwartymi pytaniami.
 | `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
 | `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`). Od 03.09 uruchamiany codziennie przez `cron` na EC2 o 16:10 UTC, w jednej linijce z `gold.py` (`&&`); do odpytania Atheny potrzebuje polityki `AmazonAthenaFullAccess` na roli instancji |
 | `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`). Od 03.09 uruchamiany przez `cron` na EC2 zaraz po `silver.py` — i **tylko wtedy, gdy tamten się udał** (`&&`), bo czyta plik, który Silver dopiero tworzy |
+| `compaction.py` | Kompakcja `live` → `bronze` (04.09) — przepisuje warstwę zamrożoną: liczy granicę jako pierwszy dzień bieżącego miesiąca (`date.today().replace(day=1)`), pyta Athenę o wszystko sprzed niej z obu tabel naraz (`bronze UNION live`), usuwa duplikaty po dniu i spółce (dzień odcinany z tekstu przez `.str[:10]`, bez konwersji na typ daty — kolumna `data` musi zostać tekstem, inaczej rozjeżdża się `UNION` w `silver.py`), zapisuje po jednym pliku `.parquet` na spółkę do lokalnego `bronze/` i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`. Uruchamiany ręcznie, docelowo raz w miesiącu. **Niedokończone:** kasowanie z `live` plików, których wszystkie wiersze są już w `bronze` |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
 | `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |

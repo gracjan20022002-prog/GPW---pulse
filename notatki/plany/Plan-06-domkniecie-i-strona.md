@@ -31,7 +31,7 @@ pytaniami, dopisywany w miarę postępu.
 | 5 | Etap 5, Część E — Power BI → Athena | świadomie odłożone (dziś: „jeszcze trochę") |
 | 6 | Dalsza mapa (więcej spółek, ESPI, AI) | już w `Plan-ogolny.md`, później |
 | 7 | Pułapka ze strefami czasu w `companies/*.txt` | ✅ znaleziona i naprawiona 03.09 |
-| 8 | Przenoszenie starszych danych z `live` do `bronze` | nowy pomysł 03.09, nierozpoczęty |
+| 8 | Przenoszenie starszych danych z `live` do `bronze` | 🔶 rozpoczęty 04.09 — `compaction.py` przepisuje `bronze` (już Parquet), brakuje kasowania z `live` |
 
 ---
 
@@ -237,6 +237,50 @@ zmienić formatu warstwy zamrożonej na taki, który Athena czyta szybciej.
 Pasuje naturalnie do punktu 2 Wątku 3 — oba są o tym, żeby dane dało się
 dosięgnąć spoza instancji EC2.
 
+### Stan po sesji 04.09 — decyzje podjęte, skrypt w połowie
+
+Wszystkie cztery otwarte pytania rozstrzygnięte:
+
+- **„Starsze" = sprzed pierwszego dnia bieżącego miesiąca.** `bronze`
+  bierze wszystko sprzed granicy, `live` trzyma resztę. Uruchamiane raz
+  w miesiącu.
+- **Dane biorą się z Atheny** (`bronze UNION live`), nie z pliku
+  Producenta na EC2 — ten plik już raz się rozjechał 01.09, a `bronze`
+  ma odzwierciedlać to, co faktycznie przepłynęło przez Kafkę i S3.
+- **Format warstwy zamrożonej: Parquet.** Zmienione tego samego dnia,
+  stare pliki `.txt` skasowane z S3 po potwierdzeniu, że nowe działają.
+  Typy w tabeli zostały te same (`data` `string`, `cena` `double`), więc
+  `silver.py` nie wymagał poprawek.
+- **Kasujemy z `live`, ale ostrożnie** — patrz reguła niżej. Pierwsze
+  uruchomienia ręcznie, `cron` dopiero po sprawdzeniu.
+
+**Reguła kasowania, wymuszona przez kształt danych.** Jeden plik w `live`
+może zawierać wiele dni (te z 03.09 mają po dziesięć — widać to przez
+ukrytą kolumnę `"$path"` w Athenie), a nie da się skasować połowy pliku.
+Stąd: **kasuj plik tylko wtedy, gdy wszystkie jego wiersze są już
+w `bronze`.** Plik stojący okrakiem na granicy przeżywa do następnego
+razu i sam się zakwalifikuje miesiąc później. Od 01.09 `cron` zapisuje
+jeden plik na jeden dzień, więc problem okraczania to artefakt
+historyczny, nie stan docelowy.
+
+**Zrobione 04.09 (`kod/compaction.py`):** granica, zapytanie z `WHERE`,
+deduplikacja po dniu i spółce, zapis trzech plików Parquet, wysyłka do
+S3. Zweryfikowane: `bronze` ma 2283 wiersze do 31.08 (3 × 761),
+`silver.py` dalej daje poprawny wynik.
+
+**Do zrobienia w następnej sesji — punkt 5:** kasowanie pokrytych plików
+z `live`. Projekt gotowy, trzy elementy:
+
+1. `SELECT "$path" FROM live GROUP BY "$path" HAVING MAX(data) < granica`
+   — jeśli najpóźniejsza data w pliku jest sprzed granicy, to wszystkie
+   pozostałe też. Jedno porównanie zamiast sprawdzania wiersz po wierszu.
+2. Zamiana `s3://bucket/klucz` na sam klucz (`split("/", 3)[3]`), bo
+   `boto3` chce bucketa i klucza osobno.
+3. `s3.delete_object` w pętli plus `print` z liczbą skasowanych plików.
+
+Dziś zapytanie zwróciłoby **zero** plików — i to jest idealny pierwszy
+test: uruchomienie kodu kasującego, które niczego nie kasuje.
+
 ---
 
 ## Zrobione 01.09 i 03.09
@@ -250,10 +294,26 @@ tam wyjście). Odzyskane 9 wierszy utraconych przy sprzątaniu S3 z 02.09.
 Znaleziony i naprawiony Wątek 7, przy okazji ujednolicona godzina w całych
 danych na `17:00:00`. Zapisany nowy Wątek 8.
 
-Następna sesja, do wyboru: Wątek 1 (Etap 4, Część D — README pod
-pracodawcę, `Wnioski.md`), Wątek 8 (przenoszenie `live` → `bronze`)
-albo punkt 2 Wątku 3 (gdzie mają lądować wyniki Silver/Gold, dziś
-niewidoczne spoza EC2).
+**04.09** — Wątek 8 rozpoczęty: `bronze` przeszedł na Parquet, powstał
+`kod/compaction.py` (punkty 1–4). Szczegóły w sekcji Wątku 8 wyżej
+i w dzienniku 04.09.
+
+Następna sesja zaczyna się od **punktu 5 Wątku 8** (kasowanie z `live`),
+decyzja Gracjana z końca sesji 04.09. Potem do wyboru: Wątek 1 (Etap 4,
+Część D — README pod pracodawcę, `Wnioski.md`) albo punkt 2 Wątku 3
+(gdzie mają lądować wyniki Silver/Gold, dziś niewidoczne spoza EC2).
+
+**Drobiazgi zauważone po drodze, do posprzątania kiedyś:**
+
+- `requirements.txt` jest nieaktualny — brakuje `pyathena`, `boto3`,
+  `kafka-python`, a od 04.09 też `pyarrow`. To jedyny plik mówiący komuś
+  z zewnątrz, czego projekt potrzebuje do działania.
+- W tabeli `live` siedzi zbędna kolumna `spółka` (przez `ł`) obok
+  partycji `spolka` — Producent wysyła nazwę w treści wiadomości,
+  a Konsument koduje ją dodatkowo w ścieżce. Nieszkodliwe, ale martwe.
+- `pyarrow` na EC2 — niezainstalowany świadomie. Potrzebny dopiero, gdy
+  kompakcja trafi do `crona`; `silver.py` go nie potrzebuje, bo Parquet
+  czyta Athena po swojej stronie, nie Python.
 
 ---
 
