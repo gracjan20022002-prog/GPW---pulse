@@ -7,3 +7,6 @@ companies/errors.log
 GPW - Python.code-workspace
 aws/
 bronze/
+companies/*.txt
+kod/pipeline.txt
+venv/
