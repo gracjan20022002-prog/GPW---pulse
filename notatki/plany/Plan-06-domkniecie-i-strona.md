@@ -31,7 +31,8 @@ pytaniami, dopisywany w miarę postępu.
 | 5 | Etap 5, Część E — Power BI → Athena | świadomie odłożone (dziś: „jeszcze trochę") |
 | 6 | Dalsza mapa (więcej spółek, ESPI, AI) | już w `Plan-ogolny.md`, później |
 | 7 | Pułapka ze strefami czasu w `companies/*.txt` | ✅ znaleziona i naprawiona 03.09 |
-| 8 | Przenoszenie starszych danych z `live` do `bronze` | 🔶 rozpoczęty 04.09 — `compaction.py` przepisuje `bronze` (już Parquet), brakuje kasowania z `live` |
+| 8 | Przenoszenie starszych danych z `live` do `bronze` | ✅ zrobione 07.09 — `compaction.py` przepisuje `bronze` (Parquet) i kasuje pokryte pliki z `live`; pierwszy bieg z prawdziwym kasowaniem 1.10 |
+| 9 | Mina w `companies/*.txt` — pliki Producenta w gicie | 🔶 znaleziona 07.09, nierozbrojona |
 
 ---
 
@@ -268,18 +269,86 @@ deduplikacja po dniu i spółce, zapis trzech plików Parquet, wysyłka do
 S3. Zweryfikowane: `bronze` ma 2283 wiersze do 31.08 (3 × 761),
 `silver.py` dalej daje poprawny wynik.
 
-**Do zrobienia w następnej sesji — punkt 5:** kasowanie pokrytych plików
-z `live`. Projekt gotowy, trzy elementy:
+### Zrobione 07.09 — punkt 5, wątek zamknięty
 
-1. `SELECT "$path" FROM live GROUP BY "$path" HAVING MAX(data) < granica`
-   — jeśli najpóźniejsza data w pliku jest sprzed granicy, to wszystkie
-   pozostałe też. Jedno porównanie zamiast sprawdzania wiersz po wierszu.
-2. Zamiana `s3://bucket/klucz` na sam klucz (`split("/", 3)[3]`), bo
-   `boto3` chce bucketa i klucza osobno.
-3. `s3.delete_object` w pętli plus `print` z liczbą skasowanych plików.
+Kasowanie pokrytych plików z `live` dopisane na końcu `compaction.py`,
+za pętlą wysyłającą Parquety (najpierw zapisz nowe, potem kasuj stare).
+Trzy elementy, każdy sprawdzony osobno przed złożeniem w całość:
 
-Dziś zapytanie zwróciłoby **zero** plików — i to jest idealny pierwszy
-test: uruchomienie kodu kasującego, które niczego nie kasuje.
+1. `SELECT "$path" AS plik, MAX(data) AS ostatni FROM live GROUP BY
+   "$path" HAVING MAX(data) < '{granica}'` — jeśli najpóźniejsza data
+   w pliku jest sprzed granicy, to wszystkie pozostałe też.
+   **`HAVING`, nie `WHERE`**: `WHERE` filtruje pojedyncze wiersze
+   i przepuściłby plik z dziewięcioma starymi dniami i jednym świeżym,
+   czyli skasowałby żywe dane. Sprawdzone w konsoli Atheny na dwóch
+   granicach: `2026-09-01` → 0 plików, `2026-09-04` → 3 pliki.
+2. Zamiana `s3://bucket/klucz` na sam klucz (`split("/", 3)[3]`) —
+   drugi argument `split` to maksymalna liczba cięć, dzięki czemu reszta
+   adresu zostaje w jednym kawałku.
+3. `s3.delete_object` w pętli plus licznik i `print`. Sprawdzone
+   osobno na pliku-śmieciu w folderze `test-kasowania/`, bo prawdziwy
+   bieg miał skasować zero plików i tej ścieżki by nie dotknął.
+
+**Licznik jest konieczny, nie ozdobny:** powtórzone `delete_object` na
+nieistniejącym pliku zwraca sukces (204) bez żadnego ostrzeżenia. Bez
+licznika nie da się odróżnić „skasowałem trzy pliki" od „nie było czego
+kasować" — a przy uruchomieniu z `crona` nikt nie stoi obok i nie patrzy.
+
+Pierwszy bieg: **zero skasowanych plików**, zgodnie z przewidywaniem —
+wszystkie sześć plików w `live` zawiera 01.09 lub dzień późniejszy.
+Kod kasujący, który świadomie niczego nie skasował, to najlepszy
+możliwy pierwszy test.
+
+**Pierwsze prawdziwe kasowanie: 1 października**, ręcznie. Dopiero po
+nim rozmowa o wpięciu kompakcji w `cron` — a to wymaga jeszcze
+`pyarrow` na EC2 (świadomie niezainstalowany).
+
+---
+
+## Wątek 9 — mina w `companies/*.txt` (nowy, 07.09)
+
+Pliki `companies/*.txt` są w gicie i służą Producentowi za pamięć „co
+już wysłałem". Zacommitowana wersja **kończy się na 01.09**, bo lokalny
+Producent przestał zbierać, gdy zadanie przejęło EC2. Instancja ma
+własną kopię, dłuższą o wszystkie dni od 02.09.
+
+Dopóki żaden commit nie dotyka tych plików, `git pull` na EC2 przechodzi
+gładko — ostatni commit ruszający `companies/` to 76301fa z 03.09.
+Ale commit, który je ruszy, cofnie pamięć Producenta do 01.09 i wyśle
+kilka dni do Kafki po raz drugi. To ta sama mina co 01.09
+([[project-producer-timezone-key-trap]]), tylko mniejsza — poprawka
+klucza z 03.09 ogranicza szkodę do kilku dni zamiast trzech lat.
+
+**Rozbrojenie:** `.gitignore` + `git rm --cached companies/*.txt`.
+Skutek uboczny do przemyślenia przed decyzją: po tym świeży `git clone`
+nie dostaje żadnej pamięci Producenta, więc na nowej maszynie skrypt
+wysłałby całą historię od zera. Dziś to nie boli (EC2 ma swoją kopię
+i nikt jej nie kasuje), ale trzeba to świadomie zaakceptować.
+
+Do czasu rozbrojenia obowiązuje zasada robocza: **przed każdym commitem
+sprawdzić `git status` i nie dodawać `companies/*.txt`.**
+
+---
+
+## Wątek 10 — dziennik `errors.txt` na EC2 (nowy, 07.09)
+
+Przy przeglądaniu `errors.txt` (zaległość z piątku — nic się nie paliło,
+ostatni bieg 06.09 16:10:05 UTC) wyszły trzy rzeczy:
+
+1. **To nie plik błędów, tylko pełny dziennik.** `cron` przekierowuje
+   tam całe wyjście `silver.py` i `gold.py`. Prawdziwy błąd wylądowałby
+   w środku sieczki i trzeba by go wypatrzeć wzrokiem.
+2. **Nie ma w nim ani jednej daty.** Patrząc na wydruk nie wiadomo, czy
+   jest z dzisiaj, czy sprzed trzech dni — datę trzeba czytać z pliku
+   (`ls -l --time-style=full-iso`).
+3. **`gold.py` wypisuje bardzo dużo diagnostyki** — `dtypes` trzy razy,
+   `head()`, wycinek wierszy 748–752. Zostało z czasu pisania skryptu.
+   To konkretny argument za **D3 z Wątku 1** („przegląd `kod/`, zbędne
+   `print()`"), który dotąd był ogólnikiem.
+
+Powtarzające się `UserWarning` z `pandas` („`read_sql` wspiera tylko
+SQLAlchemy") jest nieszkodliwe — `pyathena` działa, `pandas` tylko nie
+bierze za to odpowiedzialności.
 
 ---
 
@@ -298,22 +367,36 @@ danych na `17:00:00`. Zapisany nowy Wątek 8.
 `kod/compaction.py` (punkty 1–4). Szczegóły w sekcji Wątku 8 wyżej
 i w dzienniku 04.09.
 
-Następna sesja zaczyna się od **punktu 5 Wątku 8** (kasowanie z `live`),
-decyzja Gracjana z końca sesji 04.09. Potem do wyboru: Wątek 1 (Etap 4,
-Część D — README pod pracodawcę, `Wnioski.md`) albo punkt 2 Wątku 3
-(gdzie mają lądować wyniki Silver/Gold, dziś niewidoczne spoza EC2).
+**07.09** — Wątek 8 zamknięty (punkt 5, kasowanie z `live`).
+`requirements.txt` przepisany. Zapisane dwa nowe wątki: 9 (mina
+w `companies/*.txt`) i 10 (dziennik `errors.txt`). Przy okazji
+wyjaśniona zagadka ceny SNT za 01.09 — `gold/dane_dzienne.csv` był
+w piątkowym commicie o jeden bieg do tyłu za `silver/clean_data.csv`,
+bo po przepisaniu `bronze` uruchomiono ręcznie tylko `silver.py`.
+**Wniosek roboczy: uruchamiane ręcznie `silver.py` i `gold.py` zawsze
+parą** — na EC2 pilnuje tego `&&` w `crontab`, lokalnie nikt.
+Szczegóły w dzienniku 07.09.
+
+Następna sesja do wyboru: Wątek 1 (Etap 4, Część D — README pod
+pracodawcę, `Wnioski.md`) albo punkt 2 Wątku 3 (gdzie mają lądować
+wyniki Silver/Gold, dziś niewidoczne spoza EC2).
 
 **Drobiazgi zauważone po drodze, do posprzątania kiedyś:**
 
-- `requirements.txt` jest nieaktualny — brakuje `pyathena`, `boto3`,
-  `kafka-python`, a od 04.09 też `pyarrow`. To jedyny plik mówiący komuś
-  z zewnątrz, czego projekt potrzebuje do działania.
+- ~~`requirements.txt` jest nieaktualny~~ **zrobione 07.09** — przepisany
+  przez `pip freeze`, 32 paczki. Dwie pułapki po drodze, obie warte
+  zapamiętania: `python -m pip` w oknie bez włączonego `venv` wypisuje
+  listę Pythona **systemowego** (zdradziła to wersja `pyarrow` —
+  `25.0.0` zamiast `25.0.1`), a `>` w PowerShellu 5.1 zapisuje plik
+  w **UTF-16**, nie UTF-8 (potrzebne `Out-File -Encoding utf8`).
 - W tabeli `live` siedzi zbędna kolumna `spółka` (przez `ł`) obok
   partycji `spolka` — Producent wysyła nazwę w treści wiadomości,
   a Konsument koduje ją dodatkowo w ścieżce. Nieszkodliwe, ale martwe.
 - `pyarrow` na EC2 — niezainstalowany świadomie. Potrzebny dopiero, gdy
   kompakcja trafi do `crona`; `silver.py` go nie potrzebuje, bo Parquet
   czyta Athena po swojej stronie, nie Python.
+- Koniec października: zmiana czasu zimowego, `crontab` z 16:00/16:10
+  na 17:00/17:10 UTC.
 
 ---
 

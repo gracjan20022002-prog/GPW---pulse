@@ -29,4 +29,13 @@ for t in ticker:
 test = pd.read_parquet(os.path.join(BASE_DIR, "bronze", "CBF.WA.parquet"))
 print(test.shape)
 print(test.dtypes)
-
+sprawdzenie = pd.read_sql(f"""SELECT "$path" AS plik, MAX(data) AS ostatni
+FROM live
+GROUP BY "$path"
+HAVING MAX(data) < '{granica}'""", con)
+licznik = 0
+for adres in sprawdzenie["plik"]:
+    nazwa = adres.split("/", 3)[3]
+    s3.delete_object(Bucket="gpw-tracker-bucket", Key=nazwa)
+    licznik += 1
+print(f"Usunięto {licznik} plików")

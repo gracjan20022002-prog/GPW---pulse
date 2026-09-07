@@ -91,14 +91,27 @@ Typy w tabeli zostały te same (`data` jako `string`, `cena` jako
 jeszcze kasowanie z `live` plików w całości pokrytych przez `bronze` —
 następna sesja. Szczegóły w dzienniku 04.09.
 
+**07.09 — kompakcja domknięta.** `compaction.py` kasuje teraz z `live`
+pliki, których **wszystkie** wiersze trafiły już do `bronze`. Kandydatów
+wskazuje jedno zapytanie: `GROUP BY "$path" HAVING MAX(data) < granica`
+— jeśli najpóźniejsza data w pliku jest sprzed granicy, to wszystkie
+pozostałe też. Rozróżnienie `WHERE`/`HAVING` jest tu istotne: `WHERE`
+filtruje pojedyncze wiersze i przepuściłby plik, w którym dziewięć dni
+jest starych, a jeden świeży — czyli skasowałby żywe dane. Plik stojący
+okrakiem na granicy przeżywa do następnego razu i sam się zakwalifikuje
+miesiąc później. Pierwszy bieg skasował **zero plików** i tak miało
+być — wszystkie sześć plików w `live` zawiera dzień 01.09 lub późniejszy.
+Prawdziwe kasowanie wypadnie 1 października. Przy okazji `requirements.txt`
+przepisany od nowa: brakowało w nim `pyathena`, `boto3`, `kafka-python`
+i `pyarrow`, bez których projekt nie ruszy. Szczegóły w dzienniku 07.09.
+
 **Dalsze kroki:** zebrane w
 [`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
 — domknięcie Etapu 4 Część D, decyzja gdzie docelowo mają **lądować**
 wyniki Silver/Gold (dziś: pliki na dysku EC2, niewidoczne z zewnątrz),
-domknięcie kompakcji `live` → `bronze` (skrypt przepisuje już warstwę
-zamrożoną, brakuje kasowania starych plików z `live`, które rośnie
-o trzy pliki dziennie), i nowy kierunek: strona internetowa pokazująca wynik
-projektu. Na razie szkic z otwartymi pytaniami.
+wpięcie kompakcji w `cron` po sprawdzeniu jej 1 października, i nowy
+kierunek: strona internetowa pokazująca wynik projektu. Na razie szkic
+z otwartymi pytaniami.
 
 ---
 
@@ -126,7 +139,7 @@ projektu. Na razie szkic z otwartymi pytaniami.
 | `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
 | `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`). Od 03.09 uruchamiany codziennie przez `cron` na EC2 o 16:10 UTC, w jednej linijce z `gold.py` (`&&`); do odpytania Atheny potrzebuje polityki `AmazonAthenaFullAccess` na roli instancji |
 | `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`). Od 03.09 uruchamiany przez `cron` na EC2 zaraz po `silver.py` — i **tylko wtedy, gdy tamten się udał** (`&&`), bo czyta plik, który Silver dopiero tworzy |
-| `compaction.py` | Kompakcja `live` → `bronze` (04.09) — przepisuje warstwę zamrożoną: liczy granicę jako pierwszy dzień bieżącego miesiąca (`date.today().replace(day=1)`), pyta Athenę o wszystko sprzed niej z obu tabel naraz (`bronze UNION live`), usuwa duplikaty po dniu i spółce (dzień odcinany z tekstu przez `.str[:10]`, bez konwersji na typ daty — kolumna `data` musi zostać tekstem, inaczej rozjeżdża się `UNION` w `silver.py`), zapisuje po jednym pliku `.parquet` na spółkę do lokalnego `bronze/` i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`. Uruchamiany ręcznie, docelowo raz w miesiącu. **Niedokończone:** kasowanie z `live` plików, których wszystkie wiersze są już w `bronze` |
+| `compaction.py` | Kompakcja `live` → `bronze` (04.09) — przepisuje warstwę zamrożoną: liczy granicę jako pierwszy dzień bieżącego miesiąca (`date.today().replace(day=1)`), pyta Athenę o wszystko sprzed niej z obu tabel naraz (`bronze UNION live`), usuwa duplikaty po dniu i spółce (dzień odcinany z tekstu przez `.str[:10]`, bez konwersji na typ daty — kolumna `data` musi zostać tekstem, inaczej rozjeżdża się `UNION` w `silver.py`), zapisuje po jednym pliku `.parquet` na spółkę do lokalnego `bronze/` i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`. Na koniec (07.09) kasuje z `live` pliki, których **wszystkie** wiersze są już w `bronze` — kandydatów wskazuje `GROUP BY "$path" HAVING MAX(data) < granica` (ukryta kolumna `"$path"` mówi, z którego pliku pochodzi wiersz), adres `s3://bucket/klucz` zamieniany na sam klucz przez `split("/", 3)[3]`, kasowanie przez `s3.delete_object` z licznikiem — bo S3 nie zgłasza błędu przy kasowaniu nieistniejącego pliku, więc bez licznika nie da się odróżnić „skasowałem" od „nie było czego". Uruchamiany ręcznie, docelowo raz w miesiącu |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
 | `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |

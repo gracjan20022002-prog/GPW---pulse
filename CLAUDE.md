@@ -42,11 +42,15 @@ przez `cron`: zbieranie 16:00/16:02 UTC, Silver+Gold 16:10 UTC (18:00
 i 18:10 polskiego, po zamknięciu GPW). Lokalny Harmonogram jako wersja
 zapasowa. Zostaje Część E: Power BI → Athena (odłożone). Od 04.09
 warstwa `bronze` jest w Parquecie, przepisywana raz w miesiącu przez
-`kod/compaction.py`.
+`kod/compaction.py`, który od 07.09 kasuje też z `live` pliki w całości
+pokryte przez `bronze`.
 
-**`Plan-06-domkniecie-i-strona.md`** — osiem wątków. **Następna sesja
-zaczyna się od punktu 5 Wątku 8:** kasowanie z `live` plików w całości
-pokrytych przez `bronze` — projekt gotowy, opisany w Planie-06.
+**`Plan-06-domkniecie-i-strona.md`** — osiem wątków. **Wątek 8 zamknięty
+07.09.** Pierwszy bieg kompakcji z prawdziwym kasowaniem: **1
+października** (ręcznie, `cron` dopiero po sprawdzeniu). Następna sesja
+do wyboru: Wątek 1 (Etap 4, Część D — README pod pracodawcę,
+`Wnioski.md`) albo punkt 2 Wątku 3 (gdzie mają lądować wyniki
+Silver/Gold).
 
 ## Gdzie co jest
 
