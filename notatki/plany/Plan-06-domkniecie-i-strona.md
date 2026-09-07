@@ -32,7 +32,7 @@ pytaniami, dopisywany w miarę postępu.
 | 6 | Dalsza mapa (więcej spółek, ESPI, AI) | już w `Plan-ogolny.md`, później |
 | 7 | Pułapka ze strefami czasu w `companies/*.txt` | ✅ znaleziona i naprawiona 03.09 |
 | 8 | Przenoszenie starszych danych z `live` do `bronze` | ✅ zrobione 07.09 — `compaction.py` przepisuje `bronze` (Parquet) i kasuje pokryte pliki z `live`; pierwszy bieg z prawdziwym kasowaniem 1.10 |
-| 9 | Mina w `companies/*.txt` — pliki Producenta w gicie | 🔶 znaleziona 07.09, nierozbrojona |
+| 9 | Mina w `companies/*.txt` — pliki Producenta w gicie | ✅ rozbrojona 07.09 — pliki poza gitem, pamięć na EC2 zachowana |
 
 ---
 
@@ -319,14 +319,48 @@ kilka dni do Kafki po raz drugi. To ta sama mina co 01.09
 ([[project-producer-timezone-key-trap]]), tylko mniejsza — poprawka
 klucza z 03.09 ogranicza szkodę do kilku dni zamiast trzech lat.
 
-**Rozbrojenie:** `.gitignore` + `git rm --cached companies/*.txt`.
-Skutek uboczny do przemyślenia przed decyzją: po tym świeży `git clone`
-nie dostaje żadnej pamięci Producenta, więc na nowej maszynie skrypt
-wysłałby całą historię od zera. Dziś to nie boli (EC2 ma swoją kopię
-i nikt jej nie kasuje), ale trzeba to świadomie zaakceptować.
+### Rozbrojone 07.09
 
-Do czasu rozbrojenia obowiązuje zasada robocza: **przed każdym commitem
-sprawdzić `git status` i nie dodawać `companies/*.txt`.**
+W repozytorium siedziało **dziesięć plików generowanych przez maszyny**:
+`companies/*.txt` (pamięć Producenta), `silver/clean_data.csv`,
+`gold/*.csv` (wyniki), `wykresy/*` (prezentacja) i `kod/pipeline.txt`
+(śmieć po teście Harmonogramu).
+
+**Decyzja: odśledzone tylko `companies/*.txt` i `kod/pipeline.txt`.**
+Wykresy zostają, bo to prezentacja, nie wynik liczony co wieczór.
+Silver i Gold też zostają — repozytorium jest jednocześnie portfolio
+i ktoś, kto je otworzy, powinien zobaczyć wyniki, nie sam kod.
+Rozstrzygnęła różnica w skutkach utraty: `companies/*.txt` to
+**szkoda** (Producent zapomina i zalewa Kafkę), `silver/` i `gold/` to
+**zero strat** (dane są w S3, `cron` odtwarza pliki co wieczór).
+
+**Skutek uboczny, zaakceptowany świadomie:** świeży `git clone` nie
+dostaje już żadnej pamięci Producenta, więc na nowej maszynie skrypt
+wysłałby całą historię od zera. Dziś to nie boli — obie maszyny mają
+swoje kopie na dyskach.
+
+**Kolejność operacji na EC2 (ważna, commit kasuje pliki z dysku!):**
+1. `cp ~/GPW---pulse/companies/*.txt ~/pamiec-producenta/` — kopia
+   **przed** czymkolwiek. To jedyna aktualna pamięć, dłuższa od lokalnej.
+2. `git checkout -- companies/ silver/ gold/`
+3. `git pull` — pliki znikają z dysku instancji
+4. `cp ~/pamiec-producenta/*.txt ~/GPW---pulse/companies/` — powrót,
+   już jako pliki ignorowane
+5. `git check-ignore -v companies/SNT.WA.txt` — **dowód**, że są
+   ignorowane, a nie tylko nieśledzone
+
+**Pułapka w naprawie, na którą wpadliśmy:** pierwszy commit zawierał
+tylko cztery skasowania — `.gitignore` w nim nie było. `git rm --cached`
+sam stage'uje swoją zmianę, zwykła edycja pliku nie. Paczka nie była
+pusta, więc `commit` przeszedł bez ostrzeżenia, a pliki zostały
+nieśledzone, ale **nieignorowane** — pierwsze `git add .` wciągnęłoby je
+z powrotem. Wykryte przez `git check-ignore`, naprawione drugim
+commitem.
+
+**Zasada, która zostaje na przyszłość:** dopóki `silver/` i `gold/` są
+w gicie, przed każdym `git pull` na EC2 idzie `git checkout -- silver/
+gold/`. Bezpieczne — te pliki odtwarza `cron`. **Nigdy `git stash`**,
+bo zabiera wszystko naraz i to on wysadził projekt 01.09.
 
 ---
 

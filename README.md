@@ -103,7 +103,17 @@ miesiąc później. Pierwszy bieg skasował **zero plików** i tak miało
 być — wszystkie sześć plików w `live` zawiera dzień 01.09 lub późniejszy.
 Prawdziwe kasowanie wypadnie 1 października. Przy okazji `requirements.txt`
 przepisany od nowa: brakowało w nim `pyathena`, `boto3`, `kafka-python`
-i `pyarrow`, bez których projekt nie ruszy. Szczegóły w dzienniku 07.09.
+i `pyarrow`, bez których projekt nie ruszy.
+
+Tego samego dnia **`companies/*.txt` wyszły poza gita** (`.gitignore`
++ `git rm --cached`). Te pliki są pamięcią Producenta („co już
+wysłałem"), a nie kodem — a ponieważ były śledzone, każda operacja gita
+podmieniająca je na EC2 kasowała tę pamięć i kazała wysłać całą historię
+do Kafki od nowa (tak stało się 01.09). Teraz każda maszyna trzyma własną
+kopię na własnym dysku i git jej nie dotyka. Wyniki `silver/` i `gold/`
+zostają w repozytorium świadomie — ich utrata nic nie kosztuje (`cron`
+odtwarza je co wieczór z danych w S3), a repozytorium jest jednocześnie
+portfolio. Szczegóły w dzienniku 07.09.
 
 **Dalsze kroki:** zebrane w
 [`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
@@ -120,7 +130,7 @@ z otwartymi pytaniami.
 | Folder | Co w nim jest |
 |---|---|
 | **kod/** | skrypty Pythona projektu (patrz tabela niżej) |
-| **companies/** | pobrane dane spółek (pliki `.txt`, jeden na spółkę) + `errors.log` |
+| **companies/** | pamięć Producenta „co już wysłałem" (pliki `.txt`, jeden na spółkę) + logi. **Poza gitem od 07.09** (`.gitignore`) — to stan maszyny, nie kod; każda maszyna ma własną kopię, a git jej nie podmienia |
 | **bronze/** | pliki `.parquet` przygotowane przez `compaction.py` przed wysyłką do S3 — poza gitem (`.gitignore`), to dane, nie kod |
 | **silver/** | wynik etapu Silver — jedna czysta tabela ze wszystkich spółek (`clean_data.csv`) |
 | **gold/** | wynik etapu Gold — dzienne dane ze wskaźnikami (`dane_dzienne.csv`) i ranking spółek (`ranking.csv`) |

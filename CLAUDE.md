@@ -56,4 +56,6 @@ Silver/Gold).
 
 Kod, dane i notatki razem w folderze projektu: `kod/`, `companies/`,
 `silver/`, `gold/`, `notatki/` (plany, dziennik i `.obsidian` poza gitem,
-słownik). Nauka Pythona (osobny, niepowiązany projekt): `DE/Python_l/`.
+słownik). **`companies/*.txt` też są poza gitem** (od 07.09) — to pamięć
+Producenta, każda maszyna ma własną. Przed `git pull` na EC2 zawsze
+`git checkout -- silver/ gold/`; **nigdy `git stash`**. Nauka Pythona (osobny, niepowiązany projekt): `DE/Python_l/`.
