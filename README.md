@@ -115,13 +115,31 @@ zostają w repozytorium świadomie — ich utrata nic nie kosztuje (`cron`
 odtwarza je co wieczór z danych w S3), a repozytorium jest jednocześnie
 portfolio. Szczegóły w dzienniku 07.09.
 
-**Dalsze kroki:** zebrane w
+**08.09 — przegląd całego projektu i pierwsze naprawy.** Na żądanie
+Gracjana cały projekt (kod, wszystkie notatki, historia gita) został
+przeczytany od nowa i opisany bez upiększeń w
+[`notatki/plany/Przeglad-2026-09-08-co-nie-gra.md`](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md)
+— **od tego dnia to ten plik, nie ten README, mówi prawdę o stanie
+projektu**. Wyszło z niego, że większość „nowych" błędów z ostatnich dwóch
+tygodni to skutki mechanizmów nazwanych ukończonymi po teście ręcznym,
+zanim zadziałały tam, gdzie miały: bez nadzoru, na EC2, przy awarii.
+Tego samego dnia zamknięte trzy pierwsze pozycje z listy: Producent
+zapisuje pamięć „co już wysłałem" **dopiero po potwierdzeniu** każdej
+wiadomości przez brokera (wcześniej zapisywał zawsze — tak przepadły
+26, 27 i 31.08); kompakcja przed nadpisaniem `bronze` pobiera jego obecną
+kopię z S3 i **przerywa**, gdy liczba wierszy którejkolwiek spółki
+zmalała; Konsument przy utracie pozycji grupy czyta zachowane wiadomości
+zamiast je pomijać (`'earliest'`). Każda naprawa sprawdzona z policzonym
+wcześniej wynikiem — Producent także prawdziwym biegiem `cron`
+(767 wierszy, Silver 2301). Zasady pracy, w tym pięciopunktowa definicja
+„zrobione" i notatka projektowa przed każdym nowym mechanizmem — w
+[`CLAUDE.md`](CLAUDE.md). Szczegóły w dzienniku 08.09.
+
+**Dalsze kroki:** kolejność napraw — Część 5 przeglądu (zatwierdzona).
+Wcześniejsza lista wątków w
 [`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
-— domknięcie Etapu 4 Część D, decyzja gdzie docelowo mają **lądować**
-wyniki Silver/Gold (dziś: pliki na dysku EC2, niewidoczne z zewnątrz),
-wpięcie kompakcji w `cron` po sprawdzeniu jej 1 października, i nowy
-kierunek: strona internetowa pokazująca wynik projektu. Na razie szkic
-z otwartymi pytaniami.
+zostaje jako historia; strona internetowa, Power BI i README pod
+pracodawcę — dopiero po domknięciu łańcucha danych.
 
 ---
 
@@ -143,13 +161,13 @@ z otwartymi pytaniami.
 
 | Plik | Co robi |
 |---|---|
-| `data_ingestion.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker` — połączenie z brokerem też w `try/except`, brak Kafki nie przerywa pobierania/zapisu lokalnego. Od 01.09 uruchamiany codziennie przez `cron` na EC2 (nazwa do 01.09: `Data ingestion 2.py`) |
-| `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. Od 01.09 uruchamiany codziennie przez `cron` na EC2, kilka minut po `data_ingestion.py` |
+| `data_ingestion.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`, **każdą z potwierdzeniem** (`send(...).get(timeout=10)`, od 08.09) — plik pamięci spółki jest zapisywany tylko wtedy, gdy wszystkie jej nowe daty zostały potwierdzone przez brokera; gdy broker nie odpowiada, plik zostaje nietknięty i te dni lecą przy następnym biegu (wcześniej zapis był bezwarunkowy i dni znikały po cichu — tak przepadły 26, 27 i 31.08). Od 01.09 uruchamiany codziennie przez `cron` na EC2 (nazwa do 01.09: `Data ingestion 2.py`). Znana wada, do naprawy: uruchomiony przed 17:00 zapisuje cenę z trwającej sesji z etykietą zamknięcia |
+| `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. `auto_offset_reset='earliest'` (od 08.09): gdy grupa `gpw_consumer` straci zapisaną pozycję, czyta od najstarszej zachowanej wiadomości zamiast pomijać wszystko sprzed startu; powtórki odsiewa `silver.py`. Od 01.09 uruchamiany codziennie przez `cron` na EC2, kilka minut po `data_ingestion.py` |
 | `test_plikow.py` | Dwa testy: `test_dzialania` sprawdza pobrane pliki `companies/*.txt` (istnieją, poprawny format wiersza, wystarczająco dużo danych); `test_powtorek` (02.09) sprawdza `silver/clean_data.csv` pod kątem duplikatów — czy nie ma dwóch wierszy z tym samym dniem i tą samą spółką |
 | `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
 | `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`). Od 03.09 uruchamiany codziennie przez `cron` na EC2 o 16:10 UTC, w jednej linijce z `gold.py` (`&&`); do odpytania Atheny potrzebuje polityki `AmazonAthenaFullAccess` na roli instancji |
 | `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny miesiąc na spółkę (`groupby`+`std`), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`). Od 03.09 uruchamiany przez `cron` na EC2 zaraz po `silver.py` — i **tylko wtedy, gdy tamten się udał** (`&&`), bo czyta plik, który Silver dopiero tworzy |
-| `compaction.py` | Kompakcja `live` → `bronze` (04.09) — przepisuje warstwę zamrożoną: liczy granicę jako pierwszy dzień bieżącego miesiąca (`date.today().replace(day=1)`), pyta Athenę o wszystko sprzed niej z obu tabel naraz (`bronze UNION live`), usuwa duplikaty po dniu i spółce (dzień odcinany z tekstu przez `.str[:10]`, bez konwersji na typ daty — kolumna `data` musi zostać tekstem, inaczej rozjeżdża się `UNION` w `silver.py`), zapisuje po jednym pliku `.parquet` na spółkę do lokalnego `bronze/` i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`. Na koniec (07.09) kasuje z `live` pliki, których **wszystkie** wiersze są już w `bronze` — kandydatów wskazuje `GROUP BY "$path" HAVING MAX(data) < granica` (ukryta kolumna `"$path"` mówi, z którego pliku pochodzi wiersz), adres `s3://bucket/klucz` zamieniany na sam klucz przez `split("/", 3)[3]`, kasowanie przez `s3.delete_object` z licznikiem — bo S3 nie zgłasza błędu przy kasowaniu nieistniejącego pliku, więc bez licznika nie da się odróżnić „skasowałem" od „nie było czego". Uruchamiany ręcznie, docelowo raz w miesiącu |
+| `compaction.py` | Kompakcja `live` → `bronze` (04.09) — przepisuje warstwę zamrożoną: liczy granicę jako pierwszy dzień bieżącego miesiąca (`date.today().replace(day=1)`), pyta Athenę o wszystko sprzed niej z obu tabel naraz (`bronze UNION live`), usuwa duplikaty po dniu i spółce (dzień odcinany z tekstu przez `.str[:10]`, bez konwersji na typ daty — kolumna `data` musi zostać tekstem, inaczej rozjeżdża się `UNION` w `silver.py`), zapisuje po jednym pliku `.parquet` na spółkę do lokalnego `bronze/` i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`. Na koniec (07.09) kasuje z `live` pliki, których **wszystkie** wiersze są już w `bronze` — kandydatów wskazuje `GROUP BY "$path" HAVING MAX(data) < granica` (ukryta kolumna `"$path"` mówi, z którego pliku pochodzi wiersz), adres `s3://bucket/klucz` zamieniany na sam klucz przez `split("/", 3)[3]`, kasowanie przez `s3.delete_object` z licznikiem — bo S3 nie zgłasza błędu przy kasowaniu nieistniejącego pliku, więc bez licznika nie da się odróżnić „skasowałem" od „nie było czego". **Od 08.09 strażnik:** przed jakimkolwiek zapisem pobiera obecne pliki `bronze` z S3 do `bronze/poprzedni/` (kopia zapasowa i punkt odniesienia) i dla każdej spółki sprawdza `assert`-em, że nowa liczba wierszy nie jest mniejsza niż poprzednia — inaczej przerywa, bo Athena potrafi oddać niepełną tabelę bez błędu (04.09: 405 zamiast 2283). Sprawdzone: granica przestawiona na sierpień → `AssertionError … 761 … 740`, nic nie zapisane. Uruchamiany ręcznie, docelowo raz w miesiącu |
 | `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
 | `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
 | `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |

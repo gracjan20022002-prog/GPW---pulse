@@ -113,7 +113,8 @@ Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 
 **Co działa dziś, sprawdzone:** na EC2 (`t3.micro`, Elastic IP
 `13.63.105.190`, 24/7) `cron` uruchamia codziennie o 16:00/16:02/16:10 UTC
-`data_ingestion.py` (Yahoo → `companies/*.txt` + Kafka), `kafka_consumer.py`
+`data_ingestion.py` (Yahoo → Kafka, pamięć `companies/*.txt` zapisywana
+dopiero po potwierdzeniu brokera — od 08.09), `kafka_consumer.py`
 (Kafka → S3 `live/`), `silver.py && gold.py` (Athena `bronze UNION live` →
 CSV na dysku EC2). `bronze` w S3 jest Parquetem do końca poprzedniego
 miesiąca, przepisywanym ręcznie przez `compaction.py` (pierwszy bieg
@@ -123,25 +124,47 @@ liczy Silver+Gold równolegle o 18:10 jako „zapas".
 **Co nie działa albo zagraża danym:** pełna lista z wagami, liniami
 i uzasadnieniem w
 [`notatki/plany/Przeglad-2026-09-08-co-nie-gra.md`](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md)
-— **to jest źródło prawdy o stanie projektu**, nie README. Najkrócej:
-Producent po cichu gubi dane, gdy broker nie odpowiada; wynik Golda
-kończy na dysku EC2 i nic go nie czyta; kompakcja nie sprawdza niczego
-przed nadpisaniem i kasowaniem; Konsument może po cichu pominąć
-wiadomości; testy sprawdzają rzeczy obok potoku; nikt nie dowie się
-o awarii; ranking „najbardziej zmiennego miesiąca" jest błędny
+— **to jest źródło prawdy o stanie projektu**, nie README. Kolejność
+napraw z Części 5 tego pliku **zatwierdzona przez Gracjana 08.09**.
+Wciąż otwarte (najkrócej): wynik Golda kończy na dysku EC2 i nic go nie
+czyta; Producent zapisuje cenę z trwającej sesji jako zamknięcie, gdy
+uruchomić go przed 17:00; testy sprawdzają rzeczy obok potoku; nikt nie
+dowie się o awarii; ranking „najbardziej zmiennego miesiąca" jest błędny
 w pierwszym tygodniu miesiąca; martwy kod i konfiguracja na sztywno;
 README obiecuje więcej, niż jest; dziesięć wpisów dziennika bez „Czego
 się nauczyłem".
+
+**Naprawione 08.09, sprawdzone:** (1) Producent zapisuje pamięć
+„wysłane" dopiero po potwierdzeniu każdej wiadomości przez brokera
+(`send(...).get(timeout=10)`, flaga per spółka) — test lokalny z martwym
+brokerem + prawdziwy bieg `cron` na EC2; (2) kompakcja pobiera obecny
+`bronze` z S3 do `bronze/poprzedni/` i przerywa `assert`-em przed
+jakimkolwiek zapisem, gdy liczba wierszy spółki zmalała — obie ścieżki
+sprawdzone biegiem (761 vs 740); (3) Konsument `auto_offset_reset=
+'earliest'` — retencja na EC2 domyślna (7 dni), grupa `gpw_consumer`
+z zakładką 2330/2330, LAG 0.
 
 **Priorytet Gracjana (08.09):** czysty, działający łańcuch
 `data_ingestion → Kafka → S3/Athena → silver → gold` → wynik na stronie.
 Wykresy, README pod pracodawcę, Power BI — dopiero potem.
 
-**W toku:** naprawa Producenta (zapis pamięci „wysłane" dopiero po
-potwierdzonej wysyłce). 08.09: błąd odtworzony lokalnie z martwym
-brokerem, pamięć przywrócona z kopii `~/pamiec-kopia-0809`, poprawka
-do napisania przez Gracjana. Proponowana kolejność dalszych napraw —
-Część 5 pliku przeglądu, do zatwierdzenia przez Gracjana.
+**Następna sesja (09.09), ustalone z Gracjanem:**
+1. Sprawdzić `errors.txt` na EC2 po 18:12 poprzedniego dnia — `Odebrano 3
+   wiadomości`, plik spółki 768 wierszy (zwykła ścieżka `'earliest'`).
+2. **Test ścieżki „zakładki nie ma"** (Gracjan prosił, żeby o tym
+   pamiętać): `kafka-consumer-groups.sh --delete --group gpw_consumer`,
+   ręczny bieg Konsumenta z jawnym `KAFKA_BOOTSTRAP=localhost:9094`,
+   ponowne `--describe`. Z `'earliest'` ma odczytać wiadomości
+   z ostatniego tygodnia (> 0); zostawi po jednym dodatkowym pliku na
+   spółkę w `live` — dedup je odrzuci, kompakcja skasuje 1.10.
+3. **Krok 3(b): Producent i Konsument w jednej linii `crontab`** zamiast
+   16:00 i 16:02. Decyzja Gracjana: `;` (Konsument rusza zawsze) czy `&&`
+   (nie rusza po awarii Producenta) — to nie to samo co `silver && gold`.
+   Notatka projektowa przed edycją, `crontab -l` po niej.
+4. Dalej kroki 4–10 z przeglądu, po kolei.
+
+Kopie z 08.09: pamięć Producenta `~/pamiec-kopia-0809/` (Windows),
+poprzedni `bronze` w `bronze/poprzedni/` (poza gitem).
 
 ## Gdzie co jest
 

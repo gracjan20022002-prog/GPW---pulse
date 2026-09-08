@@ -61,7 +61,11 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
 
 ### 2.1 Producent — `kod/data_ingestion.py`
 
-- 🔴 **Zapisuje „już wysłałem" bez wysłania.** Linie 65–67 nadpisują
+- ✅ **NAPRAWIONE 08.09** — `send(...).get(timeout=10)`, flaga per
+  spółka, zapis pliku pod `if flaga`. Sprawdzone lokalnie z martwym
+  brokerem (plik nietknięty) i prawdziwym biegiem `cron` na EC2
+  (767 wierszy, Silver 2301). Poniżej opis stanu sprzed naprawy:
+  ~~🔴~~ **Zapisuje „już wysłałem" bez wysłania.** Linie 65–67 nadpisują
   `companies/{spółka}.txt` wszystkimi datami niezależnie od tego, czy
   wysyłka (62–64) się odbyła. Gdy broker nie odpowiada (`producer =
   None`, linia 26) dni znikają z kolejki na zawsze. Zdarzyło się
@@ -112,7 +116,11 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
 
 ### 2.3 Konsument — `kod/kafka_consumer.py`
 
-- 🟠 **`auto_offset_reset='latest'`** (linia 11). Gdy grupa
+- ✅ **NAPRAWIONE 08.09** — `'earliest'`; retencja na EC2 domyślna
+  (7 dni), zakładka grupy 2330/2330, LAG 0. Zwykła ścieżka do
+  sprawdzenia 09.09 o 18:02; ścieżka „zakładki nie ma" — test 09.09
+  (skasowanie grupy, ręczny bieg). Stan sprzed naprawy:
+  ~~🟠~~ **`auto_offset_reset='latest'`** (linia 11). Gdy grupa
   `gpw_consumer` straci zapisaną pozycję (Kafka kasuje offsety grupy po
   7 dniach bez aktywności; albo ktoś zmieni `group_id`), Konsument
   wystartuje od „teraz" i **po cichu pominie** wszystko, co Producent
@@ -209,7 +217,13 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
 
 ### 2.8 Kompakcja — `kod/compaction.py`
 
-- 🔴 **Brak sprawdzenia przed nadpisaniem i kasowaniem.** Skrypt czyta
+- ✅ **NAPRAWIONE 08.09** — kopia obecnego `bronze` z S3 do
+  `bronze/poprzedni/` (`download_file`, `except ClientError` → 0 dla
+  nowej spółki) i `assert` per spółka „nowa liczba ≥ poprzednia" przed
+  pierwszym zapisem. Obie ścieżki sprawdzone biegiem: zwykły bieg
+  761/761, granica `2026-08-01` → `AssertionError … 761 … 740`, nic nie
+  zapisane. Stan sprzed naprawy:
+  ~~🔴~~ **Brak sprawdzenia przed nadpisaniem i kasowaniem.** Skrypt czyta
   z Atheny, **nadpisuje** trzy pliki `bronze` w S3 (linia 28) i **kasuje**
   pliki z `live` (39). Nie porównuje liczby wierszy z poprzednim
   stanem `bronze`. 04.09 Athena zwróciła 405 zamiast 2283 bez żadnego
@@ -389,10 +403,20 @@ zamknięte przekreślone, nowe dopisane.
 
 ---
 
-## Część 5 — Proponowana kolejność napraw (do zatwierdzenia)
+## Część 5 — Kolejność napraw (zatwierdzona 08.09)
 
-To jest propozycja Claude'a. Gracjan decyduje. Uzasadnienie przy każdej:
-dlaczego tu, a nie gdzie indziej.
+**Stan realizacji** (aktualizowany na koniec każdej sesji):
+
+| # | Krok | Stan |
+|---|---|---|
+| 1 | Producent przestaje gubić dane | ✅ 08.09 — sprawdzone lokalnie i przez `cron` na EC2 |
+| 2 | Zabezpieczenie kompakcji | ✅ 08.09 — obie ścieżki sprawdzone biegiem |
+| 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka do potwierdzenia 09.09 18:02, test „zakładki nie ma" 09.09 |
+| 3b | Producent i Konsument w jednej linii `crontab` | 🔜 09.09 — decyzja `;` czy `&&` przed edycją |
+| 4–10 | reszta | ⬜ |
+
+Uzasadnienie kolejności przy każdej pozycji: dlaczego tu, a nie gdzie
+indziej.
 
 1. **Producent przestaje gubić dane** (2.1, pierwsze dwa punkty) —
    jedyne, co dziś kasuje dane; niezależne od reszty; rozpoczęte 08.09

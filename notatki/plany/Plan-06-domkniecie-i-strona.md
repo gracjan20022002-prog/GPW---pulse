@@ -411,9 +411,15 @@ bo po przepisaniu `bronze` uruchomiono ręcznie tylko `silver.py`.
 parą** — na EC2 pilnuje tego `&&` w `crontab`, lokalnie nikt.
 Szczegóły w dzienniku 07.09.
 
-Następna sesja do wyboru: Wątek 1 (Etap 4, Część D — README pod
+~~Następna sesja do wyboru: Wątek 1 (Etap 4, Część D — README pod
 pracodawcę, `Wnioski.md`) albo punkt 2 Wątku 3 (gdzie mają lądować
-wyniki Silver/Gold, dziś niewidoczne spoza EC2).
+wyniki Silver/Gold, dziś niewidoczne spoza EC2).~~
+
+**Nieaktualne od 08.09.** Gracjan ustalił priorytet: najpierw czysty,
+działający łańcuch danych aż do wyniku poza EC2, README i Power BI na
+końcu. Kolejność napraw i stan projektu prowadzi od tego dnia
+[[Przeglad-2026-09-08-co-nie-gra]] — ten plan zostaje jako historia
+wątków 1–10; punkt 2 Wątku 3 (wynik Golda poza EC2) to tam krok 5.
 
 **Drobiazgi zauważone po drodze, do posprzątania kiedyś:**
 
