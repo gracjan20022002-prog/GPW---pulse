@@ -22,7 +22,7 @@ try:
         value_serializer=lambda x: dumps(x).encode('utf-8')
 )
 except KafkaError:
-    logging.error(f"Wystąpił błąd przy pobieraniu danych spółki.")
+    logging.error(f"Wystąpił błąd łączenia z brokerem: {BOOTSTRAP}.")
     producer = None
 
 
@@ -59,12 +59,20 @@ for tick in ticker:
                     dane[str(data)] = c
             posortowane = sorted(dane.keys())
             nowe_daty = set(dane.keys()) - stare_daty
-            for data in nowe_daty:
-                if producer is not None:
-                    producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": f"{data} 17:00:00", "cena": dane[data]})
-            with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
-                for data in posortowane:
-                    plik.write(f"{data} 17:00:00, {dane[data]}\n")
+            flaga = True
+            if producer is None:
+                flaga = False
+            else:
+                for data in nowe_daty:
+                    try:
+                        producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": f"{data} 17:00:00", "cena": dane[data]}).get(timeout=10)
+                    except KafkaError:
+                        logging.error(f"{data} Wystąpił błąd w dostarczeniu danych o spółce {tick} ")
+                        flaga = False
+            if flaga:
+                with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
+                    for data in posortowane:
+                        plik.write(f"{data} 17:00:00, {dane[data]}\n")
         else:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
