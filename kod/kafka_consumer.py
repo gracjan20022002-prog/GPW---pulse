@@ -8,7 +8,7 @@ BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "13.63.105.190:9092")
 consumer = KafkaConsumer(
     bootstrap_servers=[BOOTSTRAP],
     group_id='gpw_consumer',
-    auto_offset_reset='latest',
+    auto_offset_reset='earliest',
     value_deserializer=lambda x: loads(x.decode('utf-8')),
     consumer_timeout_ms=5000
 )
