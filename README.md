@@ -135,6 +135,19 @@ wcześniej wynikiem — Producent także prawdziwym biegiem `cron`
 „zrobione" i notatka projektowa przed każdym nowym mechanizmem — w
 [`CLAUDE.md`](CLAUDE.md). Szczegóły w dzienniku 08.09.
 
+**09.09 — sprawdzenie zamiast wyprowadzania.** Odczyt offsetów i plików
+segmentów na dysku brokera pokazał, że zalew z 01.09 wciąż leży w topicu
+(`earliest` 22, `latest` 2330): Kafka kasuje całymi segmentami, więc
+wiadomość żyje 7–14 dni, nie 7. Wczorajszy wniosek „retencja skasowała"
+był błędny — test Konsumenta bez zapisanej pozycji przełożony na po
+14.09, bo dziś wlałby zalew ponownie. Zwykła ścieżka Konsumenta
+z `'earliest'` przeszła przez `cron` z liczbami przewidzianymi przed
+biegiem. Producent i Konsument połączone w jedną linię `crontab`
+rozdzieloną `;` (Konsument rusza zawsze, bo zależy od tego, co leży
+w Kafce, nie od wyniku Producenta), z kopią sprzed edycji i `diff`-em
+przed wgraniem; pierwszy bieg nowej linii 10.09 — do tego dnia ten krok
+jest wdrożony, nie zrobiony. Szczegóły w dzienniku 09.09.
+
 **Dalsze kroki:** kolejność napraw — Część 5 przeglądu (zatwierdzona).
 Wcześniejsza lista wątków w
 [`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
@@ -162,7 +175,7 @@ pracodawcę — dopiero po domknięciu łańcucha danych.
 | Plik | Co robi |
 |---|---|
 | `data_ingestion.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`, **każdą z potwierdzeniem** (`send(...).get(timeout=10)`, od 08.09) — plik pamięci spółki jest zapisywany tylko wtedy, gdy wszystkie jej nowe daty zostały potwierdzone przez brokera; gdy broker nie odpowiada, plik zostaje nietknięty i te dni lecą przy następnym biegu (wcześniej zapis był bezwarunkowy i dni znikały po cichu — tak przepadły 26, 27 i 31.08). Od 01.09 uruchamiany codziennie przez `cron` na EC2 (nazwa do 01.09: `Data ingestion 2.py`). Znana wada, do naprawy: uruchomiony przed 17:00 zapisuje cenę z trwającej sesji z etykietą zamknięcia |
-| `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. `auto_offset_reset='earliest'` (od 08.09): gdy grupa `gpw_consumer` straci zapisaną pozycję, czyta od najstarszej zachowanej wiadomości zamiast pomijać wszystko sprzed startu; powtórki odsiewa `silver.py`. Od 01.09 uruchamiany codziennie przez `cron` na EC2, kilka minut po `data_ingestion.py` |
+| `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. `auto_offset_reset='earliest'` (od 08.09): gdy grupa `gpw_consumer` straci zapisaną pozycję, czyta od najstarszej zachowanej wiadomości zamiast pomijać wszystko sprzed startu; powtórki odsiewa `silver.py`. Od 01.09 uruchamiany codziennie przez `cron` na EC2; od 09.09 w tej samej linii `crontab` co `data_ingestion.py`, zaraz po nim, rozdzielone `;` (rusza zawsze, także gdy Producent padł — bo zależy od tego, co leży w Kafce, nie od wyniku Producenta; do 08.09 osobna linia dwie minuty później, co przy wolnym Yahoo dawało „Odebrano 0") |
 | `test_plikow.py` | Dwa testy: `test_dzialania` sprawdza pobrane pliki `companies/*.txt` (istnieją, poprawny format wiersza, wystarczająco dużo danych); `test_powtorek` (02.09) sprawdza `silver/clean_data.csv` pod kątem duplikatów — czy nie ma dwóch wierszy z tym samym dniem i tą samą spółką |
 | `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
 | `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`). Od 03.09 uruchamiany codziennie przez `cron` na EC2 o 16:10 UTC, w jednej linijce z `gold.py` (`&&`); do odpytania Atheny potrzebuje polityki `AmazonAthenaFullAccess` na roli instancji |

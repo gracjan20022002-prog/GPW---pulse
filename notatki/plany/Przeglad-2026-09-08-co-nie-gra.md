@@ -101,10 +101,17 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   brakowało 07.09, choć wczoraj było.
 - 🟡 Martwy kod: `print` ścieżki (10), `print(response.url)` (51),
   zakomentowany import `boto3` (9) i blok wysyłki do S3 (75–78).
+- 🟠 **`requests.get` bez `timeout`** (linia 49; zauważone 09.09 przy
+  notatce do `crontab`). Gdy Yahoo przyjmie połączenie i zamilknie,
+  Producent czeka bez końca: Konsument w tej samej linii `cron` nie
+  ruszy, Silver o 16:10 policzy wczorajszy stan, a jutrzejszy `cron`
+  uruchomi drugiego Producenta obok wiszącego. Do kroku sprzątania.
 
 ### 2.2 Kafka — broker na EC2
 
-- 🟠 **Wiadomości żyją w topicu 7 dni** (domyślna retencja Kafki). Jeśli
+- 🟠 **Wiadomości żyją w topicu 7–14 dni** (domyślna retencja Kafki
+  7 dni, ale kasowanie idzie całymi segmentami — sprawdzone 09.09 na
+  dysku brokera, patrz 2.3). Jeśli
   Konsument nie zadziała przez tydzień (zepsuty `venv` po `git pull`,
   pełny dysk, cokolwiek), Producent dalej wysyła i oznacza jako wysłane,
   a broker po tygodniu kasuje nieodebrane. Dane do S3 nie trafią nigdy,
@@ -116,17 +123,36 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
 
 ### 2.3 Konsument — `kod/kafka_consumer.py`
 
-- ✅ **NAPRAWIONE 08.09** — `'earliest'`; retencja na EC2 domyślna
-  (7 dni), zakładka grupy 2330/2330, LAG 0. Zwykła ścieżka do
-  sprawdzenia 09.09 o 18:02; ścieżka „zakładki nie ma" — test 09.09
-  (skasowanie grupy, ręczny bieg). Stan sprzed naprawy:
+- ✅ **NAPRAWIONE 08.09** — `'earliest'`; zakładka grupy 2330/2330,
+  LAG 0. **Zwykła ścieżka sprawdzona 09.09** prawdziwym biegiem `cron`
+  (`Odebrano 3 wiadomości`, 2333/2333, LAG 0). **Poprawka 09.09 do
+  „retencja 7 dni":** broker kasuje całymi segmentami, nie pojedynczymi
+  wiadomościami — wiadomość żyje 7–14 dni. Sprawdzone na dysku brokera:
+  `earliest` = 22, `latest` = 2330, zalew z 01.09 (offsety 22–2326) leży
+  w zamkniętym segmencie `...0022.log` z ostatnią wiadomością z 07.09
+  16:00 UTC i zniknie około 14.09 16:00 UTC. **Test „zakładki nie ma"
+  dopiero po tym** (termin do wyboru Gracjana: 14.09 po 18:15 albo 15.09
+  przed 18:00; najpierw `kafka-get-offsets.sh --time earliest` ma pokazać
+  2327), inaczej Konsument wlałby zalew drugi raz. Stan sprzed naprawy:
   ~~🟠~~ **`auto_offset_reset='latest'`** (linia 11). Gdy grupa
   `gpw_consumer` straci zapisaną pozycję (Kafka kasuje offsety grupy po
   7 dniach bez aktywności; albo ktoś zmieni `group_id`), Konsument
   wystartuje od „teraz" i **po cichu pominie** wszystko, co Producent
   wysłał wcześniej. Wybrane 21.08, żeby nie łapać wiadomości testowych
   — powód dawno nieaktualny. Właściwa wartość dla potoku: `'earliest'`.
-- 🟠 **Sprzężenie przez minuty w `crontab`.** Producent 16:00, Konsument
+- ✅ **WDROŻONE 09.09, sprawdzenie 10.09** — Producent i Konsument
+  w jednej linii `crontab` o 16:00 UTC, rozdzielone `;` (decyzja
+  Gracjana: Konsument rusza zawsze, bo zależy od tego, co leży w Kafce,
+  nie od kodu wyjścia Producenta; Producent i tak prawie zawsze kończy
+  zerem, bo łapie swoje awarie w `except`; `&&` w jedynej sytuacji,
+  w której coś zmienia — Producent wybuchł po zapisaniu pliku pierwszej
+  spółki — zostawiłoby jej wiadomości w Kafce na śmierć). Każdy skrypt
+  ze swoim `>> errors.txt 2>&1`, w stylu linii `10 16`. Kopia sprzed
+  edycji: `~/crontab-kopia-0909.txt` na EC2. Liczby na 10.09: adresy
+  Yahoo w logu **przed** `Odebrano 3 wiadomości`, `(2307, 3)` ×2,
+  769 wierszy, pozycja 2336. Ścieżka „Producent wybuchł, Konsument
+  ruszył" sprawdzona czytaniem, nie biegiem. Stan sprzed zmiany:
+  ~~🟠~~ **Sprzężenie przez minuty w `crontab`.** Producent 16:00, Konsument
   16:02, timeout 5 s ciszy (linia 13). Jeśli Yahoo odpowie wolno albo
   broker się zamyśli, Konsument kończy z „Odebrano 0 wiadomości",
   wiadomości czekają do jutra, a `silver.py` o 16:10 liczy wczorajszy
@@ -204,6 +230,12 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   `git checkout -- silver/ gold/`. Wczorajsza zagadka SNT wzięła się
   dokładnie z tego: lokalny ręczny bieg zapisał parę plików z dwóch
   różnych chwil.
+- 🟡 **Trzy ostrzeżenia co wieczór w `errors.txt`** (sprawdzone 09.09,
+  linie 324–330): `kafka-python` o `value_deserializer` jako `lambda`,
+  `boto3` o Pythonie 3.9 (wsparcie skończyło się 29.04.2026), `pandas`
+  o `read_sql` z połączeniem `pyathena`. Żadne nie jest błędem, ale
+  sygnał awarii (krok 8) będzie musiał odróżniać ostrzeżenie od
+  `Traceback`.
 - 🟠 **Nikt się nie dowie, że coś padło.** `companies/errors.txt` na EC2
   to całe `stdout` + `stderr` obu skryptów, bez jednej daty. Prawdziwy
   `Traceback` leży tam, dopóki ktoś nie wejdzie przez SSH i nie
@@ -260,8 +292,9 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   wymaga ręcznej edycji `crontab` (01.09 — przeoczone, cały wieczór
   bez danych). `git pull` wymaga rytuału `git checkout -- silver/ gold/`.
   Nic nie sprawdza, że kod na EC2 to ten sam, co na GitHubie.
-- 🟡 **Zmiana czasu** — koniec października `crontab` z 16:00/16:02/16:10
-  na 17:00/17:02/17:10 UTC, ręcznie, z pamięci. `CRON_TZ=Europe/Warsaw`
+- 🟡 **Zmiana czasu** — koniec października `crontab` z 16:00/16:10
+  na 17:00/17:10 UTC (od 09.09 dwie linie, nie trzy), ręcznie,
+  z pamięci. `CRON_TZ=Europe/Warsaw`
   na górze `crontab` załatwiłoby to raz na zawsze.
 - 🟡 Pliki-śmieci: `kod/pipeline.py` (test Harmonogramu z 12.08),
   `kod/pyathena_silver_test.py` (szkic, treść stoi w `silver.py`),
@@ -411,9 +444,9 @@ zamknięte przekreślone, nowe dopisane.
 |---|---|---|
 | 1 | Producent przestaje gubić dane | ✅ 08.09 — sprawdzone lokalnie i przez `cron` na EC2 |
 | 2 | Zabezpieczenie kompakcji | ✅ 08.09 — obie ścieżki sprawdzone biegiem |
-| 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka do potwierdzenia 09.09 18:02, test „zakładki nie ma" 09.09 |
-| 3b | Producent i Konsument w jednej linii `crontab` | 🔜 09.09 — decyzja `;` czy `&&` przed edycją |
-| 4–10 | reszta | ⬜ |
+| 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka potwierdzona 09.09 przez `cron`; test „zakładki nie ma" przełożony na po 14.09 — zalew z 01.09 wciąż w topicu (2.3) |
+| 3b | Producent i Konsument w jednej linii `crontab` | 🟨 09.09 wdrożone z `;`, kopia `~/crontab-kopia-0909.txt`; „zrobione" dopiero po biegu 10.09 (liczby w 2.3) |
+| 4–10 | reszta | ⬜ (nowe pozycje do kroku 4: `timeout` w `requests.get`, trzy ostrzeżenia w logu) |
 
 Uzasadnienie kolejności przy każdej pozycji: dlaczego tu, a nie gdzie
 indziej.
@@ -424,8 +457,9 @@ indziej.
 2. **Zabezpieczenie kompakcji** (2.8) — 1 października nadchodzi;
    bez sprawdzenia liczby wierszy przed nadpisaniem to bomba z zegarem.
    Mała zmiana, duża stawka.
-3. **Konsument: `earliest` i łańcuch `&&` w `crontab`** (2.3) — dwie
-   linijki, zamykają dwie ciche dziury.
+3. **Konsument: `earliest` i łańcuch w `crontab`** (2.3) — dwie
+   linijki, zamykają dwie ciche dziury. (09.09: łańcuch z `;`, nie
+   `&&` — uzasadnienie w 2.3.)
 4. **Sprzątanie kodu i konfiguracji** (2.1 martwy kod, 2.5, 2.6
    `print`, 2.9 `print`, 2.10 śmieci, `config.py` dla bucketa/regionu/
    bazy, `CRON_TZ`) — zanim ruszymy strukturę, żeby kolejne zmiany były
@@ -456,4 +490,5 @@ Poza kolejnością, do decyzji Gracjana kiedyś: plan B dla źródła danych
   z niej, które są tu, zostają tam jako historia
 - [[Plan-05-aws-migracja]] — architektura, do której odnoszą się punkty 2.2–2.4
 - [[Slownik]] — pojęcia z tego przeglądu: retencja, offset, `earliest`,
-  idempotentność (dopisać przy pierwszym użyciu w sesji)
+  segment, kod wyjścia, `;`/`&&` — dopisane 09.09; idempotentność —
+  przy pierwszym użyciu w sesji

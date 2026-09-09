@@ -112,11 +112,14 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 
 **Co działa dziś, sprawdzone:** na EC2 (`t3.micro`, Elastic IP
-`13.63.105.190`, 24/7) `cron` uruchamia codziennie o 16:00/16:02/16:10 UTC
-`data_ingestion.py` (Yahoo → Kafka, pamięć `companies/*.txt` zapisywana
-dopiero po potwierdzeniu brokera — od 08.09), `kafka_consumer.py`
-(Kafka → S3 `live/`), `silver.py && gold.py` (Athena `bronze UNION live` →
-CSV na dysku EC2). `bronze` w S3 jest Parquetem do końca poprzedniego
+`13.63.105.190`, 24/7) `cron` uruchamia codziennie o 16:00 UTC w jednej
+linii `data_ingestion.py ; kafka_consumer.py` (od 09.09, `;` — decyzja
+Gracjana; do 08.09 dwie linie 16:00 i 16:02; **pierwszy bieg nowej linii
+10.09, do sprawdzenia**) i o 16:10 UTC `silver.py && gold.py`.
+`data_ingestion.py`: Yahoo → Kafka, pamięć `companies/*.txt` zapisywana
+dopiero po potwierdzeniu brokera (od 08.09); `kafka_consumer.py`: Kafka →
+S3 `live/`; Silver+Gold: Athena `bronze UNION live` → CSV na dysku EC2.
+Pełny tekst `crontab` w dzienniku 09.09. `bronze` w S3 jest Parquetem do końca poprzedniego
 miesiąca, przepisywanym ręcznie przez `compaction.py` (pierwszy bieg
 z prawdziwym kasowaniem: 1 października). Lokalny Harmonogram Windows
 liczy Silver+Gold równolegle o 18:10 jako „zapas".
@@ -141,30 +144,60 @@ brokerem + prawdziwy bieg `cron` na EC2; (2) kompakcja pobiera obecny
 `bronze` z S3 do `bronze/poprzedni/` i przerywa `assert`-em przed
 jakimkolwiek zapisem, gdy liczba wierszy spółki zmalała — obie ścieżki
 sprawdzone biegiem (761 vs 740); (3) Konsument `auto_offset_reset=
-'earliest'` — retencja na EC2 domyślna (7 dni), grupa `gpw_consumer`
-z zakładką 2330/2330, LAG 0.
+'earliest'` — zwykła ścieżka sprawdzona 09.09 przez `cron` (2333/2333,
+LAG 0).
+
+**09.09, sprawdzone:** zwykła ścieżka Konsumenta z `'earliest'` przez
+`cron` — liczby przewidziane przed biegiem (`Odebrano 3`, 768 wierszy,
+`(2304, 3)`, 2333/2333) wszystkie trafione. **Fakt poprawiający wpis
+z 08.09:** zalew z 01.09 **wciąż leży w topicu** — `earliest` = 22,
+`latest` = 2330, offsety 22–2326 w zamkniętym segmencie `...0022.log`
+(ostatnia wiadomość 07.09 16:00 UTC); broker skasuje go około 14.09
+16:00 UTC. Kafka kasuje całymi segmentami, wiadomość żyje 7–14 dni.
+**Test „zakładki nie ma" NIE przed 14.09.** **09.09, wdrożone,
+sprawdzenie 10.09:** Producent i Konsument w jednej linii `crontab`
+(każdy skrypt ze swoim `>> errors.txt 2>&1`); kopia sprzed edycji
+`~/crontab-kopia-0909.txt` na EC2. Kod Pythona 09.09 bez zmian.
 
 **Priorytet Gracjana (08.09):** czysty, działający łańcuch
 `data_ingestion → Kafka → S3/Athena → silver → gold` → wynik na stronie.
 Wykresy, README pod pracodawcę, Power BI — dopiero potem.
 
-**Następna sesja (09.09), ustalone z Gracjanem:**
-1. Sprawdzić `errors.txt` na EC2 po 18:12 poprzedniego dnia — `Odebrano 3
-   wiadomości`, plik spółki 768 wierszy (zwykła ścieżka `'earliest'`).
-2. **Test ścieżki „zakładki nie ma"** (Gracjan prosił, żeby o tym
-   pamiętać): `kafka-consumer-groups.sh --delete --group gpw_consumer`,
-   ręczny bieg Konsumenta z jawnym `KAFKA_BOOTSTRAP=localhost:9094`,
-   ponowne `--describe`. Z `'earliest'` ma odczytać wiadomości
-   z ostatniego tygodnia (> 0); zostawi po jednym dodatkowym pliku na
-   spółkę w `live` — dedup je odrzuci, kompakcja skasuje 1.10.
-3. **Krok 3(b): Producent i Konsument w jednej linii `crontab`** zamiast
-   16:00 i 16:02. Decyzja Gracjana: `;` (Konsument rusza zawsze) czy `&&`
-   (nie rusza po awarii Producenta) — to nie to samo co `silver && gold`.
-   Notatka projektowa przed edycją, `crontab -l` po niej.
-4. Dalej kroki 4–10 z przeglądu, po kolei.
+**Następna sesja (10.09), ustalone z Gracjanem:**
+1. **Po 18:12 sprawdzić pierwszy bieg nowej linii `crontab`** (liczby
+   policzone 09.09): w `errors.txt` ścieżka i trzy adresy Yahoo od
+   Producenta **przed** `Odebrano 3 wiadomości` (dowód, że przekierowanie
+   łapie oba skrypty), `(2307, 3)` dwa razy, pliki spółek 769 wierszy,
+   `--describe` 2336/2336, LAG 0. Komendy: `grep -n "data_ingestion.py\|
+   yahoo\|Odebrano\|^(" ~/GPW---pulse/companies/errors.txt | tail -n 7`,
+   `wc -l ~/GPW---pulse/companies/*.WA.txt`, `--describe`. Dopiero wtedy
+   krok „jedna linia `crontab`" jest zrobiony — zaktualizować tabelę
+   w przeglądzie. Gdyby coś nie grało: `crontab ~/crontab-kopia-0909.txt`
+   przywraca stan sprzed edycji.
+2. **Test ścieżki „zakładki nie ma" — NIE przed 14.09** (Gracjan prosił,
+   żeby o teście pamiętać; 09.09 odłożony, bo zalew z 01.09 wciąż leży
+   w topicu i `'earliest'` wlałby go drugi raz). Termin do wyboru
+   Gracjana: 14.09 po 18:15 albo 15.09 przed 18:00 (Claude proponował
+   15.09). Najpierw `~/kafka_2.13-4.3.1/bin/kafka-get-offsets.sh
+   --bootstrap-server localhost:9094 --topic gpw_tracker --time earliest`
+   ma pokazać `2327`; jeśli mniej — nie kasować grupy. Potem notatka
+   projektowa, `--describe`, `--delete --group gpw_consumer`, ręczny bieg
+   Konsumenta z `KAFKA_BOOTSTRAP=localhost:9094`, `--describe`, `aws s3
+   ls` na `live/` z lokalnego PowerShella. Oczekiwane `Odebrano N`,
+   N = `latest` − 2327; po jednym dodatkowym pliku na spółkę w `live`
+   (powtórki tych samych wiadomości — Silver odsieje, kompakcja skasuje
+   1.10).
+3. **Krok 4 z przeglądu: sprzątanie kodu i konfiguracji** — najpierw
+   notatka projektowa z listą do zatwierdzenia: martwy kod i `print`-y
+   (Producent, Silver, Gold, testy), bucket/region/baza do `config.py`,
+   `timeout` w `requests.get` (nowe, 09.09), `CRON_TZ`, pliki-śmieci,
+   trzy ostrzeżenia bibliotek w logu. Gracjan wybiera zakres, potem
+   edycje.
+4. Dalej kroki 5–10 z przeglądu, po kolei.
 
-Kopie z 08.09: pamięć Producenta `~/pamiec-kopia-0809/` (Windows),
-poprzedni `bronze` w `bronze/poprzedni/` (poza gitem).
+Kopie: pamięć Producenta `~/pamiec-kopia-0809/` (Windows), poprzedni
+`bronze` w `bronze/poprzedni/` (poza gitem), `crontab` sprzed 09.09
+`~/crontab-kopia-0909.txt` (EC2).
 
 ## Gdzie co jest
 

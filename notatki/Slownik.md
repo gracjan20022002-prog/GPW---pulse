@@ -341,6 +341,150 @@ Ciebie już nie ma w pokoju.*
 Odpowiednik Harmonogramu zadań Windows, ale na Linuksie — samodzielnie
 uruchamia wybrany program o wybranej porze, bez klikania.
 
+### Offset
+Numer wiadomości w topicu, nadawany po kolei od zera przy zapisie. Numery
+nigdy nie wracają — skasowana wiadomość zabiera swój numer ze sobą.
+`latest` to numer, jaki dostanie **następna** wiadomość; `earliest` to
+numer najstarszej, która **jeszcze leży**. Odczyt:
+`kafka-get-offsets.sh --topic gpw_tracker --time earliest`.
+*09.09 w `gpw_tracker`: `earliest` 22, `latest` 2330 — w topicu leży 2308
+wiadomości, a 22 pierwsze już skasowano.*
+
+### Pozycja grupy (committed offset) i `commit()`
+Kafka zapamiętuje dla każdej grupy konsumentów, do którego numeru ta grupa
+już przeczytała — ale tylko wtedy, gdy Konsument sam to zgłosi przez
+`commit()`. Przy następnym uruchomieniu Konsument z tej grupy zaczyna od
+zapamiętanego numeru. Pozycja znika po 7 dniach bez żadnego połączenia
+grupy.
+*`kafka-consumer-groups.sh --describe`: `CURRENT-OFFSET` to pozycja
+grupy, `LOG-END-OFFSET` to `latest`, `LAG` to różnica — ile wiadomości
+czeka na odczyt.*
+
+### `auto_offset_reset` — `earliest` / `latest`
+Co Konsument ma zrobić, gdy grupa **nie ma** zapisanej pozycji (pierwszy
+bieg, pozycja wygasła, zmieniona nazwa grupy). `earliest` — czytaj od
+najstarszej wiadomości, która leży. `latest` — pomiń wszystko, co leży,
+czekaj tylko na nowe. Gdy pozycja **jest**, to ustawienie nie ma nic do
+roboty.
+*Nowy pracownik przychodzi do skrzynki z listami: `earliest` — czyta
+wszystkie zaległe, `latest` — zaległe wyrzuca i czeka na jutrzejszą
+pocztę.*
+
+### Retencja
+Jak długo broker trzyma wiadomości, zanim je skasuje. Domyślnie 7 dni.
+Nie kasuje pojedynczych wiadomości, tylko całe segmenty (patrz niżej),
+więc w praktyce wiadomość żyje od 7 do około 14 dni.
+*Skrzynka na listy opróżniana raz na tydzień: list wrzucony dzień po
+opróżnieniu poleży prawie dwa tygodnie.*
+
+### Segment
+Topic na dysku brokera to nie jedna lista, tylko ciąg plików. Każdy plik
+to segment. Nazwa pliku to numer pierwszej wiadomości w nim
+(`00000000000000000022.log` zaczyna się od wiadomości 22). Broker zamyka
+bieżący segment, gdy od jego pierwszej wiadomości minęło 7 dni, i kasuje
+zamknięty segment, gdy od jego ostatniej wiadomości minęło 7 dni. Obok
+`.log` leżą `.index` (numer → miejsce w pliku) i `.timeindex` (godzina →
+numer), czyli spisy treści; przy otwartym segmencie mają po 10 MB
+z zapasu, przy zamykaniu są przycinane.
+*Zeszyty numerowane pierwszą stroną: nowy zeszyt zakładasz tydzień po
+pierwszym wpisie w poprzednim, a stary wyrzucasz tydzień po ostatnim
+wpisie w nim.*
+
+### `log.dirs`
+Wpis w `server.properties` brokera: folder, w którym leżą pliki wszystkich
+topiców. W środku jeden podfolder na partycję, np. `gpw_tracker-0`.
+*`ls -l --time-style=long-iso <folder>/gpw_tracker-0/` pokazuje segmenty
+z datami — godziny w UTC, bo tak chodzi zegar EC2.*
+
+### Obietnica (future) i `.get(timeout=…)`
+`producer.send()` nie wysyła od razu — oddaje obiekt, który dopiero
+**będzie** wiedział, czy wysyłka się udała. `.get(timeout=10)` czeka
+najwyżej 10 sekund na potwierdzenie brokera; gdy nie przyjdzie, rzuca
+`KafkaError`. Bez `.get()` skrypt traktuje zlecenie jak fakt.
+*Paczka nadana w paczkomacie: `send()` to wrzucenie, `.get()` to czekanie
+na SMS „paczka odebrana przez kuriera".*
+
+### Dostarczanie „co najmniej raz" (at-least-once)
+Zasada: lepiej wysłać coś dwa razy niż zgubić. Gdy nie ma pewności, że
+wiadomość doszła, wysyła się ją ponownie, a powtórki odsiewa odbiorca.
+*Producent nie zapisuje „wysłane", dopóki broker nie potwierdzi; jeśli
+jutro wyśle dzień drugi raz, `silver.py` odrzuci duplikat. Straconego
+dnia nie da się odzyskać, duplikat tak.*
+
+---
+
+## Powłoka i cron (Linux)
+
+### Powłoka (`sh`, `bash`)
+Program, który czyta wpisane komendy i je wykonuje — ten sam po
+zalogowaniu przez SSH i ten, któremu cron wkleja treść linii `crontab`.
+Wykonuje komendy jedną po drugiej i nie zaczyna następnej, dopóki
+poprzednia nie skończy.
+*`sleep 3 ; echo "gotowe"` — słowo pojawia się dopiero po trzech
+sekundach.*
+
+### Kod wyjścia (exit code)
+Liczba, którą każdy program oddaje powłoce na koniec: `0` znaczy „poszło
+dobrze", każda inna „coś poszło źle". Ostatni kod siedzi w zmiennej `$?`.
+Skrypt, który łapie wszystkie swoje błędy w `try/except`, kończy zerem
+także wtedy, gdy nic nie zrobił — jak Producent z martwym brokerem.
+*`ls /nie-ma ; echo $?` wypisuje komunikat błędu i `2`.*
+
+### `;` i `&&`
+Dwa sposoby sklejenia komend w jednej linii. `A ; B` — wykonaj A, potem
+B, bez patrzenia na kod wyjścia A (lista zakupów: nie było mleka, i tak
+kupujesz chleb). `A && B` — B tylko wtedy, gdy A oddało `0` (przepis: nie
+ma jajek, nie smażysz). `&&` jest właściwe, gdy B korzysta z tego, co
+zrobiło A (`silver.py && gold.py` — Gold czyta plik Silvera). `;` jest
+właściwe, gdy B nie zależy od A (`data_ingestion.py ; kafka_consumer.py`
+— Konsument bierze to, co leży w Kafce).
+*`ls /nie-ma ; echo "i tak leci"` wypisze oba; `ls /nie-ma && echo
+"tylko po sukcesie"` — tylko błąd.*
+
+### Przekierowanie `>`, `>>` i `2>&1`
+`>` zapisuje wyjście komendy do pliku od zera, `>>` dopisuje na koniec.
+Każdy program ma dwa kanały: `1` na zwykłe wypisy, `2` na błędy; `2>&1`
+znaczy „kanał 2 wyślij tam, gdzie idzie kanał 1". Przekierowanie
+przykleja się do **jednej** komendy: w `A ; B >> plik` do pliku trafia
+tylko B, a wyjście A w cronie ginie. Albo każda komenda dostaje własne
+`>> plik 2>&1`, albo obie w nawiasach `( A ; B ) >> plik 2>&1`.
+*`echo "jeden" ; echo "dwa" >> p.txt` — na ekranie `jeden`, w pliku
+tylko `dwa`.*
+
+### `crontab -l`, `crontab plik`, `crontab -e`
+Cron trzyma harmonogram w swoim folderze systemowym; jedyną furtką jest
+komenda `crontab`. `-l` (list) wypisuje harmonogram, `crontab plik`
+wgrywa treść pliku jako nowy harmonogram (zastępuje cały), `-e` (edit)
+otwiera w edytorze i po zapisie od razu podmienia — bez kopii poprzedniej
+wersji. Bezpieczna edycja: `crontab -l > kopia`, praca na drugim pliku,
+`diff`, `crontab nowy`; powrót to `crontab kopia`.
+*Pięć pól czasu na początku linii: minuta, godzina, dzień miesiąca,
+miesiąc, dzień tygodnia; `*` znaczy „dowolny". `0 16 * * *` — codziennie
+o 16:00.*
+
+### `diff`
+Porównuje dwa pliki linia po linii. Linie tylko w pierwszym pliku
+z `<`, tylko w drugim z `>`, kreski `---` między nimi, pierwsza linia
+wypisu to adres zmiany (`2,3c2` — linie 2–3 pierwszego zmieniły się
+w linię 2 drugiego). Brak wypisu = pliki identyczne.
+*Lista `mleko, chleb, masło` kontra `mleko, ser`: `< chleb`, `< masło`,
+`---`, `> ser`.*
+
+### `grep`, `sed -n`, `head`, `tail`, `cp`
+`grep "tekst" plik` wypisuje linie zawierające tekst (`-n` dodaje numer
+linii, `\|` znaczy „albo", `^(` — linia zaczynająca się od nawiasu).
+`sed -n '324,330p' plik` wypisuje linie od 324 do 330 i nic poza tym.
+`head -n 1` — pierwsza linia, `tail -n 1` — ostatnia. `cp a b` kopiuje
+plik `a` pod nazwę `b`.
+*`grep -n "Odebrano" errors.txt | tail -n 3` — trzy ostatnie wypisy
+Konsumenta z numerami linii.*
+
+### `nano`
+Domyślny edytor tekstu na EC2 (to on otwiera się pod `crontab -e`).
+Strzałki — ruch, `Ctrl+K` — wytnij linię, `Ctrl+O` + `Enter` — zapisz,
+`Ctrl+X` — wyjdź. Skróty widać na dole ekranu, `^K` znaczy `Ctrl+K`.
+Komendy vima (`:wq`, `dd`) wpisują się tu jako zwykłe litery.
+
 ---
 
 ## Kod
@@ -397,6 +541,15 @@ pokaż błąd". Używane do pilnowania, czy dane albo wynik są poprawne.
 *`assert dane["cena"].isna().sum() == 0, "zostały puste ceny"` — program
 zatrzyma się z tym komunikatem, jeśli choć jedna cena jest pusta.*
 
+### Strażnik (guard)
+Sprawdzenie **przed** zapisem albo kasowaniem, które przerywa skrypt,
+gdy dane wyglądają podejrzanie — zamiast liczyć, że wszystko poszło
+dobrze. Zwykle `assert` porównujący „jest" z „było", gdzie „było"
+pochodzi z niezależnego źródła.
+*`compaction.py` pobiera obecny `bronze` z S3 i przerywa, gdy nowa liczba
+wierszy spółki jest mniejsza — Athena raz oddała 405 zamiast 2283 bez
+żadnego błędu.*
+
 ### Test
 Program sprawdzający inny program.
 *Sam napiszesz kod, sam napiszesz sprawdzenie. W tej kolejności.*
@@ -443,3 +596,4 @@ Jak bardzo cena danej spółki waha się w krótkim czasie. Wysoka zmienność =
 - [[Plan-03-gold]]
 - [[Plan-04-pokazanie-wyniku]]
 - [[Plan-05-aws-migracja]]
+- [[Przeglad-2026-09-08-co-nie-gra]]
