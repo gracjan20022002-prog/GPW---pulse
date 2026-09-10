@@ -114,8 +114,8 @@ Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Co działa dziś, sprawdzone:** na EC2 (`t3.micro`, Elastic IP
 `13.63.105.190`, 24/7) `cron` uruchamia codziennie o 16:00 UTC w jednej
 linii `data_ingestion.py ; kafka_consumer.py` (od 09.09, `;` — decyzja
-Gracjana; do 08.09 dwie linie 16:00 i 16:02; **pierwszy bieg nowej linii
-10.09, do sprawdzenia**) i o 16:10 UTC `silver.py && gold.py`.
+Gracjana; do 08.09 dwie linie 16:00 i 16:02; **sprawdzone biegiem
+10.09**) i o 16:10 UTC `silver.py && gold.py`.
 `data_ingestion.py`: Yahoo → Kafka, pamięć `companies/*.txt` zapisywana
 dopiero po potwierdzeniu brokera (od 08.09); `kafka_consumer.py`: Kafka →
 S3 `live/`; Silver+Gold: Athena `bronze UNION live` → CSV na dysku EC2.
@@ -132,10 +132,11 @@ napraw z Części 5 tego pliku **zatwierdzona przez Gracjana 08.09**.
 Wciąż otwarte (najkrócej): wynik Golda kończy na dysku EC2 i nic go nie
 czyta; Producent zapisuje cenę z trwającej sesji jako zamknięcie, gdy
 uruchomić go przed 17:00; testy sprawdzają rzeczy obok potoku; nikt nie
-dowie się o awarii; ranking „najbardziej zmiennego miesiąca" jest błędny
-w pierwszym tygodniu miesiąca; martwy kod i konfiguracja na sztywno;
-README obiecuje więcej, niż jest; dziesięć wpisów dziennika bez „Czego
-się nauczyłem".
+dowie się o awarii, a **log jest podwójny i czytamy tylko jedną połowę**
+(`logging.error` → `errors.log`, `print` i `Traceback` → `errors.txt`;
+nowe, 10.09); ranking „najbardziej zmiennego miesiąca" jest błędny
+w pierwszym tygodniu miesiąca; README obiecuje więcej, niż jest;
+dziesięć wpisów dziennika bez „Czego się nauczyłem".
 
 **Naprawione 08.09, sprawdzone:** (1) Producent zapisuje pamięć
 „wysłane" dopiero po potwierdzeniu każdej wiadomości przez brokera
@@ -154,27 +155,69 @@ z 08.09:** zalew z 01.09 **wciąż leży w topicu** — `earliest` = 22,
 `latest` = 2330, offsety 22–2326 w zamkniętym segmencie `...0022.log`
 (ostatnia wiadomość 07.09 16:00 UTC); broker skasuje go około 14.09
 16:00 UTC. Kafka kasuje całymi segmentami, wiadomość żyje 7–14 dni.
-**Test „zakładki nie ma" NIE przed 14.09.** **09.09, wdrożone,
-sprawdzenie 10.09:** Producent i Konsument w jednej linii `crontab`
-(każdy skrypt ze swoim `>> errors.txt 2>&1`); kopia sprzed edycji
-`~/crontab-kopia-0909.txt` na EC2. Kod Pythona 09.09 bez zmian.
+**Test „zakładki nie ma" NIE przed 14.09.** Producent i Konsument
+w jednej linii `crontab` (każdy skrypt ze swoim `>> errors.txt 2>&1`);
+kopia sprzed edycji `~/crontab-kopia-0909.txt` na EC2. Kod Pythona 09.09
+bez zmian.
+
+**10.09, sprawdzone:** (1) **jedna linia `crontab` zamknięta** — bieg
+`cron` trafił wszystkie cztery liczby przewidziane 09.09: ścieżka i trzy
+adresy Yahoo **przed** `Odebrano 3 wiadomości`, `(2307, 3)` dwa razy,
+769 wierszy w plikach spółek, grupa 2336/2336 przy LAG 0; niezależnie
+potwierdzone z Windowsa (lokalny Silver o 18:10 wyciągnął z Atheny 2307
+wierszy z dzisiejszą datą). (2) **krok 4, sprzątanie kodu, zrobiony
+i sprawdzony lokalnie**, commit `fe47920`: `timeout=(10, 30)`
+w `requests.get` (sprawdzone obiema drogami — `0.001` daje trzy wpisy
+o błędzie w odstępie 30 ms i pliki nietknięte, wartość docelowa daje trzy
+adresy Yahoo i zero wpisów); martwy kod i cztery pliki-śmieci usunięte
+(`kod` w gicie 12 → 10 plików, `pipeline.bat` **zostaje**, uruchamia go
+Harmonogram Windows); bucket/region/baza/adres Atheny do `config.py`
+jako `BUCKET`, `REGION`, `BAZA`, `WYNIKI_ATHENY` (bucket z sześciu miejsc
+do jednego; dowód: `git diff` na `silver/` i `gold/` pusty, plik
+identyczny co do bajta); sześć z dziewięciu `print`-ów z Golda, jeden
+z testów, martwy import `ticker` z Konsumenta. **Na EC2 dopiero po
+`git pull` 11.09.** (3) `errors.log` na EC2 przeczytany pierwszy raz:
+osiem linii, wszystkie z 31.08, z ręcznych biegów bez `KAFKA_BOOTSTRAP`,
+ze starą wersją mylącego komunikatu — cisza od 31.08 jest prawdziwa.
+(4) grunt pod `CRON_TZ` sprawdzony czterema odczytami (cronie 1.5.7,
+napis `CRON_TZ` w `/usr/sbin/crond`, strefa UTC, `Europe/Warsaw` obecna).
+
+**Odłożone świadomie 10.09:** podsumowanie w Producencie zamiast jego
+dwóch `print`-ów (nie da się sprawdzić bez żywego brokera, a wysyłka
+zepsułaby sprawdzenie linii `crontab`); trzy ostrzeżenia bibliotek
+i `requirements.txt` (osobne decyzje, nie sprzątanie).
 
 **Priorytet Gracjana (08.09):** czysty, działający łańcuch
 `data_ingestion → Kafka → S3/Athena → silver → gold` → wynik na stronie.
 Wykresy, README pod pracodawcę, Power BI — dopiero potem.
 
-**Następna sesja (10.09), ustalone z Gracjanem:**
-1. **Po 18:12 sprawdzić pierwszy bieg nowej linii `crontab`** (liczby
-   policzone 09.09): w `errors.txt` ścieżka i trzy adresy Yahoo od
-   Producenta **przed** `Odebrano 3 wiadomości` (dowód, że przekierowanie
-   łapie oba skrypty), `(2307, 3)` dwa razy, pliki spółek 769 wierszy,
-   `--describe` 2336/2336, LAG 0. Komendy: `grep -n "data_ingestion.py\|
-   yahoo\|Odebrano\|^(" ~/GPW---pulse/companies/errors.txt | tail -n 7`,
-   `wc -l ~/GPW---pulse/companies/*.WA.txt`, `--describe`. Dopiero wtedy
-   krok „jedna linia `crontab`" jest zrobiony — zaktualizować tabelę
-   w przeglądzie. Gdyby coś nie grało: `crontab ~/crontab-kopia-0909.txt`
-   przywraca stan sprzed edycji.
-2. **Test ścieżki „zakładki nie ma" — NIE przed 14.09** (Gracjan prosił,
+**Następna sesja (11.09), ustalone z Gracjanem:**
+1. **Wdrożyć sprzątanie na EC2 i sprawdzić je biegiem.** Na EC2
+   `git checkout -- silver/ gold/`, potem `git pull` (**nigdy**
+   `git stash`). Dowodem jest wieczorny bieg: log Golda ma zejść z około
+   czterdziestu linii do trzech, a `errors.txt` ma pokazać ścieżkę
+   Producenta, trzy adresy Yahoo, `Odebrano 3 wiadomości` i dwa razy
+   kształt tabeli. Liczby policzyć **przed** biegiem. Dopiero wtedy krok
+   4 jest zrobiony — zaktualizować tabelę w przeglądzie.
+2. **Podsumowanie w Producencie** zamiast jego dwóch `print`-ów (ścieżka
+   i `response.url`) — odłożone z 10.09, bo wymaga żywego brokera.
+   Najpierw notatka projektowa: co ma wypisywać i jak to sprawdzimy, nie
+   psując liczb wieczornego biegu.
+3. **`CRON_TZ` — Gracjan prosił 10.09, żeby zrobić to w jednej
+   z najbliższych sesji.** Grunt sprawdzony (cronie 1.5.7, napis
+   `CRON_TZ` obecny w `/usr/sbin/crond`, strefa systemu UTC,
+   `Europe/Warsaw` obecna). **PUŁAPKA: samo dopisanie
+   `CRON_TZ=Europe/Warsaw` przesuwa bieg dwie godziny wstecz**, bo cron
+   przeczyta obecne `0 16` i `10 16` jako szesnastą **polską** —
+   Producent pobierałby cenę godzinę przed zamknięciem GPW i zapisywał ją
+   jako kurs zamknięcia. Strefa i godziny (`16` → `18`) muszą pójść
+   **jednym ruchem**. Nie w dniu, w którym inny bieg ma coś potwierdzać.
+   Rytuał jak 09.09: `crontab -l > ~/crontab-kopia-RRMM.txt`, praca na
+   drugiej kopii, `diff`, `crontab plik`; nigdy `crontab -e`. Korzyść
+   uboczna: bez tego po zmianie czasu EC2 przesunie się na 17:00,
+   a Harmonogram Windows zostanie na 18:10, i maszyny rozjadą się
+   o godzinę.
+4. **Test ścieżki „zakładki nie ma" — NIE przed 14.09** (Gracjan prosił,
    żeby o teście pamiętać; 09.09 odłożony, bo zalew z 01.09 wciąż leży
    w topicu i `'earliest'` wlałby go drugi raz). Termin do wyboru
    Gracjana: 14.09 po 18:15 albo 15.09 przed 18:00 (Claude proponował
@@ -187,13 +230,10 @@ Wykresy, README pod pracodawcę, Power BI — dopiero potem.
    N = `latest` − 2327; po jednym dodatkowym pliku na spółkę w `live`
    (powtórki tych samych wiadomości — Silver odsieje, kompakcja skasuje
    1.10).
-3. **Krok 4 z przeglądu: sprzątanie kodu i konfiguracji** — najpierw
-   notatka projektowa z listą do zatwierdzenia: martwy kod i `print`-y
-   (Producent, Silver, Gold, testy), bucket/region/baza do `config.py`,
-   `timeout` w `requests.get` (nowe, 09.09), `CRON_TZ`, pliki-śmieci,
-   trzy ostrzeżenia bibliotek w logu. Gracjan wybiera zakres, potem
-   edycje.
-4. Dalej kroki 5–10 z przeglądu, po kolei.
+5. Dalej kroki 5–10 z przeglądu, po kolei, zaczynając od wyniku Golda
+   w S3 i Athenie. Poza kolejnością, do decyzji Gracjana: trzy
+   ostrzeżenia bibliotek w logu i `requirements.txt` (pin
+   `pandas==3.0.5`, a na EC2 stoi 2.3.3).
 
 Kopie: pamięć Producenta `~/pamiec-kopia-0809/` (Windows), poprzedni
 `bronze` w `bronze/poprzedni/` (poza gitem), `crontab` sprzed 09.09

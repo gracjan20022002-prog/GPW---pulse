@@ -95,6 +95,22 @@ Osobna wersja projektu do eksperymentów, żeby nie psuć głównej.
 ### `.gitignore`
 Lista rzeczy, których git ma **nie** wysyłać na GitHub. Hasła, dane, `.venv`.
 
+### `git rm`
+Kasuje plik z dysku **i** od razu zapisuje to skasowanie w poczekalni
+gita, więc nie trzeba potem robić `git add`. Działa tylko na plikach,
+które git śledzi; plik z `.gitignore` trzeba skasować zwyczajnie.
+*`git rm "kod/pipeline.py"` wypisuje `rm 'kod/pipeline.py'`.*
+
+### `git commit --amend`
+„Popraw ostatni commit". Nie edytuje istniejącego commitu, tylko robi
+nowy w jego miejsce, z **nowym identyfikatorem**, a stary znika
+z historii. Dlatego jest bezpieczny **wyłącznie przed `git push`** —
+po wysłaniu zrobiłby drugą, rozjechaną wersję historii, a EC2 pobiera
+właśnie z GitHuba. Z flagą `-m` zastępuje **całą** dotychczasową
+wiadomość, nie dokleja się do niej.
+*Sprawdzenie, czy zdążysz: `git status -sb` pokazuje `[ahead 1]`, gdy
+commit jest jeszcze tylko u Ciebie.*
+
 ---
 
 ## Dane
@@ -116,6 +132,18 @@ Konkretny adres API, pod który wysyłasz pytanie.
 ### Status code
 Trzycyfrowa odpowiedź serwera. **200** = w porządku. **404** = nie znaleziono.
 **500** = awaria po ich stronie.
+
+### `timeout` (limit czasu)
+Dodatkowa informacja podana przy pytaniu do API: ile sekund czekać na
+odpowiedź, zanim uznamy, że jej nie będzie. Bez niego `requests` czeka
+bez końca. Można podać jedną liczbę albo dwie w nawiasie: pierwsza to
+czas na nawiązanie połączenia, druga na przysłanie danych po jego
+nawiązaniu. Przekroczenie limitu podnosi wyjątek z rodziny
+`RequestException`, więc łapie go zwykły `except` na błędy sieci.
+Uwaga: druga liczba nie jest limitem na całość pobierania, tylko na
+ciszę między kolejnymi porcjami danych.
+*Dzwonisz i czekasz dziesięć sygnałów na odebranie, a potem najwyżej pół
+minuty ciszy w słuchawce, zanim się rozłączysz.*
 
 ### Scraping
 Wyciąganie danych ze strony internetowej, gdy nie ma API.
@@ -485,6 +513,41 @@ Strzałki — ruch, `Ctrl+K` — wytnij linię, `Ctrl+O` + `Enter` — zapisz,
 `Ctrl+X` — wyjdź. Skróty widać na dole ekranu, `^K` znaczy `Ctrl+K`.
 Komendy vima (`:wq`, `dd`) wpisują się tu jako zwykłe litery.
 
+### `CRON_TZ` i strefa czasowa systemu
+Cron czyta godziny z `crontab` w strefie czasowej **systemu**. EC2
+chodzi na czasie uniwersalnym (UTC), dlatego wpis `0 16` daje bieg
+o 18:00 polskiego latem i dałby 17:00 zimą, bo Polska cofa zegary,
+a UTC nie. Linia `CRON_TZ=Europe/Warsaw` na górze `crontab` każe cronowi
+czytać godziny po polsku, więc zmiana czasu przestaje mieć znaczenie.
+**Pułapka:** dopisanie samej tej linii przesuwa istniejące wpisy, bo te
+same cyfry zaczynają znaczyć co innego. Strefa i godziny muszą zmienić
+się jednym ruchem.
+*Sprawdzenie bez ruszania harmonogramu: `rpm -q cronie` (odmiana
+i wersja), `grep -a -c CRON_TZ /usr/sbin/crond` (czy program zna to
+słowo), `timedatectl` (strefa systemu), `ls /usr/share/zoneinfo/Europe/Warsaw`
+(czy system wie, kiedy Polska zmienia czas).*
+
+### `cut`, `sort`, `uniq -c`
+Trójka do liczenia powtórek w pliku tekstowym. `cut -c1-10` bierze
+z każdej linii pierwsze dziesięć znaków, `sort` układa wyniki po kolei,
+`uniq -c` zlicza sąsiadujące powtórzenia. `uniq` widzi tylko sąsiadów,
+dlatego `sort` musi iść **przed** nim.
+*`cut -c1-10 errors.log | sort | uniq -c` → `8 2026-08-31`, czyli cały
+plik to osiem wpisów z jednego dnia.*
+
+### `grep -a` i `grep -c`
+`-a` każe traktować plik binarny jak zwykły tekst (normalnie `grep`
+odmawia go czytać). `-c` zlicza pasujące linie zamiast je wypisywać.
+Razem dają tani sposób sprawdzenia, czy program obsługuje jakąś opcję:
+jeśli obsługuje, jej nazwa musi być gdzieś w pliku wykonywalnym.
+*`grep -a -c CRON_TZ /usr/sbin/crond` → `1`.*
+
+### `rpm -q` i `timedatectl`
+`rpm -q nazwa` odpowiada, czy pakiet o tej nazwie jest zainstalowany
+i w jakiej wersji (Amazon Linux, Fedora, RHEL). `timedatectl` pokazuje
+czas lokalny, uniwersalny i ustawioną strefę.
+*`rpm -q cronie` → `cronie-1.5.7-1.amzn2023.0.2.x86_64`.*
+
 ---
 
 ## Kod
@@ -558,6 +621,46 @@ Program sprawdzający inny program.
 ### Refaktoryzacja
 Poprawianie kodu, żeby był czytelniejszy, bez zmiany tego, co robi.
 
+### Stała
+Zmienna ustawiana raz, której nikt później nie zmienia. W Pythonie nic
+tego nie pilnuje, jest tylko zwyczaj: nazwy stałych pisze się WIELKIMI
+literami. **Już to stosujesz** — `BASE_DIR` i `BOOTSTRAP` to stałe.
+*Trzymane razem w jednym pliku (u nas `config.py`), żeby nazwa bucketa
+stała w projekcie raz, a nie w sześciu miejscach.*
+
+### Krotka (tuple)
+Lista, której nie da się zmienić po utworzeniu. Zapisuje się ją
+w nawiasach okrągłych zamiast kwadratowych. Elementy wyciąga się tak
+samo jak z listy, przez numer w nawiasie kwadratowym.
+*`wspolrzedne = (52.23, 21.01)`, potem `wspolrzedne[0]` daje `52.23`.*
+
+### Martwy kod
+Linie, których program nigdy nie wykonuje: zakomentowane bloki, wypisy
+z czasu pisania, importy niczego nieużywające. Nic nie psują od razu,
+ale przy kolejnej zmianie nie widać, co jest nowe, a co leży tu od
+miesięcy.
+*`from config import ticker` w Konsumencie — nazwa importowana i nigdy
+nieużyta, bo Konsument bierze spółkę z treści wiadomości.*
+
+### `py_compile`
+`python -m py_compile plik.py` tłumaczy plik na postać wewnętrzną
+i zgłasza błędy składni, ale go **nie uruchamia**. Bezpieczny sposób
+sprawdzenia po edycji, także dla skryptów, których uruchomienie byłoby
+groźne.
+*Po skasowaniu kilku linii: brak jakiegokolwiek wypisu znaczy, że
+składnia jest cała.*
+
+### Log a przekierowanie — dwa różne pliki
+`logging.basicConfig(filename=…)` kieruje wpisy z `logging.error` do
+**wskazanego pliku**. Przekierowanie `>>` w `crontab` kieruje do innego
+pliku to, co skrypt wypisuje przez `print`, oraz niezłapane `Traceback`.
+To są dwa osobne strumienie i mogą trafiać w dwa osobne miejsca.
+`basicConfig` ustawia przy tym log dla **całego** Pythona, więc do tego
+samego pliku dopisują się też biblioteki.
+*U nas: `logging.error` → `companies/errors.log`, `print` i `Traceback`
+→ `companies/errors.txt`. Czytając wieczorem tylko drugi, nie widzisz
+zgłoszonych błędów Producenta.*
+
 ---
 
 ## Giełda
@@ -585,6 +688,20 @@ Jeden dzień handlu. Na GPW od 9:00 do 17:00.
 ### Zmienność / wolatylność
 Jak bardzo cena danej spółki waha się w krótkim czasie. Wysoka zmienność = duże, częste ruchy ceny w obie strony.
 *Mała, mało znana spółka potrafi zmienić się o kilkanaście procent w jeden dzień — to wysoka zmienność.*
+
+### Zmiana procentowa a zmiana ilościowa
+Zmiana ilościowa to zwykłe odejmowanie: o ile złotych podrożało.
+Procentową dostaje się przez podzielenie tej różnicy przez cenę
+**początkową** i pomnożenie przez sto. To dzielenie zamienia „o ile
+złotych" na „jaką część ceny wyjściowej stanowi ta zmiana".
+Procenty **nie są symetryczne**, bo za każdym razem dzieli się przez
+inną cenę początkową.
+*10 zł → 15 zł to +50%, a 15 zł → 10 zł to −33%. Ta sama różnica pięciu
+złotych, dwie różne liczby.*
+**W tym projekcie:** kolumna `zmiana_caly_okres` w `gold/ranking.csv`
+jest procentowa. XTB: 37,94 → 151,76 to +300%, bo cena końcowa jest
+czterokrotnością początkowej. Nazwa kolumny nie niesie jednostki, więc
+na stronie każda taka liczba będzie wymagała podpisu.
 
 ---
 

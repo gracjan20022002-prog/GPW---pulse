@@ -84,11 +84,15 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   327,00). Plik lokalny po cichu bierze nową wartość (linia 59), ale
   ten dzień nie jest w `nowe_daty`, więc korekta nigdy nie leci do
   Kafki. `bronze` i `live` trzymają cenę z pierwszego pobrania.
-- 🟠 **Komunikat w logu kłamie.** Linia 25: „Wystąpił błąd przy
-  pobieraniu danych spółki" — a to broker padł, pobieranie z Yahoo
-  poszło. Ten sam tekst w linii 71 łapie też `TypeError` i `KeyError`,
-  czyli **błędy w kodzie** — dwa razy (13.08, 21.08) prawdziwy błąd
-  programisty był logowany jako „błąd pobierania".
+- 🟨 **Komunikat w logu kłamie — połowa naprawiona 08.09.** Linia 25
+  mówi dziś „Wystąpił błąd łączenia z brokerem" razem z adresem, zamiast
+  dawnego „Wystąpił błąd przy pobieraniu danych spółki". Potwierdzone
+  10.09 przy czytaniu `errors.log` na EC2: osiem zachowanych wpisów
+  z 31.08 ma jeszcze starą treść, bez nazwy spółki i z kropką na końcu.
+  **Wciąż otwarte:** `except` w linii 78 łapie razem z błędami sieci
+  także `TypeError` i `KeyError`, czyli **błędy w kodzie** — dwa razy
+  (13.08, 21.08) prawdziwy błąd programisty był logowany jako „błąd
+  pobierania".
 - 🟠 **Adres brokera na sztywno** (linia 18: publiczny IP). Na EC2
   nadpisuje go zmienna z `crontab`; przy ręcznym uruchomieniu przez SSH
   jej nie ma → publiczny IP → hairpin NAT → `producer = None` → punkt
@@ -99,13 +103,22 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   (23.07). Jeśli Yahoo zmieni format albo zacznie blokować, cały projekt
   staje. Odpowiedź Yahoo nie jest też stała między wywołaniami — dziś
   brakowało 07.09, choć wczoraj było.
-- 🟡 Martwy kod: `print` ścieżki (10), `print(response.url)` (51),
-  zakomentowany import `boto3` (9) i blok wysyłki do S3 (75–78).
-- 🟠 **`requests.get` bez `timeout`** (linia 49; zauważone 09.09 przy
-  notatce do `crontab`). Gdy Yahoo przyjmie połączenie i zamilknie,
-  Producent czeka bez końca: Konsument w tej samej linii `cron` nie
-  ruszy, Silver o 16:10 policzy wczorajszy stan, a jutrzejszy `cron`
-  uruchomi drugiego Producenta obok wiszącego. Do kroku sprzątania.
+- 🟨 Martwy kod: zakomentowany import `boto3` i blok wysyłki do S3
+  **usunięte 10.09**. Zostają dwa `print`-y (ścieżka i `response.url`) —
+  świadomie, bo są dziś jedynym śladem Producenta w `errors.txt`;
+  zastąpi je jedna linia podsumowania, gdy da się ją sprawdzić z żywym
+  brokerem (10.09 się nie dało, bo wysyłka zepsułaby sprawdzenie 3b).
+- ✅ **NAPRAWIONE 10.09** — `requests.get` bez `timeout` (linia 49).
+  Wpisane `timeout=(10, 30)`. Sprawdzone lokalnie obiema drogami:
+  z `timeout=0.001` trzy wpisy „błąd przy pobieraniu" w `errors.log`
+  w odstępie 30 ms i pliki spółek nietknięte (762 wiersze), z wartością
+  docelową trzy adresy Yahoo i zero wpisów o błędzie. Najgorszy przypadek
+  dla trzech spółek to 120 s przy 600 s odstępu do Silvera. **Na EC2
+  dopiero po `git pull` 11.09.** Poniżej opis stanu sprzed naprawy:
+  ~~🟠~~ Gdy Yahoo przyjmie połączenie i zamilknie, Producent czeka bez
+  końca: Konsument w tej samej linii `cron` nie ruszy, Silver o 16:10
+  policzy wczorajszy stan, a jutrzejszy `cron` uruchomi drugiego
+  Producenta obok wiszącego.
 
 ### 2.2 Kafka — broker na EC2
 
@@ -193,8 +206,14 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   dane.duplicated().sum() == 0` **po** `drop_duplicates` zawsze przejdzie.
   Nie ma sprawdzenia, ile wierszy ubyło, ani czy liczba dni na spółkę
   jest taka sama dla wszystkich trzech.
-- 🟡 Zakomentowana stara wersja (26–35).
+- ✅ Zakomentowana stara wersja (26–35) **usunięta 10.09**; przepis
+  „Silver bez Atheny" zostaje w historii gita i w dzienniku 10.09.
 - 🟡 `print(dane.shape)` (19) — jedyny ślad w logu EC2, bez daty.
+  **Zostaje świadomie** (decyzja 10.09): to jedyny dowód, że Silver się
+  uruchomił, i liczba, którą sprawdzamy wieczorem.
+- ✅ Adres bucketa, region, baza i folder wyników Atheny **przeniesione
+  do `config.py` 10.09**; sprawdzone biegiem — `git diff` na `silver/`
+  pusty, plik identyczny co do bajta.
 
 ### 2.6 Gold — `kod/gold.py`
 
@@ -210,10 +229,14 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   `zmiana_proc` to odchylenie standardowe, a w `dane_dzienne.csv` ta
   sama nazwa to zmiana dzienna (decyzja z 06.08, świadoma — ale na
   stronie to będzie wymagało tłumaczenia).
-- 🟡 Osiem `print()` (6, 7, 10, 12, 13, 16, 19, 20, 23), z czego sześć to
-  rusztowanie z sierpnia. Wszystkie lądują w `errors.txt` na EC2.
-- 🟡 Komentarz w linii 1 odwołuje się do plików, które od 01.09 nie
-  istnieją (`Data ingestion 2`, `silver 1`, `gold 1`).
+- ✅ **Dziewięć** `print()` (6, 7, 10, 12, 13, 16, 19, 20, 23 — ta lista
+  miała dziewięć numerów przy słowie „osiem"; poprawione 10.09), z czego
+  sześć to rusztowanie z sierpnia. **Sześć usuniętych 10.09**, zostały
+  trzy: kształt tabeli, ranking całego okresu i `sp_rank`. Log Golda
+  z około czterdziestu linii zszedł do trzech. Sprawdzone biegiem,
+  `git diff` na `gold/` pusty.
+- ✅ Komentarz w linii 1 (odwołania do `Data ingestion 2`, `silver 1`,
+  `gold 1`) **usunięty 10.09**.
 
 ### 2.7 Wynik i jego brak
 
@@ -241,6 +264,28 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   `Traceback` leży tam, dopóki ktoś nie wejdzie przez SSH i nie
   przeczyta. Lokalny `errors.log` przez tydzień (25–31.08) zbierał
   `KafkaTimeoutError` i nikt nie patrzył.
+- 🟠 **Log jest podwójny i czytamy tylko jedną połowę** (zauważone
+  10.09 przy notatce do sprzątania). `logging.basicConfig`
+  w Producencie pisze do `companies/errors.log`, a `cron` przekierowuje
+  wypisy obu skryptów do `companies/errors.txt`. To dwa różne pliki.
+  Wszystko, co Producent zgłasza przez `logging.error` — nieudane
+  połączenie z brokerem, błąd pobierania, błąd dostarczenia wiadomości —
+  trafia do `errors.log`, do którego przez cały wrzesień nikt nie
+  zajrzał na EC2. W `errors.txt`, który sprawdzamy co wieczór, są tylko
+  `print`-y i niezłapane `Traceback`. Do tego `basicConfig` ustawia log
+  dla całego Pythona, więc do `errors.log` dopisują się też biblioteki
+  (08.09 `kafka-python` dołożył tam cztery linie o zerwanym
+  połączeniu). Do rozstrzygnięcia w kroku 8: jeden plik czy dwa,
+  i który z nich jest tym, na który patrzymy.
+  **Przeczytany po raz pierwszy 10.09:** `errors.log` na EC2 ma osiem
+  linii i jedną datę, 31.08, z dwóch ręcznych biegów bez
+  `KAFKA_BOOTSTRAP` (adres publiczny, hairpin NAT). Od 31.08 ani jednego
+  wpisu — cisza prawdziwa, nie zepsuty zapis, bo ten sam kod zapisał
+  10.09 cztery wpisy na Windowsie. Okoliczność łagodząca, przypadkowa:
+  od 09.09 Konsument stoi w jednej linii z Producentem po średniku, więc
+  awaria Producenta objawi się w `errors.txt` jako `Odebrano 0
+  wiadomości` zamiast trójki. To nie jest sygnał awarii, tylko efekt
+  uboczny.
 - 🟠 **`pipeline.bat` bez `&&`** (dwie niezależne linie, decyzja z 13.08
   po tym, jak `&&` cicho gubiło krok Silver) — a `crontab` na EC2 ma
   `silver.py && gold.py`. Dwie maszyny, dwie różne semantyki tego samego
@@ -278,7 +323,7 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   (Athena → Silver → Gold) nie ma żadnego testu. Nie ma testu, który
   powiedziałby „dziś brakuje jednej spółki" albo „w `live` jest dzień
   z przyszłości".
-- 🟡 `print` ścieżki (6).
+- ✅ `print` ścieżki (6) **usunięty 10.09**; cztery testy dalej zielone.
 
 ### 2.10 Środowisko i wdrożenie
 
@@ -296,10 +341,36 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   na 17:00/17:10 UTC (od 09.09 dwie linie, nie trzy), ręcznie,
   z pamięci. `CRON_TZ=Europe/Warsaw`
   na górze `crontab` załatwiłoby to raz na zawsze.
-- 🟡 Pliki-śmieci: `kod/pipeline.py` (test Harmonogramu z 12.08),
-  `kod/pyathena_silver_test.py` (szkic, treść stoi w `silver.py`),
-  `.claude/settings.local.json` z regułami dla nieistniejących nazw
-  plików. `wykresy/*.png` z 10.08 — miesiąc do tyłu.
+
+  **Sprawdzone 10.09, cztery odczyty na EC2, nic nie zmienialiśmy:**
+  cronie 1.5.7 (`rpm -q cronie`), napis `CRON_TZ` obecny w samym
+  `/usr/sbin/crond` (`grep -a -c` → 1), strefa systemu UTC
+  (`timedatectl`), definicja `Europe/Warsaw` obecna (2654 bajty).
+  Warunki spełnione. To poszlaka, nie dowód działania — ostatecznym
+  będzie bieg o właściwej godzinie.
+
+  **PUŁAPKA, bez której ta zmiana psuje dane:** samo dopisanie
+  `CRON_TZ=Europe/Warsaw` przesunęłoby bieg o dwie godziny wstecz, bo
+  cron przeczytałby dotychczasowe `0 16` i `10 16` jako szesnastą
+  **polską**. Producent pobierałby cenę o 16:00, godzinę przed
+  zamknięciem GPW, i zapisywał ją jako kurs zamknięcia (wada 2.1,
+  czerwona). Strefa i godziny muszą pójść **jednym ruchem**:
+  `CRON_TZ` na górze, godziny przepisane z `16` na `18`.
+
+  Korzyść uboczna: dziś EC2 liczy o 18:00 polskiego, a Harmonogram
+  Windows o 18:10 polskiego. Po zmianie czasu **bez** `CRON_TZ` EC2
+  przesunęłoby się na 17:00, a Windows został na 18:10 — maszyny
+  rozjechałyby się o godzinę. Z `CRON_TZ` zostają zgrane.
+
+  Termin: nie w dniu, w którym inny bieg ma coś potwierdzać. Rytuał jak
+  09.09 — najpierw `crontab -l > ~/crontab-kopia-RRMM.txt`, praca na
+  drugiej kopii, `diff` przed wgraniem.
+- 🟨 Pliki-śmieci: `kod/pipeline.py`, `kod/pipeline.txt`,
+  `kod/pyathena_silver_test.py` i `.claude/settings.local.json`
+  **usunięte 10.09** (plików w `kod/` w gicie: 12 → 10).
+  `kod/pipeline.bat` **zostaje** — to jego uruchamia Harmonogram Windows
+  o 18:10, znika dopiero w kroku 6. `wykresy/*.png` z 10.08 zostają,
+  wracamy do nich przy wykresach.
 - ⚪ Klucz `.pem` w `aws/` w folderze synchronizowanym przez OneDrive.
   Poza gitem, ale w chmurze Microsoftu.
 
@@ -445,8 +516,9 @@ zamknięte przekreślone, nowe dopisane.
 | 1 | Producent przestaje gubić dane | ✅ 08.09 — sprawdzone lokalnie i przez `cron` na EC2 |
 | 2 | Zabezpieczenie kompakcji | ✅ 08.09 — obie ścieżki sprawdzone biegiem |
 | 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka potwierdzona 09.09 przez `cron`; test „zakładki nie ma" przełożony na po 14.09 — zalew z 01.09 wciąż w topicu (2.3) |
-| 3b | Producent i Konsument w jednej linii `crontab` | 🟨 09.09 wdrożone z `;`, kopia `~/crontab-kopia-0909.txt`; „zrobione" dopiero po biegu 10.09 (liczby w 2.3) |
-| 4–10 | reszta | ⬜ (nowe pozycje do kroku 4: `timeout` w `requests.get`, trzy ostrzeżenia w logu) |
+| 3b | Producent i Konsument w jednej linii `crontab` | ✅ **10.09 sprawdzone biegiem `cron` na EC2.** Wszystkie cztery liczby przewidziane 09.09 trafione: w `errors.txt` ścieżka i trzy adresy Yahoo **przed** `Odebrano 3 wiadomości` (dowód, że przekierowanie łapie oba skrypty), `(2307, 3)` dwa razy, 769 wierszy w plikach spółek, pozycja grupy 2336/2336 przy LAG 0. Niezależne potwierdzenie z Windowsa: lokalny Silver o 18:10 wyciągnął z Atheny 2307 wierszy z dzisiejszą datą dla wszystkich trzech spółek. Kopia sprzed edycji `~/crontab-kopia-0909.txt` zostaje na EC2 |
+| 4 | Sprzątanie kodu i konfiguracji | 🟨 10.09 zrobione lokalnie i sprawdzone biegiem: `timeout=(10, 30)`, martwy kod i cztery pliki-śmieci, `config.py` na bucket/region/bazę/adres Atheny, siedem `print`-ów, martwy import `ticker` w Konsumencie. Notatka: [[Notatka-2026-09-10-sprzatanie-kodu]]. **Na EC2 dopiero po `git pull` 11.09.** Świadomie odłożone: podsumowanie w Producencie (nie da się sprawdzić bez żywego brokera), `CRON_TZ`, trzy ostrzeżenia bibliotek, `requirements.txt` |
+| 5–10 | reszta | ⬜ |
 
 Uzasadnienie kolejności przy każdej pozycji: dlaczego tu, a nie gdzie
 indziej.
