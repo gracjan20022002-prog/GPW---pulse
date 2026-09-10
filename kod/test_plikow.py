@@ -3,7 +3,6 @@ from datetime import datetime
 from config import ticker
 import pytest
 import pandas as pd
-print(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 @pytest.mark.parametrize("tick", ticker)
 def test_dzialania(tick):

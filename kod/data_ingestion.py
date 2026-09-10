@@ -6,7 +6,6 @@ from config import ticker
 from kafka import KafkaProducer
 from json import dumps
 from kafka.errors import KafkaError
-# import boto3
 print(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 logging.basicConfig(
@@ -46,7 +45,7 @@ for tick in ticker:
         url = f"https://query1.finance.yahoo.com/v8/finance/chart/{tick}"
         params = {"range": "3y", "interval": "1d"}
         headers = {"User-Agent": "Chrome/5.0"}
-        response = requests.get(url, params = params, headers = headers)
+        response = requests.get(url, params = params, headers = headers, timeout = (10, 30))
         if response.status_code == 200:
             print(response.url)
             head = response.json()["chart"]["result"][0]
@@ -79,8 +78,3 @@ for tick in ticker:
         logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}")
 if producer is not None:
     producer.flush()
-
-# s3 = boto3.client("s3")
-# for tick in ticker:
-#     path = os.path.join(BASE_DIR, "companies", f"{tick}.txt")
-#     s3.upload_file(path, "gpw-tracker-bucket", f"bronze/spolka={tick}/{tick}.txt")

@@ -2,16 +2,16 @@ from datetime import date
 import os
 import pandas as pd
 from pyathena import connect
-from config import ticker
+from config import ticker, WYNIKI_ATHENY, REGION, BAZA, BUCKET
 import boto3
 from botocore.exceptions import ClientError
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 granica = date.today()
 granica = granica.replace(day=1)
 con = connect(
-    s3_staging_dir="s3://gpw-tracker-bucket/athena-results/",
-    region_name="eu-north-1",
-    schema_name="gpw-tracker_db"
+    s3_staging_dir=WYNIKI_ATHENY,
+    region_name=REGION,
+    schema_name=BAZA
 )
 os.makedirs(os.path.join(BASE_DIR, "bronze"), exist_ok=True)
 os.makedirs(os.path.join(BASE_DIR, "bronze/poprzedni"), exist_ok=True)
@@ -25,7 +25,7 @@ poprzedni = {}
 for t in ticker:
     kopia = os.path.join(BASE_DIR, "bronze", "poprzedni", f"{t}.parquet")
     try:
-        s3.download_file("gpw-tracker-bucket", f"bronze/spolka={t}/{t}.parquet", kopia)
+        s3.download_file(BUCKET, f"bronze/spolka={t}/{t}.parquet", kopia)
         poprzedni[t] = len(pd.read_parquet(kopia))
     except ClientError:
         poprzedni[t] = 0
@@ -40,10 +40,7 @@ for t in ticker:
     wybrana = wybrana.drop(columns=["spolka"]) 
     sciezka = os.path.join(BASE_DIR, "bronze", f"{t}.parquet")
     wybrana.to_parquet(sciezka, index=False)
-    s3.upload_file(sciezka,"gpw-tracker-bucket",f"bronze/spolka={t}/{t}.parquet")
-test = pd.read_parquet(os.path.join(BASE_DIR, "bronze", "CBF.WA.parquet"))
-print(test.shape)
-print(test.dtypes)
+    s3.upload_file(sciezka, BUCKET, f"bronze/spolka={t}/{t}.parquet")
 sprawdzenie = pd.read_sql(f"""SELECT "$path" AS plik, MAX(data) AS ostatni
 FROM live
 GROUP BY "$path"
@@ -51,6 +48,6 @@ HAVING MAX(data) < '{granica}'""", con)
 licznik = 0
 for adres in sprawdzenie["plik"]:
     nazwa = adres.split("/", 3)[3]
-    s3.delete_object(Bucket="gpw-tracker-bucket", Key=nazwa)
+    s3.delete_object(Bucket=BUCKET, Key=nazwa)
     licznik += 1
 print(f"Usunięto {licznik} plików")
