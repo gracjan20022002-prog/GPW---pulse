@@ -6,7 +6,7 @@ from config import ticker
 from kafka import KafkaProducer
 from json import dumps
 from kafka.errors import KafkaError
-print(os.path.abspath(__file__))
+print(f"=== Data pomiaru Producenta: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 logging.basicConfig(
     filename = os.path.join(BASE_DIR, "companies", "errors.log"),
@@ -24,9 +24,10 @@ except KafkaError:
     logging.error(f"Wystąpił błąd łączenia z brokerem: {BOOTSTRAP}.")
     producer = None
 
-
+wynik = []
 for tick in ticker:
-    dane = {}                        
+    dane = {}         
+    wynik.append(f"{tick}: Brak odczytu")               
     try:                              
         with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "r", encoding="utf-8") as plik:
             for linia in plik:
@@ -47,7 +48,6 @@ for tick in ticker:
         headers = {"User-Agent": "Chrome/5.0"}
         response = requests.get(url, params = params, headers = headers, timeout = (10, 30))
         if response.status_code == 200:
-            print(response.url)
             head = response.json()["chart"]["result"][0]
             timestamp = head["timestamp"]
             close = head["indicators"]["quote"][0]["close"]
@@ -58,6 +58,7 @@ for tick in ticker:
                     dane[str(data)] = c
             posortowane = sorted(dane.keys())
             nowe_daty = set(dane.keys()) - stare_daty
+            wyslane = 0
             flaga = True
             if producer is None:
                 flaga = False
@@ -65,6 +66,7 @@ for tick in ticker:
                 for data in nowe_daty:
                     try:
                         producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": f"{data} 17:00:00", "cena": dane[data]}).get(timeout=10)
+                        wyslane += 1
                     except KafkaError:
                         logging.error(f"{data} Wystąpił błąd w dostarczeniu danych o spółce {tick} ")
                         flaga = False
@@ -72,9 +74,13 @@ for tick in ticker:
                 with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "w", encoding = "utf-8") as plik:
                     for data in posortowane:
                         plik.write(f"{data} 17:00:00, {dane[data]}\n")
+            stan = "zapisane" if flaga else "nietknięte"
+            wynik[-1] = f"{tick}: nowych dni: {len(nowe_daty)}, wysłane: {wyslane}, stan: {stan}"
         else:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
         logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}")
 if producer is not None:
     producer.flush()
+for wiersz in wynik:
+    print(wiersz)
