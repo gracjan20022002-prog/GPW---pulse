@@ -79,6 +79,27 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   Uruchomiony przed 17:00 zapisuje cenę bieżącą z etykietą fixingu.
   Dziś o 16:43: CBF `194.5` jako „zamknięcie 08.09". Pilnuje tego
   wyłącznie godzina w `crontab`, nie kod.
+- 🟠 **Okno na pobranie kursu zamknięcia ma najwyżej kwadrans zapasu —
+  zmierzone 11.09, wcześniej nikt tego nie liczył.** Tego dnia o 17:45
+  lokalny bieg Producenta z martwym brokerem znalazł **siedem** nowych
+  dni, nie osiem: Yahoo nie oddawało jeszcze świecy za 11.09 albo
+  oddawało ją z pustą ceną, którą kod pomija warunkiem `c is not None`.
+  Bieg `cron` o 18:00 już ją miał — pliki spółek 769 → 770,
+  `Odebrano 3 wiadomości`, Silver `(2310, 3)`. Odstęp między publikacją
+  u źródła a naszym biegiem wynosi więc **najwyżej piętnaście minut**.
+
+  Skutek, gdyby Yahoo kiedyś spóźniło się bardziej: wieczorny bieg nie
+  znajduje nowych dni, Konsument wypisuje `Odebrano 0`, a Silver o 18:10
+  liczy dzień bez dzisiejszych notowań i **nic tego nie sygnalizuje**.
+  Dane nie giną, bo Producent dośle brakujący dzień nazajutrz, ale wynik
+  wieczorny jest przez dobę cichy i nieprawdziwy.
+
+  Razem z czerwonym punktem wyżej znaczy to, że pora biegu jest ściśnięta
+  z obu stron: za wcześnie daje cenę z trwającej sesji podpisaną jako
+  zamknięcie, za późno nie daje nic. To podnosi wagę `CRON_TZ` (2.10) —
+  po zmianie czasu **bez** niego bieg przesunie się na 17:00 polskiego,
+  czyli dokładnie w stronę czerwonego błędu.
+
 - 🟠 **Korekty Yahoo nie docierają do S3.** Yahoo zmienia ceny za dni
   już opublikowane (CBF 01.09: 191,30 → 191,40; SNT 01.09: 329,60 →
   327,00). Plik lokalny po cichu bierze nową wartość (linia 59), ale
@@ -223,6 +244,17 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   że najbardziej zmienny miesiąc XTB to `2026-09` — bo ma 5 obserwacji,
   w tym −9,8 %. Ta liczba trafi na stronę i będzie nieprawdziwa
   przez pierwszy tydzień każdego miesiąca.
+
+  **Uzupełnienie 11.09 — jest gorzej, niż mówiło zdanie wyżej.** Wynik
+  nie jest po prostu zły przez pierwszy tydzień, on **miga z dnia na
+  dzień**. Trzy odczyty tej samej komórki dla XTB: 08.09 `2026-09`,
+  10.09 `2025-01`, 11.09 znowu `2026-09` z odchyleniem 3,77 wobec 3,70
+  dla stycznia 2025. Niedokończony miesiąc przechodzi nad pełnym
+  i z powrotem, ilekroć dojdzie jeden mocniejszy dzień — dziś XTB
+  skoczyło ze 144,34 na 148,50. Do tego 11 września to dziewiąty dzień
+  notowań miesiąca, czyli **dawno po pierwszym tygodniu**; ograniczenie
+  „przez pierwszy tydzień" było za łagodne. Na stronie oznaczałoby to
+  liczbę, która zmienia się bez powodu widocznego dla czytelnika.
 - 🟡 Kolumna `max_zmienny_miesiac` (18) w `dane_dzienne.csv` to po prostu
   miesiąc każdego wiersza, nie „najbardziej zmienny" — nazwa myli
   każdego, kto zobaczy plik bez kodu. W `ranking.csv` kolumna
@@ -232,9 +264,14 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
 - ✅ **Dziewięć** `print()` (6, 7, 10, 12, 13, 16, 19, 20, 23 — ta lista
   miała dziewięć numerów przy słowie „osiem"; poprawione 10.09), z czego
   sześć to rusztowanie z sierpnia. **Sześć usuniętych 10.09**, zostały
-  trzy: kształt tabeli, ranking całego okresu i `sp_rank`. Log Golda
-  z około czterdziestu linii zszedł do trzech. Sprawdzone biegiem,
-  `git diff` na `gold/` pusty.
+  trzy: kształt tabeli, ranking całego okresu i `sp_rank`. Sprawdzone
+  biegiem, `git diff` na `gold/` pusty.
+
+  **Poprawka 11.09 do liczby linii.** Zdanie „log Golda z czterdziestu
+  linii zszedł do trzech" myliło wywołania `print` z liniami wyjścia:
+  dwa z trzech pozostałych `print` wypisują tabelę, nie jedną wartość.
+  Zmierzone na EC2 11.09: blok Golda **37 → 11 linii**, a cały blok
+  jednego biegu 49 → 23. Trzy to liczba wywołań, nie linii.
 - ✅ Komentarz w linii 1 (odwołania do `Data ingestion 2`, `silver 1`,
   `gold 1`) **usunięty 10.09**.
 
@@ -517,7 +554,9 @@ zamknięte przekreślone, nowe dopisane.
 | 2 | Zabezpieczenie kompakcji | ✅ 08.09 — obie ścieżki sprawdzone biegiem |
 | 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka potwierdzona 09.09 przez `cron`; test „zakładki nie ma" przełożony na po 14.09 — zalew z 01.09 wciąż w topicu (2.3) |
 | 3b | Producent i Konsument w jednej linii `crontab` | ✅ **10.09 sprawdzone biegiem `cron` na EC2.** Wszystkie cztery liczby przewidziane 09.09 trafione: w `errors.txt` ścieżka i trzy adresy Yahoo **przed** `Odebrano 3 wiadomości` (dowód, że przekierowanie łapie oba skrypty), `(2307, 3)` dwa razy, 769 wierszy w plikach spółek, pozycja grupy 2336/2336 przy LAG 0. Niezależne potwierdzenie z Windowsa: lokalny Silver o 18:10 wyciągnął z Atheny 2307 wierszy z dzisiejszą datą dla wszystkich trzech spółek. Kopia sprzed edycji `~/crontab-kopia-0909.txt` zostaje na EC2 |
-| 4 | Sprzątanie kodu i konfiguracji | 🟨 10.09 zrobione lokalnie i sprawdzone biegiem: `timeout=(10, 30)`, martwy kod i cztery pliki-śmieci, `config.py` na bucket/region/bazę/adres Atheny, siedem `print`-ów, martwy import `ticker` w Konsumencie. Notatka: [[Notatka-2026-09-10-sprzatanie-kodu]]. **Na EC2 dopiero po `git pull` 11.09.** Świadomie odłożone: podsumowanie w Producencie (nie da się sprawdzić bez żywego brokera), `CRON_TZ`, trzy ostrzeżenia bibliotek, `requirements.txt` |
+| 4 | Sprzątanie kodu i konfiguracji | ✅ **11.09 wdrożone na EC2 i sprawdzone biegiem `cron`.** Zakres zrobiony 10.09 lokalnie: `timeout=(10, 30)`, martwy kod i cztery pliki-śmieci, `config.py` na bucket/region/bazę/adres Atheny, siedem `print`-ów, martwy import `ticker` w Konsumencie. Notatka: [[Notatka-2026-09-10-sprzatanie-kodu]]. **Dowód z 11.09, wszystkie sześć liczb policzonych przed biegiem i trafionych:** `errors.txt` 417 → 440, blok jednego biegu 49 → 23 linie, sam blok Golda 37 → 11 linii, pliki spółek 770, `errors.log` dalej 8, pozycja grupy 2339/2339 przy LAG 0. W bloku ani jednego `dtype:`, ani wiersza z twardych numerów 748–752, ani samotnej liczby `38`. Potwierdzenie niezależne z Windowsa: lokalny `silver/clean_data.csv` 2311 linii i ranking identyczny co do ostatniej cyfry, mimo trzynastu różnic w pakietach i dwóch wersji Pythona. Z pięciu warunków „zrobione" spełnia cztery; piąty, głośna awaria, nie jest zadaniem tego kroku i czeka na krok 8. Świadomie odłożone poza ten krok: `CRON_TZ` |
+| 4a | Podsumowanie w Producencie | 🟨 **11.09 napisane i sprawdzone lokalnie.** Zdjęte ze sprzątania 10.09, bo wymagało żywego brokera. Notatka z czterema decyzjami i dwoma testami: [[Notatka-2026-09-11-podsumowanie-w-producencie]]. Test z martwym brokerem zdany: `nowych dni 7, wysłane 0, stan nietknięte` na spółkę, pliki nietknięte przy 762 wierszach, `errors.log` +4. **Na EC2 nie trafiło 11.09 celowo**, bo wieczorny bieg potwierdzał krok 4. Zostaje test na EC2 zwykłym biegiem `cron`: oczekiwane `nowych dni 1, wysłane 1, stan zapisane` i długość bloku bez zmian, cztery linie za cztery |
+| 4b | Spisy wymagań dla dwóch maszyn | ✅ **11.09 zmierzone i rozdzielone.** `requirements.txt` → `requirements-lokalny.txt` przez `git mv` (32 paczki, Python 3.14.2), nowy `requirements-ec2.txt` (19 paczek, Python 3.9.25), oba czystym `pip freeze` bez komentarzy, żeby porównanie działało jedną komendą. Notatka: [[Notatka-2026-09-11-wymagania-dwie-maszyny]]. Wynik pomiaru: czternastu paczek na EC2 brakuje i **wszystkie czternaście mają wyjaśnienie** — siedem ciągnie `matplotlib`, cztery `pytest`, plus te dwa narzędzia i `pyarrow`; jedyna nadwyżka `pytz` to zależność pandas 2. Nic nie brakuje przypadkiem. Dwie paczki są na EC2 **nowsze** niż na laptopie. README (104) poprawiony: twierdził, że bez `pyarrow` projekt nie ruszy, co jest nieprawdą od 04.09. `compaction.py` ma komentarz „wyłącznie lokalnie" |
 | 5–10 | reszta | ⬜ |
 
 Uzasadnienie kolejności przy każdej pozycji: dlaczego tu, a nie gdzie

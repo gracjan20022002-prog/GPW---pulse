@@ -134,9 +134,14 @@ czyta; Producent zapisuje cenę z trwającej sesji jako zamknięcie, gdy
 uruchomić go przed 17:00; testy sprawdzają rzeczy obok potoku; nikt nie
 dowie się o awarii, a **log jest podwójny i czytamy tylko jedną połowę**
 (`logging.error` → `errors.log`, `print` i `Traceback` → `errors.txt`;
-nowe, 10.09); ranking „najbardziej zmiennego miesiąca" jest błędny
-w pierwszym tygodniu miesiąca; README obiecuje więcej, niż jest;
-dziesięć wpisów dziennika bez „Czego się nauczyłem".
+nowe, 10.09); **ranking „najbardziej zmiennego miesiąca" nie jest po
+prostu błędny, on miga z dnia na dzień** (XTB: 08.09 `2026-09`, 10.09
+`2025-01`, 11.09 znowu `2026-09` — niedokończony miesiąc przeskakuje
+pełny i wraca; ograniczenie „pierwszy tydzień" było za łagodne, 11.09
+to dziewiąty dzień notowań); **okno na kurs zamknięcia ma najwyżej
+kwadrans zapasu** (11.09 o 17:45 Yahoo nie miało jeszcze dzisiejszej
+świecy, o 18:00 miało — nowe, zmierzone); README obiecuje więcej, niż
+jest; dziesięć wpisów dziennika bez „Czego się nauczyłem".
 
 **Naprawione 08.09, sprawdzone:** (1) Producent zapisuje pamięć
 „wysłane" dopiero po potwierdzeniu każdej wiadomości przez brokera
@@ -187,22 +192,69 @@ dwóch `print`-ów (nie da się sprawdzić bez żywego brokera, a wysyłka
 zepsułaby sprawdzenie linii `crontab`); trzy ostrzeżenia bibliotek
 i `requirements.txt` (osobne decyzje, nie sprzątanie).
 
+**11.09, sprawdzone:** (1) **krok 4 zamknięty na EC2** — `git checkout --
+silver/ gold/`, `git pull` (sześć commitów, EC2 stało na `eba2eef`),
+i wieczorny bieg `cron` trafił **wszystkie sześć liczb policzonych przed
+biegiem**: `errors.txt` 417 → 440, blok jednego biegu 49 → 23 linie, sam
+blok Golda 37 → 11, pliki spółek 770, `errors.log` dalej 8, grupa
+2339/2339 przy LAG 0; w bloku ani `dtype:`, ani wierszy 748–752, ani
+samotnej liczby `38`. Potwierdzenie niezależne z Windowsa: lokalny
+`clean_data.csv` 2311 linii i ranking identyczny co do ostatniej cyfry,
+mimo trzynastu różnic w pakietach i dwóch wersji Pythona. (2)
+**podsumowanie w Producencie napisane i sprawdzone lokalnie** — linia
+startu z datą i godziną zamiast ścieżki, potem linia na spółkę z liczbą
+nowych dni, liczbą wysłanych i stanem pamięci; test z martwym brokerem
+(`127.0.0.1:9092`) dał `nowych dni 7, wysłane 0, stan nietknięte` trzy
+razy, pliki nietknięte przy 762 wierszach, `errors.log` +4 (trzy z tych
+linii pisze biblioteka `kafka`, nie nasz kod). **Na EC2 nie trafiło** —
+kod jest w gicie, EC2 dostanie go dopiero przy `git pull`. Notatka:
+`notatki/plany/Notatka-2026-09-11-podsumowanie-w-producencie.md`.
+(3) **spisy wymagań rozdzielone na dwie maszyny** — `requirements.txt`
+przez `git mv` na `requirements-lokalny.txt` (32 paczki, Python 3.14.2),
+nowy `requirements-ec2.txt` (19 paczek, Python 3.9.25), oba czystym
+`pip freeze` bez komentarzy, żeby porównanie działało jedną komendą.
+Czternastu paczek na EC2 brakuje i **wszystkie mają wyjaśnienie**:
+siedem ciągnie `matplotlib`, cztery `pytest`, plus te dwa narzędzia
+i `pyarrow`; jedyna nadwyżka `pytz` to zależność pandas 2. Nic nie
+brakuje przypadkiem. Notatka:
+`notatki/plany/Notatka-2026-09-11-wymagania-dwie-maszyny.md`.
+(4) `compaction.py` ma komentarz „wyłącznie lokalnie"; README poprawiony
+w zdaniu, które twierdziło, że bez `pyarrow` projekt nie ruszy.
+
+**Trzy pomyłki Claude'a 11.09, wszystkie sprostowane przez przeczytanie
+repozytorium:** zapowiedział trzy commity przy `git pull`, było sześć
+(nie sprawdził wcześniej, na czym stoi EC2); powiedział, że decyzja
+o `pyarrow` nie jest nigdzie zapisana, a jest w trzech miejscach
+(dziennik 04.09, Plan-06, przegląd 2.8); powiedział, że wada rankingu
+jest znana tylko z opisu, a przegląd 2.6 opisuje ją jako zaobserwowaną.
+
 **Priorytet Gracjana (08.09):** czysty, działający łańcuch
 `data_ingestion → Kafka → S3/Athena → silver → gold` → wynik na stronie.
 Wykresy, README pod pracodawcę, Power BI — dopiero potem.
 
-**Następna sesja (11.09), ustalone z Gracjanem:**
-1. **Wdrożyć sprzątanie na EC2 i sprawdzić je biegiem.** Na EC2
-   `git checkout -- silver/ gold/`, potem `git pull` (**nigdy**
-   `git stash`). Dowodem jest wieczorny bieg: log Golda ma zejść z około
-   czterdziestu linii do trzech, a `errors.txt` ma pokazać ścieżkę
-   Producenta, trzy adresy Yahoo, `Odebrano 3 wiadomości` i dwa razy
-   kształt tabeli. Liczby policzyć **przed** biegiem. Dopiero wtedy krok
-   4 jest zrobiony — zaktualizować tabelę w przeglądzie.
-2. **Podsumowanie w Producencie** zamiast jego dwóch `print`-ów (ścieżka
-   i `response.url`) — odłożone z 10.09, bo wymaga żywego brokera.
-   Najpierw notatka projektowa: co ma wypisywać i jak to sprawdzimy, nie
-   psując liczb wieczornego biegu.
+**Następna sesja (12.09), ustalone z Gracjanem 11.09:**
+1. **Zaczynamy od naprawy rankingu miesięcznego** — decyzja Gracjana
+   z 11.09, **poza kolejnością** z przeglądu (to punkt 9 z dziesięciu).
+   Powód: 11.09 zobaczyliśmy, że wada nie jest stała, tylko **miga** —
+   XTB pokazał `2026-09`, potem `2025-01`, potem znowu `2026-09` w ciągu
+   czterech dni. Liczba zmieniająca się bez powodu widocznego dla
+   czytelnika jest gorsza niż liczba stale zła, bo zabiera zaufanie także
+   do sąsiednich liczb. Rzecz siedzi w `kod/gold.py`, w grupowaniu po
+   spółce i miesiącu z odchyleniem standardowym. **Najpierw notatka
+   projektowa**: co znaczy „pełny miesiąc", co zrobić z miesiącem
+   bieżącym, co gdy spółka ma dziurę w danych, jak to sprawdzimy. Potem
+   kod pisany przez Gracjana.
+2. **Podsumowanie w Producencie na EC2.** Kod jest w gicie od 11.09
+   i sprawdzony lokalnie z martwym brokerem. Brakuje testu na żywym
+   brokerze, a jedyna bezpieczna droga to zwykły bieg `cron` — ręczne
+   uruchomienie z laptopa wysłałoby osiem dni razy trzy spółki, bo
+   lokalna pamięć kończy się na 1 września. Oczekiwane w `errors.txt`:
+   linia startu z datą i godziną (na EC2 pokaże **czas uniwersalny**,
+   czyli `16:00`, nie `18:00`), potem `nowych dni 1, wysłane 1, stan
+   zapisane` trzy razy; długość bloku bez zmian, cztery linie za cztery.
+   **Można to sprawdzić tym samym biegiem co ranking**, bo obie zmiany
+   dotykają różnych linii logu i odchylenie da się przypisać. Liczby dla
+   obu policzyć **przed** biegiem.
 3. **`CRON_TZ` — Gracjan prosił 10.09, żeby zrobić to w jednej
    z najbliższych sesji.** Grunt sprawdzony (cronie 1.5.7, napis
    `CRON_TZ` obecny w `/usr/sbin/crond`, strefa systemu UTC,
@@ -216,7 +268,10 @@ Wykresy, README pod pracodawcę, Power BI — dopiero potem.
    drugiej kopii, `diff`, `crontab plik`; nigdy `crontab -e`. Korzyść
    uboczna: bez tego po zmianie czasu EC2 przesunie się na 17:00,
    a Harmonogram Windows zostanie na 18:10, i maszyny rozjadą się
-   o godzinę.
+   o godzinę. **Waga podniesiona 11.09:** zmierzyliśmy, że okno na kurs
+   zamknięcia ma najwyżej kwadrans zapasu (o 17:45 Yahoo nie miało
+   jeszcze świecy za ten dzień, o 18:00 miało), więc przesunięcie biegu
+   w którąkolwiek stronę jest groźniejsze, niż się wydawało.
 4. **Test ścieżki „zakładki nie ma" — NIE przed 14.09** (Gracjan prosił,
    żeby o teście pamiętać; 09.09 odłożony, bo zalew z 01.09 wciąż leży
    w topicu i `'earliest'` wlałby go drugi raz). Termin do wyboru
@@ -230,10 +285,23 @@ Wykresy, README pod pracodawcę, Power BI — dopiero potem.
    N = `latest` − 2327; po jednym dodatkowym pliku na spółkę w `live`
    (powtórki tych samych wiadomości — Silver odsieje, kompakcja skasuje
    1.10).
-5. Dalej kroki 5–10 z przeglądu, po kolei, zaczynając od wyniku Golda
-   w S3 i Athenie. Poza kolejnością, do decyzji Gracjana: trzy
-   ostrzeżenia bibliotek w logu i `requirements.txt` (pin
-   `pandas==3.0.5`, a na EC2 stoi 2.3.3).
+5. **Zostało sześć kroków z dziesięciu** w kolejności napraw
+   z przeglądu: 5 wynik Golda do S3 i Atheny, 6 wyłączenie lokalnego
+   Harmonogramu i `silver/` `gold/` poza gitem, 7 test prawdziwej drogi,
+   8 sygnał awarii, 9 pełne miesiące w rankingu (bierzemy jako pierwsze,
+   poza kolejnością), 10 dokumentacja. Kroki 1–4 zamknięte i sprawdzone
+   na EC2, krok 4 dnia 11.09.
+6. **Poza kolejnością, otwarte decyzje:** Python 3.10 na EC2 — jedyna
+   z tych spraw, która pogarsza się sama z upływem czasu, bo `boto3`
+   porzucił Pythona 3.9 w kwietniu 2026; przejście `pd.read_sql` na
+   SQLAlchemy; ostrzeżenie `value_deserializer` w Konsumencie (najmniej
+   pilne); poprawka słów „niedobór pamięci" w komentarzu
+   `compaction.py` — prawdziwym powodem jest brak biblioteki, nie brak
+   pamięci.
+7. **1 października: pierwsza kompakcja z prawdziwym kasowaniem,
+   wyłącznie z laptopa.** Na EC2 nie ma `pyarrow` i jest to decyzja
+   z 04.09, nie usterka: `silver.py` nie otwiera plików z S3, tylko pyta
+   Atenę, a ona czyta Parquet po swojej stronie.
 
 Kopie: pamięć Producenta `~/pamiec-kopia-0809/` (Windows), poprzedni
 `bronze` w `bronze/poprzedni/` (poza gitem), `crontab` sprzed 09.09
@@ -244,9 +312,21 @@ Kopie: pamięć Producenta `~/pamiec-kopia-0809/` (Windows), poprzedni
 Kod, dane i notatki razem w folderze projektu: `kod/`, `companies/`
 (pamięć Producenta, **poza gitem**, każda maszyna ma własną), `bronze/`
 (poza gitem), `silver/`, `gold/` (w gicie — do zmiany, gdy wynik trafi
-do S3), `wykresy/`, `notatki/` (plany, słownik, dziennik i `.obsidian`
-poza gitem), `aws/` (klucz SSH, poza gitem). Nauka Pythona (osobny
-projekt): `DE/Python_l/`.
+do S3), `wykresy/`, `notatki/`, `aws/` (klucz SSH, poza gitem). Nauka
+Pythona (osobny projekt): `DE/Python_l/`.
+
+**Co z `notatki/` jest w gicie, sprawdzone 11.09** — poprzedni opis w tym
+miejscu był nieprawdziwy. `notatki/plany/` i `notatki/Slownik.md`
+**są śledzone**. Poza gitem, przez `.gitignore`, są `notatki/dziennik/`
+i `notatki/.obsidian/`. Znaczy to, że **dwadzieścia jeden wpisów
+dziennika, czyli cały zapis nauki z tego projektu, istnieje wyłącznie na
+laptopie i w OneDrive, ani jeden nie jest w repozytorium**. Decyzja, czy
+ma tak zostać, należy do Gracjana i nie była dotąd nigdzie uzasadniona.
+
+Spisy wymagań od 11.09: `requirements-lokalny.txt` (laptop, 32 paczki,
+Python 3.14.2) i `requirements-ec2.txt` (EC2, 19 paczek, Python 3.9.25).
+Pliku o nazwie `requirements.txt` **celowo nie ma** — to konwencja,
+z której ktoś odruchowo zainstalowałby zły zestaw.
 
 Połączenie z EC2: z folderu `aws\aws ec2 key`:
 `ssh -i "gpw-tracker-key.pem" ec2-user@13.63.105.190`. Repo na EC2:

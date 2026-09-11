@@ -101,9 +101,18 @@ jest starych, a jeden świeży — czyli skasowałby żywe dane. Plik stojący
 okrakiem na granicy przeżywa do następnego razu i sam się zakwalifikuje
 miesiąc później. Pierwszy bieg skasował **zero plików** i tak miało
 być — wszystkie sześć plików w `live` zawiera dzień 01.09 lub późniejszy.
-Prawdziwe kasowanie wypadnie 1 października. Przy okazji `requirements.txt`
-przepisany od nowa: brakowało w nim `pyathena`, `boto3`, `kafka-python`
-i `pyarrow`, bez których projekt nie ruszy.
+Prawdziwe kasowanie wypadnie 1 października, ręcznie i **wyłącznie
+z laptopa** — na EC2 nie ma `pyarrow`, a bez niego nie da się zapisać
+Parquetu. Przy okazji spis bibliotek przepisany wtedy od nowa: brakowało
+w nim `pyathena`, `boto3`, `kafka-python` i `pyarrow`.
+
+Od 11.09 spisy są dwa, po jednym na maszynę: `requirements-lokalny.txt`
+(32 paczki, Python 3.14) i `requirements-ec2.txt` (19 paczek, Python 3.9).
+Jeden wspólny plik byłby pułapką, bo maszyny mają różne wersje tych samych
+bibliotek, w tym pandas 3.0.5 wobec 2.3.3. Brak `pyarrow`, `pytest`
+i `matplotlib` na EC2 jest zamierzony: wykresy, testy i zapis Parquetu
+należą do laptopa, a `silver.py` nie otwiera plików z S3, tylko pyta
+Atenę, która Parquet czyta po swojej stronie.
 
 Tego samego dnia **`companies/*.txt` wyszły poza gita** (`.gitignore`
 + `git rm --cached`). Te pliki są pamięcią Producenta („co już

@@ -66,6 +66,55 @@ mówi, czy test przeszedł, czy nie, i przy którym dokładnie się wywalił.
 *Uruchomienie: w terminalu, w folderze z testem, komenda `pytest
 nazwa_pliku.py`.*
 
+### `pip freeze`
+Wypisuje **wszystko**, co jest zainstalowane w bieżącym środowisku, po
+jednej paczce na linię, w formacie `nazwa==wersja`. Nie lista tego, czego
+projekt potrzebuje — lista tego, co faktycznie leży.
+*Laptop 11.09: 32 linie. EC2: 19 linii. Ta różnica to nie błąd, tylko
+dwie różne maszyny.*
+
+### `pip show nazwa`
+Opisuje jedną paczkę: wersję, gdzie leży i — najważniejsze — pole
+`Requires`, czyli czego ta paczka sama potrzebuje do działania.
+*`pip show matplotlib` pokazał `contourpy, cycler, fonttools, kiwisolver,
+numpy, packaging, pillow, pyparsing`. Dzięki temu wiadomo, że te paczki
+nie leżą w środowisku przypadkiem.*
+
+### Przypięcie wersji (`==`)
+Zapis `pandas==3.0.5` znaczy „dokładnie ta wersja, żadna inna". Bez tego
+`pip` weźmie najnowszą dostępną, a najnowsza za pół roku to co innego niż
+dziś.
+*Przypięcie daje powtarzalność i odbiera aktualizacje. Jedno i drugie
+naraz.*
+
+### Zależność przechodnia
+Paczka, której nie instalowałeś i nie importujesz, a leży w środowisku,
+bo potrzebuje jej coś, co zainstalowałeś.
+*`pillow` jest na laptopie nie dlatego, że ktoś go chciał, tylko dlatego,
+że wymaga go `matplotlib`.*
+
+### `requirements.txt` i spis na maszynę
+Plik ze spisem paczek. Instalacja z niego: `pip install -r plik`.
+Pułapka: spis opisuje **jedno konkretne środowisko**, a nazwa tego nie
+mówi.
+*Dlatego od 11.09 mamy dwa: `requirements-lokalny.txt` (32 paczki,
+Python 3.14) i `requirements-ec2.txt` (19 paczek, Python 3.9). Jeden
+wspólny plik zainstalowałby na EC2 zestaw, którego ten Python nie
+przyjmie.*
+
+### `Compare-Object` (PowerShell)
+Porównuje dwie listy i pokazuje **tylko różnice**. Strzałka `<=` znaczy
+„jest w pierwszej, nie ma w drugiej", `=>` odwrotnie.
+*`Compare-Object (Get-Content requirements-lokalny.txt) (pip freeze)` —
+pusty wynik znaczy pełną zgodność. Odpowiednik `diff` na Linuksie.*
+
+### `$env:NAZWA` (PowerShell)
+Zmienna środowiskowa, czyli ustawienie widoczne dla programów
+uruchamianych w **tym samym oknie**. Znika po zamknięciu okna.
+*`$env:KAFKA_BOOTSTRAP = "127.0.0.1:9092"` każe Producentowi łączyć się
+z martwym adresem zamiast z prawdziwym brokerem. Samo `$env:KAFKA_BOOTSTRAP`
+wypisuje obecną wartość — warto sprawdzić przed uruchomieniem.*
+
 ---
 
 ## Git i GitHub
@@ -110,6 +159,20 @@ właśnie z GitHuba. Z flagą `-m` zastępuje **całą** dotychczasową
 wiadomość, nie dokleja się do niej.
 *Sprawdzenie, czy zdążysz: `git status -sb` pokazuje `[ahead 1]`, gdy
 commit jest jeszcze tylko u Ciebie.*
+
+### `git mv`
+Zmienia nazwę pliku **i od razu mówi o tym gitowi**. Zwykłe przemianowanie
+w Eksploratorze git widzi jako skasowanie jednego pliku i utworzenie
+drugiego, a wtedy historia zmian zostaje przy starej nazwie.
+*`git mv requirements.txt requirements-lokalny.txt`. Nic nie wypisuje —
+cisza to sukces.*
+
+### `renamed` w `git status`
+Git nie zapisuje „zmiany nazwy" jako osobnej operacji. Porównuje treść
+i sam zgaduje, że to ten sam plik.
+*Gdy treść została nietknięta, zobaczysz `renamed: stara -> nowa`. Gdy
+przy okazji zmieniłeś zawartość, git pokaże osobno `deleted` i `new
+file` — to też jest poprawne, tylko mniej czytelne.*
 
 ---
 
@@ -548,6 +611,18 @@ i w jakiej wersji (Amazon Linux, Fedora, RHEL). `timedatectl` pokazuje
 czas lokalny, uniwersalny i ustawioną strefę.
 *`rpm -q cronie` → `cronie-1.5.7-1.amzn2023.0.2.x86_64`.*
 
+### `wc -l`
+Liczy linie w pliku. Najtańsze możliwe sprawdzenie „czy coś przybyło".
+*`wc -l companies/errors.txt` → `440`. Policzone **przed** biegiem
+i **po** nim daje dowód, którego nie da się podrobić okiem.*
+
+### Podstawienie procesu `<( )`
+Pozwala podać **wynik komendy** tam, gdzie program spodziewa się nazwy
+pliku. Powłoka tworzy plik tymczasowy w locie.
+*`diff <(sort plik.txt) <(pip freeze | sort)` porównuje plik z żywym
+stanem maszyny, bez zapisywania niczego na dysk. Działa w `bash`, nie
+w PowerShellu — tam ten sam efekt daje `Compare-Object`.*
+
 ---
 
 ## Kod
@@ -660,6 +735,66 @@ samego pliku dopisują się też biblioteki.
 *U nas: `logging.error` → `companies/errors.log`, `print` i `Traceback`
 → `companies/errors.txt`. Czytając wieczorem tylko drugi, nie widzisz
 zgłoszonych błędów Producenta.*
+
+### `.append()`
+Dokłada element na **koniec** listy.
+*`raport.append("Kraków: brak odczytu")` — lista rośnie o jedną pozycję.*
+
+### Indeks ujemny (`[-1]`)
+Liczenie od końca. `[-1]` to ostatni element, `[-2]` przedostatni.
+Działa też przy przypisaniu, czyli do nadpisania ostatniej pozycji.
+*`raport[-1] = "Kraków: pomiarów 3, zapisanych 2"` zamienia wartość
+domyślną na prawdziwą, gdy obsługa się powiodła.*
+
+### Wartość domyślna przed ryzykiem
+Wzorzec, nie słowo kluczowe. Dokładasz do listy linię „nie udało się"
+**jako pierwszą rzecz w pętli**, a dopiero potem próbujesz zrobić to, co
+może się nie udać. Gdy się uda, nadpisujesz ją przez `[-1]`.
+*Dzięki temu pozycja, która wypadła po drodze, zostawia po sobie ślad.
+Bez tego awaria objawia się **brakiem** linii, a brak jest nie do
+odróżnienia od tego, że skrypt się nie uruchomił.*
+
+### `continue`
+Przerywa bieżący obrót pętli i przechodzi do następnego. Reszta ciała
+pętli w tym obrocie się nie wykona.
+*Różnica wobec `break`, który wychodzi z pętli w ogóle.*
+
+### `+=`
+Skrót od „zwiększ o". `x += 1` znaczy `x = x + 1`.
+*Licznik liczy tylko to, co naprawdę przeszło. `wyslane += 1` stoi
+**po** potwierdzeniu wiadomości przez brokera, nie przed wysłaniem —
+inaczej liczyłby zamiary zamiast faktów.*
+
+### Wyrażenie warunkowe (jednoliniowy `if`)
+`a if warunek else b` wybiera jedną z dwóch wartości w jednej linii.
+To samo, co czteroliniowy `if/else` z przypisaniem.
+*`stan = "zapisane" if flaga else "nietknięte"`.*
+
+### `strftime`
+Zamienia datę z godziną na tekst według wzorca. `%Y` rok czterocyfrowy,
+`%m` miesiąc, `%d` dzień, `%H` godzina, `%M` minuta, `%S` sekunda.
+*`datetime.now().strftime('%Y-%m-%d %H:%M:%S')` → `2026-09-11 17:45:09`.
+Wzorzec w apostrofach, gdy cały f-string jest w cudzysłowach.*
+
+### `ModuleNotFoundError`
+Python mówi, że nie znalazł biblioteki o tej nazwie. Nie „biblioteka jest
+zepsuta", tylko „nie ma jej w tym środowisku".
+*Na EC2 `import pyarrow` daje ten błąd i **tak ma być** — ta biblioteka
+jest potrzebna tylko do zapisu Parquetu, a EC2 Parquetu nie zapisuje.*
+
+### Ostrzeżenie (`DeprecationWarning`, `UserWarning`)
+Biblioteka mówi, że coś działa **dziś**, ale kiedyś przestanie albo nie
+jest przetestowane. Program się nie zatrzymuje.
+*Trzy takie stoją w naszym logu przy każdym biegu. Najpoważniejsze mówi,
+że `boto3` przestał wspierać Pythona 3.9 od 29 kwietnia 2026 — czyli
+termin już minął, a EC2 dalej ma 3.9.*
+
+### `[3 rows x 6 columns]` — tabela ucięta
+Pandas, gdy tabela nie mieści się w szerokości, chowa środkowe kolumny
+pod `...` i dopisuje tę linię na końcu.
+*W logu na EC2 ranking miesięczny pokazuje tylko cztery z sześciu kolumn.
+Dwie ukryte dalej trafiają do pliku CSV w całości — ucięcie dotyczy
+wyłącznie wypisu na ekran.*
 
 ---
 
