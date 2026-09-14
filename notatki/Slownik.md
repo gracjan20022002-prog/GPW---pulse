@@ -38,8 +38,43 @@ Czarne okno, w którym wpisujesz polecenia zamiast klikać.
 *Jak SMS do komputera zamiast rozmowy przez przyciski.*
 
 ### venv (środowisko wirtualne)
-Osobna szuflada z bibliotekami dla jednego projektu.
-*Żeby narzędzia z różnych projektów się nie kłóciły.*
+Osobna szuflada z bibliotekami dla jednego projektu. W praktyce folder
+z własnym `python.exe`, własnym `pip` i własnym miejscem na biblioteki
+(`Lib\site-packages`). Co `pip` zainstaluje w tym środowisku, nie trafia do
+Pythona całego komputera.
+*Żeby narzędzia z różnych projektów się nie kłóciły: laptop ma `.venv`
+z pandas 3.0.5, EC2 ma `venv` z pandas 2.3.3.*
+
+### Aktywacja venv (`Activate.ps1`, `deactivate`)
+Aktywacja dopisuje folder `.venv\Scripts` na **początek** listy `PATH`,
+tylko w tym jednym oknie terminala. Od tej chwili samo słowo `python`
+znaczy `.venv\Scripts\python.exe`, a znak zachęty zaczyna się od
+`(.venv)`. `deactivate` zdejmuje ten wpis; nowe okno zaczyna bez
+aktywacji. Pełna ścieżka do `python.exe` działa tak samo bez żadnej
+aktywacji — tak uruchamiają nasze skrypty `pipeline.bat` i `crontab`.
+*14.09, pusty folder testowy „lodziarnia": przed aktywacją `python` →
+`...\Python314\python.exe`, po aktywacji → `...\lodziarnia\.venv\Scripts\python.exe`,
+`pip list` pokazuje tylko `pip`, a `import pandas` kończy się błędem.*
+
+### `PATH`
+Lista folderów, w których system szuka programu, gdy wpiszesz samą jego
+nazwę, np. `python`. Sprawdza je po kolei i bierze pierwszy trafiony.
+*`($env:PATH -split ';')[0]` w PowerShellu pokazuje pierwszy folder
+z listy — po aktywacji venv to `.venv\Scripts`.*
+
+### `pyvenv.cfg`
+Plik w środku venv z opisem, z jakiego Pythona go zrobiono (`home`,
+`version`) i czy widzi biblioteki całego komputera
+(`include-system-site-packages = false` — nie widzi).
+*W środku venv zapisane są pełne ścieżki, dlatego przeniesienie folderu
+go psuje — na EC2 31.08 trzeba było zrobić venv od nowa.*
+
+### Suma kontrolna (SHA256) i `Get-FileHash`
+Długi napis wyliczony z każdego bajta pliku. Zmiana choćby jednego znaku
+daje zupełnie inny napis, więc dwa pliki z tą samą sumą są identyczne.
+W PowerShellu: `Get-FileHash plik -Algorithm SHA256`.
+*14.09: `silver/clean_data.csv` przed testem zakładki i po ponownym biegu
+Silvera miał tę samą sumę `0F21AA1A…` — powtórki nie zmieniły ani bajta.*
 
 ### Biblioteka / pakiet
 Gotowy kod napisany przez kogoś innego, który możesz wykorzystać.
@@ -502,6 +537,39 @@ wiadomość doszła, wysyła się ją ponownie, a powtórki odsiewa odbiorca.
 jutro wyśle dzień drugi raz, `silver.py` odrzuci duplikat. Straconego
 dnia nie da się odzyskać, duplikat tak.*
 
+### Członek grupy i `consumer.close()`
+Konsument, który czyta, jest **członkiem** swojej grupy. `consumer.close()`
+mówi brokerowi „wychodzę". Bez niego broker trzyma Konsumenta na liście
+jeszcze kilkanaście sekund, aż uzna ciszę za wyjście.
+*14.09 tuż po ręcznym biegu `--describe` pokazał `kafka-python-3.0.11-…`
+z `/127.0.0.1` zamiast `no active members`; minutę później lista była
+pusta. W lodziarni: kucharz wyszedł bez „do widzenia".*
+
+### `--delete --group` a `--reset-offsets`
+`kafka-consumer-groups.sh --delete --group nazwa` kasuje grupę razem z jej
+pozycją — przy następnym biegu Konsument nie ma zakładki i włącza się
+`auto_offset_reset`. `--reset-offsets --to-earliest --execute` tylko
+przestawia pozycję na początek — zakładka dalej jest, więc
+`auto_offset_reset` nie ma nic do roboty.
+*Test 14.09 użył `--delete`: `Odebrano 15 wiadomości` pokazało, że
+`earliest` naprawdę działa.*
+
+### Automatyczny zapis pozycji (`enable_auto_commit`)
+Ustawienie `kafka-python`. Gdy włączone (domyślnie), biblioteka sama
+zapisuje pozycję grupy co kilka sekund w trakcie czytania, niezależnie od
+naszego `commit()`.
+*Podejrzenie z 14.09, niesprawdzone: nasz Konsument może mieć zapisaną
+pozycję, zanim wiadomości trafią do S3 — jak kucharz, który odhacza
+zamówienie, zanim lody wyjdą z kuchni.*
+
+### `aws s3 ls --recursive --summarize` i `aws s3 cp … -`
+`aws s3 ls s3://bucket/folder/` wypisuje pliki w S3. `--recursive` schodzi
+do podfolderów, `--summarize` dopisuje na końcu `Total Objects` (liczba
+plików) i `Total Size` (bajty). `aws s3 cp s3://…/plik -` kopiuje plik na
+`-`, czyli na ekran, zamiast na dysk.
+*14.09: `Total Objects: 24` przed testem zakładki i `27` po; nowy plik CBF
+wypisany na ekran miał 5 linii.*
+
 ---
 
 ## Powłoka i cron (Linux)
@@ -622,6 +690,59 @@ pliku. Powłoka tworzy plik tymczasowy w locie.
 *`diff <(sort plik.txt) <(pip freeze | sort)` porównuje plik z żywym
 stanem maszyny, bez zapisywania niczego na dysk. Działa w `bash`, nie
 w PowerShellu — tam ten sam efekt daje `Compare-Object`.*
+
+### `sed 's/stare/nowe/'`, `-e` i `^`
+`sed` czyta plik linia po linii i wypisuje go ze zmianami; samego pliku nie
+zmienia. Reguła `s/stare/nowe/` zamienia w linii pierwszy napis `stare` na
+`nowe`. `-e` dokłada kolejną regułę. `^` na początku wzorca znaczy „tylko na
+początku linii" — bez niego wzorzec trafia też w środek innych napisów.
+*`sed -e 's/^0 5 /0 7 /' -e 's/^10 5 /10 8 /' plan.txt`: chleb z 5:00 na
+7:00, bułki z 5:10 na 8:10. Bez `^` bułki lądują na 7:10, bo `0 5 ` siedzi
+w środku `10 5 `.*
+
+### Adresy w wypisie `diff`: `a`, `c`, `d`
+Pierwsza linia bloku mówi, co się stało: `a` — dodano (*add*), `c` —
+zmieniono (*change*), `d` — usunięto (*delete*). Liczby po lewej to linie
+pierwszego pliku, po prawej drugiego.
+*`0a1` — na samym początku dodano linię 1 drugiego pliku; `2,3c3,4` — linie
+2–3 pierwszego zmieniły się w linie 3–4 drugiego.*
+
+### `NAZWA=wartość komenda` i `date "+%H:%M %Z"`
+Zapis przed komendą ustawia zmienną środowiskową tylko dla tej jednej
+komendy (w PowerShellu tego skrótu nie ma). `date "+…"` wypisuje czas
+w podanym formacie: `%H` — godzina, `%M` — minuty, `%Z` — skrót strefy.
+*`date "+%H:%M %Z"` → `13:03 UTC`; `TZ=Europe/Warsaw date "+%H:%M %Z"` →
+`15:03 CEST`.*
+
+### CEST i CET
+Polski czas letni (CEST) jest dwie godziny przed UTC, zimowy (CET) —
+godzinę. Zmiana w ostatnią niedzielę marca i ostatnią niedzielę
+października (w 2026 — 25.10).
+*Bieg `cron` o 18:00 polskiego pokazuje w logu EC2 `16:00` latem i `17:00`
+zimą. Oba odczyty są poprawne.*
+
+### Czego `CRON_TZ` nie zmienia
+Strefa działa tylko wewnątrz `cron`, gdy liczy, czy już pora. Skrypt jej nie
+dostaje: `datetime.now()`, czas plików w `ls -l` i dziennik systemowy
+zostają w UTC. `CRON_TZ` działa tylko na linie pod sobą, więc stoi na samej
+górze. Cron nie sprawdza, czy nazwa strefy istnieje.
+*Po zmianie z 13.09 linia startu Producenta dalej pokazuje `16:00:0X` — i tak
+ma być.*
+
+### `sudo` i `journalctl`
+`sudo` uruchamia jedną komendę z uprawnieniami administratora. `journalctl`
+czyta dziennik systemowy, do którego piszą usługi, między innymi `cron`.
+`--since "30min ago"` — tylko ostatnie 30 minut; `--no-pager` — wszystko
+naraz, bez przewijanego podglądu. Godziny są w strefie systemu, na EC2 UTC.
+*`sudo journalctl --since "30min ago" --no-pager | grep -i cron`.*
+
+### `LIST`, `REPLACE`, `RELOAD`, `CMD` w dzienniku `cron`
+Ślady w dzienniku systemowym: `LIST` — ktoś wypisał harmonogram
+(`crontab -l`), `REPLACE` — wgrano nowy (`crontab plik`), `RELOAD` — sam
+`cron` wczytał zmieniony plik (przy pełnej minucie), `CMD` — `cron`
+uruchomił zadanie.
+*13.09: `REPLACE` o 13:03:53 UTC, `RELOAD` o 13:04:01 UTC, osiem sekund
+później.*
 
 ---
 
@@ -792,9 +913,60 @@ termin już minął, a EC2 dalej ma 3.9.*
 ### `[3 rows x 6 columns]` — tabela ucięta
 Pandas, gdy tabela nie mieści się w szerokości, chowa środkowe kolumny
 pod `...` i dopisuje tę linię na końcu.
-*W logu na EC2 ranking miesięczny pokazuje tylko cztery z sześciu kolumn.
-Dwie ukryte dalej trafiają do pliku CSV w całości — ucięcie dotyczy
-wyłącznie wypisu na ekran.*
+*W logu na EC2 ranking miesięczny pokazywał tylko cztery z sześciu kolumn;
+od 14.09 nowy Gold ma siedem kolumn i `[3 rows x 7 columns]`. Ukryte
+kolumny dalej trafiają do pliku CSV w całości — ucięcie dotyczy wyłącznie
+wypisu. Gdy wypis idzie do pliku, jak w `cron`, pandas przyjmuje szerokość
+80 znaków (sprawdzone 14.09 na kopii `gold.py`).*
+
+### `how=` w `merge`
+Mówi, które wiersze przeżywają sklejenie dwóch tabel. Domyślnie `inner`:
+tylko te, które pasują po obu stronach. `how="right"`: wszystkie wiersze
+prawej tabeli, a brakujące wartości z lewej zostają puste.
+*Lewa tabela ma zwycięskie miesiące dwóch sklepów, prawa ma trzy sklepy. Bez
+`how` trzeci sklep znika bez śladu, z `how="right"` zostaje z pustym
+miesiącem.*
+
+### `NaT`
+Skrót od *Not a Time*: znacznik braku w kolumnie z datą albo okresem,
+odpowiednik `NaN` dla liczb. Pandas dobiera znacznik do rodzaju kolumny.
+W zapisanym CSV oba wychodzą jako puste pole.
+*Test z 12.09 z progiem 25: miesiąc `NaT`, odchylenie i dni `NaN`.*
+
+### Maska z kilkoma warunkami
+Wybiera wiersze spełniające kilka warunków naraz. Każdy warunek we własnych
+nawiasach okrągłych, między nimi `&` („i jednocześnie"). Słowo `and`
+w pandas kończy się błędem.
+*`t[(t["miesiac"] != t["pierwszy"]) & (t["count"] >= 15)]` — miesiące, które
+nie są pierwsze i mają co najmniej 15 dni.*
+
+### `&` między dwiema liczbami
+W masce `&` znaczy „i jednocześnie". Między dwiema liczbami całkowitymi
+porównuje je bit po bicie i zwraca trzecią liczbę, bez żadnego błędu.
+*`114 & 108` daje `96`: `1110010` i `1101100` mają wspólne jedynki tylko na
+miejscach `1100000`.*
+
+### `sort_values` przed `groupby(...).head(1)`
+`sort_values` układa wiersze w kolejności, `groupby` dzieli je na kubełki,
+`head(1)` bierze pierwszy wiersz z każdego kubełka. Żeby „pierwszy" znaczył
+„największy", sortowanie musi iść przed grupowaniem. Samo `head(1)` bez
+`groupby` bierze jeden wiersz z całej tabeli.
+*`t.sort_values(by="std", ascending=False).groupby("sklep").head(1)` —
+najbardziej zmienny miesiąc każdego sklepu.*
+
+### `rename` milczy, `drop` krzyczy
+`rename` z nazwą kolumny, której nie ma, nic nie robi i nic nie mówi. `drop`
+z taką nazwą przerywa skrypt błędem `KeyError`. W potoku `drop` bywa
+sojusznikiem: zatrzyma skrypt, zamiast zapisać zły plik.
+*`t.rename(columns={"nie_ma": "x"})` — tabela bez zmian;
+`t.drop(columns=["nie_ma"])` — `KeyError`.*
+
+### Końcówki `_x` i `_y` po `merge`
+Gdy obie sklejane tabele mają kolumnę o tej samej nazwie (poza kluczem),
+pandas zostawia obie i dokleja końcówki: `_x` z lewej, `_y` z prawej. Bez
+błędu.
+*Doklejenie tej samej tabeli drugi raz robi z `ostatnia_cena` dwie kolumny:
+`ostatnia_cena_x` i `ostatnia_cena_y`.*
 
 ---
 

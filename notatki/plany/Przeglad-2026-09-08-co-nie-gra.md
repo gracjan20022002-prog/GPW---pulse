@@ -87,6 +87,11 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   Bieg `cron` o 18:00 już ją miał — pliki spółek 769 → 770,
   `Odebrano 3 wiadomości`, Silver `(2310, 3)`. Odstęp między publikacją
   u źródła a naszym biegiem wynosi więc **najwyżej piętnaście minut**.
+  **14.09:** bieg `cron` o 18:00 znalazł świecę dla wszystkich trzech
+  spółek (`nowych dni: 1` trzy razy). CBF dostało jednak `201.0`,
+  dokładnie tyle co 11.09. Możliwe, że kurs się nie zmienił; możliwe, że
+  Yahoo o 18:00 oddało świecę bez dzisiejszej ceny. **Nie sprawdzone ze
+  źródłem zewnętrznym.**
 
   Skutek, gdyby Yahoo kiedyś spóźniło się bardziej: wieczorny bieg nie
   znajduje nowych dni, Konsument wypisuje `Odebrano 0`, a Silver o 18:10
@@ -157,6 +162,19 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
 
 ### 2.3 Konsument — `kod/kafka_consumer.py`
 
+- ✅ **Test „zakładki nie ma" zrobiony 14.09** — ścieżka bez zapisanej
+  pozycji sprawdzona na prawdziwym brokerze i S3, liczby przewidziane
+  przed testem. Notatka: [[Notatka-2026-09-14-test-zakladki]]. Bramka
+  `earliest` = 2327 (segment z zalewem skasowany 14.09 po 18:00, jak
+  przewidziane 09.09). Grupa skasowana `--delete`, ręczny bieg Konsumenta
+  z `KAFKA_BOOTSTRAP=localhost:9094`: `Odebrano 15 wiadomości`, pozycja
+  2342. W S3 `live/` 24 → 27 plików; każdy nowy plik jest bajt w bajt
+  sklejeniem pięciu dziennych plików spółki (CBF 406 + 4 = 410, SNT
+  417 + 4 = 421, XTB 432 + 4 = 436). Silver na laptopie po teście:
+  `(2313, 3)` i `clean_data.csv` z sumą SHA256 identyczną jak przed testem.
+  Brakuje potwierdzenia Silvera na EC2 (bieg 15.09: `(2316, 3)`) i sygnału
+  awarii (2.7). W `live/` zostają 3 pliki z powtórkami — kompakcja 1.10
+  wypisze o 3 więcej w `Usunięto N plików`.
 - ✅ **NAPRAWIONE 08.09** — `'earliest'`; zakładka grupy 2330/2330,
   LAG 0. **Zwykła ścieżka sprawdzona 09.09** prawdziwym biegiem `cron`
   (`Odebrano 3 wiadomości`, 2333/2333, LAG 0). **Poprawka 09.09 do
@@ -197,6 +215,21 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   kolumna. `SELECT *` z `UNION` wywala się na różnicy liczby kolumn
   (już raz 25.08).
 - 🟡 Adres brokera na sztywno (linia 7), jak w Producencie.
+- 🟠 **Podejrzenie, niesprawdzone (14.09): zakładka może zapisać się,
+  zanim wiadomości trafią do S3.** `kafka-python` domyślnie zapisuje
+  pozycję sama co 5 s w trakcie czytania (`enable_auto_commit`, w kodzie
+  nieustawione). Konsument po ostatniej wiadomości czeka jeszcze 5 s
+  (`consumer_timeout_ms=5000`, linia 13), a do S3 pisze dopiero potem
+  (linie 23–28). Jeśli `put_object` się wywróci, skrypt padnie przed
+  `commit()` (linia 29), ale pozycja mogła już pójść naprzód: wiadomości
+  byłyby „przeczytane", a w S3 by ich nie było, i nic poza `Traceback`
+  w `errors.txt` by tego nie pokazało. Nie sprawdzone ani w kodzie
+  `kafka-python` 3.0.11, ani biegiem. Test zakładki z 14.09 tego nie
+  dotyka, bo zapis do S3 się udał.
+- 🟡 **Brak `consumer.close()` (14.09).** Konsument kończy bez pożegnania
+  z brokerem. Zaraz po biegu `--describe` pokazuje go jeszcze jako członka
+  grupy (`kafka-python-3.0.11-…`, `/127.0.0.1`), po kilkunastu sekundach
+  znika. Danym nie szkodzi; `--delete` grupy w tym oknie by odmówiło.
 
 ### 2.4 S3 / Glue / Athena
 
@@ -237,6 +270,38 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   pusty, plik identyczny co do bajta.
 
 ### 2.6 Gold — `kod/gold.py`
+
+**Stan 13.09.** Dwa pierwsze punkty tej części, o migotaniu rankingu
+i o mylących nazwach kolumn, opisują stan **sprzed** naprawy. Aktualnie:
+
+- ✅ **NAPRAWIONE 12.09 lokalnie, w gicie od 13.09 (`3c488f1`), na EC2
+  od 14.09, sprawdzone tego samego wieczoru biegiem `cron`** (linia Golda
+  `114` i `108`, XTB `2025-01`, odchylenia, `dni` i `pierwsza_cena`
+  w `ranking.csv` co do cyfry jak na laptopie, `[3 rows x 7 columns]`,
+  blok Golda 12 linii zamiast 11). Brakuje głośnej awarii (krok 8). Notatka:
+  [[Notatka-2026-09-12-pelne-miesiace-w-rankingu]]. Z porównania wypadają
+  pierwszy i ostatni miesiąc historii każdej spółki (ostatni, bo jeszcze
+  rośnie — to usuwa migotanie) oraz miesiące poniżej `MIN_DNI = 15` dni
+  notowań (dziura w danych). Spółka bez pełnego miesiąca zostaje w pliku
+  z pustym miesiącem (`how="right"`). Gold wypisuje liczbę wierszy tabeli
+  miesięcznej przed odsianiem i po nim. Kolumny nazywają się teraz
+  `miesiac` w obu plikach oraz `odchylenie_standardowe` i `dni`
+  w `ranking.csv`. Trzy testy z liczbami policzonymi przed biegiem: zwykły
+  bieg 114 → 108 i XTB `2026-09` → `2025-01` (3,7011990688949696), reszta
+  bez zmiany ostatniej cyfry; bieg bez września — odchylenia identyczne co
+  do cyfry; próg 25 — 114 → 0 i trzy spółki zostają w pliku. Wiersze
+  alfabetycznie (decyzja Gracjana 13.09: kolejność stała, sortować może
+  strona). 13.09 EC2 dalej pokazuje XTB z `2026-09`.
+- 🟡 **Nierówne okna `range=3y`** (zauważone 12.09, dopisane decyzją
+  Gracjana 13.09). Producent pyta Yahoo o trzy lata wstecz od **dnia
+  zapytania**. Obecne spółki mają dane od 14.08.2023, a spółka dodana
+  12.09.2026 miałaby je od 12.09.2023. Ranking miesięczny tego nie odczuje,
+  bo miesiące każdej spółki ocenia osobno. `zmiana_caly_okres` odczuje: po
+  cichu zakłada wspólne okno dla wszystkich spółek, więc porównywałaby
+  różne okresy. Nie sprawdzone: dlaczego historia zaczyna się akurat
+  14.08.2023.
+
+Stan sprzed naprawy:
 
 - 🔴 **„Najbardziej zmienny miesiąc" jest liczony źle dla bieżącego
   miesiąca.** Odchylenie standardowe (linia 21) z pięciu dni września
@@ -374,7 +439,19 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   wymaga ręcznej edycji `crontab` (01.09 — przeoczone, cały wieczór
   bez danych). `git pull` wymaga rytuału `git checkout -- silver/ gold/`.
   Nic nie sprawdza, że kod na EC2 to ten sam, co na GitHubie.
-- 🟡 **Zmiana czasu** — koniec października `crontab` z 16:00/16:10
+- ✅ **`CRON_TZ` WDROŻONE 13.09, sprawdzone biegami 13.09 i 14.09.** Na
+  górze `crontab` `CRON_TZ=Europe/Warsaw`, godziny `0 18` i `10 18` —
+  jednym ruchem: `sed` na kopii, `diff` zgodny z symulacją, strefa
+  sprawdzona `TZ=Europe/Warsaw date` przed wgraniem. Notatka:
+  [[Notatka-2026-09-13-strefa-czasowa-cron]]. Dowód: `RELOAD` w dzienniku
+  systemowym o 13:04:01 UTC plus linia startu `16:00:02` wieczorem 13.09
+  (niedziela) i 14.09 (dzień giełdowy) — gdyby `cron` pomijał strefę, bieg
+  poszedłby o 18:00 UTC. **Strefa działa tylko wewnątrz `cron`:** log,
+  `ls -l` i narzędzia Kafki zostają w UTC; od 25.10 poprawny bieg pokaże
+  `17:00:0X`. Brakuje pierwszego biegu po zmianie czasu (26.10) i sygnału
+  awarii. Powrót: `crontab ~/crontab-kopia-0913.txt`. Opis sprzed
+  wdrożenia:
+  ~~🟡~~ **Zmiana czasu** — koniec października `crontab` z 16:00/16:10
   na 17:00/17:10 UTC (od 09.09 dwie linie, nie trzy), ręcznie,
   z pamięci. `CRON_TZ=Europe/Warsaw`
   na górze `crontab` załatwiłoby to raz na zawsze.
@@ -552,12 +629,16 @@ zamknięte przekreślone, nowe dopisane.
 |---|---|---|
 | 1 | Producent przestaje gubić dane | ✅ 08.09 — sprawdzone lokalnie i przez `cron` na EC2 |
 | 2 | Zabezpieczenie kompakcji | ✅ 08.09 — obie ścieżki sprawdzone biegiem |
-| 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka potwierdzona 09.09 przez `cron`; test „zakładki nie ma" przełożony na po 14.09 — zalew z 01.09 wciąż w topicu (2.3) |
+| 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka potwierdzona 09.09 przez `cron`; **ścieżka bez zakładki sprawdzona 14.09 testem** (`Odebrano 15`, powtórki w S3 bajt w bajt, Silver bez zmian — szczegóły w 2.3). Brakuje potwierdzenia Silvera na EC2 biegiem 15.09 |
 | 3b | Producent i Konsument w jednej linii `crontab` | ✅ **10.09 sprawdzone biegiem `cron` na EC2.** Wszystkie cztery liczby przewidziane 09.09 trafione: w `errors.txt` ścieżka i trzy adresy Yahoo **przed** `Odebrano 3 wiadomości` (dowód, że przekierowanie łapie oba skrypty), `(2307, 3)` dwa razy, 769 wierszy w plikach spółek, pozycja grupy 2336/2336 przy LAG 0. Niezależne potwierdzenie z Windowsa: lokalny Silver o 18:10 wyciągnął z Atheny 2307 wierszy z dzisiejszą datą dla wszystkich trzech spółek. Kopia sprzed edycji `~/crontab-kopia-0909.txt` zostaje na EC2 |
 | 4 | Sprzątanie kodu i konfiguracji | ✅ **11.09 wdrożone na EC2 i sprawdzone biegiem `cron`.** Zakres zrobiony 10.09 lokalnie: `timeout=(10, 30)`, martwy kod i cztery pliki-śmieci, `config.py` na bucket/region/bazę/adres Atheny, siedem `print`-ów, martwy import `ticker` w Konsumencie. Notatka: [[Notatka-2026-09-10-sprzatanie-kodu]]. **Dowód z 11.09, wszystkie sześć liczb policzonych przed biegiem i trafionych:** `errors.txt` 417 → 440, blok jednego biegu 49 → 23 linie, sam blok Golda 37 → 11 linii, pliki spółek 770, `errors.log` dalej 8, pozycja grupy 2339/2339 przy LAG 0. W bloku ani jednego `dtype:`, ani wiersza z twardych numerów 748–752, ani samotnej liczby `38`. Potwierdzenie niezależne z Windowsa: lokalny `silver/clean_data.csv` 2311 linii i ranking identyczny co do ostatniej cyfry, mimo trzynastu różnic w pakietach i dwóch wersji Pythona. Z pięciu warunków „zrobione" spełnia cztery; piąty, głośna awaria, nie jest zadaniem tego kroku i czeka na krok 8. Świadomie odłożone poza ten krok: `CRON_TZ` |
 | 4a | Podsumowanie w Producencie | 🟨 **11.09 napisane i sprawdzone lokalnie.** Zdjęte ze sprzątania 10.09, bo wymagało żywego brokera. Notatka z czterema decyzjami i dwoma testami: [[Notatka-2026-09-11-podsumowanie-w-producencie]]. Test z martwym brokerem zdany: `nowych dni 7, wysłane 0, stan nietknięte` na spółkę, pliki nietknięte przy 762 wierszach, `errors.log` +4. **Na EC2 nie trafiło 11.09 celowo**, bo wieczorny bieg potwierdzał krok 4. Zostaje test na EC2 zwykłym biegiem `cron`: oczekiwane `nowych dni 1, wysłane 1, stan zapisane` i długość bloku bez zmian, cztery linie za cztery |
 | 4b | Spisy wymagań dla dwóch maszyn | ✅ **11.09 zmierzone i rozdzielone.** `requirements.txt` → `requirements-lokalny.txt` przez `git mv` (32 paczki, Python 3.14.2), nowy `requirements-ec2.txt` (19 paczek, Python 3.9.25), oba czystym `pip freeze` bez komentarzy, żeby porównanie działało jedną komendą. Notatka: [[Notatka-2026-09-11-wymagania-dwie-maszyny]]. Wynik pomiaru: czternastu paczek na EC2 brakuje i **wszystkie czternaście mają wyjaśnienie** — siedem ciągnie `matplotlib`, cztery `pytest`, plus te dwa narzędzia i `pyarrow`; jedyna nadwyżka `pytz` to zależność pandas 2. Nic nie brakuje przypadkiem. Dwie paczki są na EC2 **nowsze** niż na laptopie. README (104) poprawiony: twierdził, że bez `pyarrow` projekt nie ruszy, co jest nieprawdą od 04.09. `compaction.py` ma komentarz „wyłącznie lokalnie" |
-| 5–10 | reszta | ⬜ |
+| 4a, uzupełnienie 13.09 | Podsumowanie w Producencie | 🟨 **Ścieżka „nic nowego" sprawdzona na EC2** sobotnim biegiem `cron` z 12.09, odczyt 13.09: 13 z 13 przewidywań (linia startu w linii 441 z `16:00:02`, trzy razy `nowych dni: 0, wysłane: 0, stan: zapisane`, `Odebrano 0 wiadomości`, blok 21 linii, grupa 2339/2339 przy LAG 0). Blok ma 21 linii, nie 23: przy zerze wiadomości Konsument nie tworzy klienta S3, więc nie pojawia się ostrzeżenie `boto3` — przewidywanie z 12.09 było błędne. Zostaje ścieżka dnia giełdowego: poniedziałek 14.09 |
+| 4a, uzupełnienie 14.09 | Podsumowanie w Producencie | ✅ **Ścieżka dnia giełdowego sprawdzona na EC2** biegiem `cron` 14.09: linia startu w linii 483 z `16:00:02`, trzy razy `nowych dni: 1, wysłane: 1, stan: zapisane`, pliki spółek 771, `Odebrano 3 wiadomości`, blok 24 linie (23 plus linia nowego Golda), `errors.txt` 506, grupa 2342. Wszystkie trzy ścieżki sprawdzone: awaria brokera (11.09, lokalnie), „nic nowego" (12.09, EC2), dzień giełdowy (14.09, EC2). Z pięciu warunków „zrobione" brakuje głośnej awarii (krok 8) |
+| 4c | `CRON_TZ` i godziny biegów | ✅ **13.09 wdrożone, sprawdzone biegami 13.09 i 14.09** (szczegóły w 2.10). Brakuje biegu po zmianie czasu 26.10 (poprawny pokaże `17:00:0X`) i głośnej awarii (krok 8) |
+| 9 | Gold: pełne miesiące w rankingu | ✅ **12.09 naprawione i sprawdzone lokalnie trzema testami, 13.09 w gicie (`3c488f1`), 14.09 na EC2 i sprawdzone biegiem `cron`** (szczegóły w 2.6). Wzięte poza kolejnością decyzją Gracjana z 11.09. Brakuje głośnej awarii (krok 8) |
+| 5–8, 10 | reszta | ⬜ |
 
 Uzasadnienie kolejności przy każdej pozycji: dlaczego tu, a nie gdzie
 indziej.

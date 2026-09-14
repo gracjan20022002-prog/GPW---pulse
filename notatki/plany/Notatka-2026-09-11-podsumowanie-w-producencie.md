@@ -224,8 +224,13 @@ tyle samo linii co obecna ścieżka, a daje coś, czego dziś nie ma.
 **Pułapka do tej decyzji:** `datetime.now()` na EC2 zwraca czas
 uniwersalny, bo taka jest strefa tej maszyny. W linii startu stanie więc
 `16:00`, a nie `18:00`, mimo że bieg jest o osiemnastej polskiej. To nie
-jest błąd, ale trzeba o tym wiedzieć przy czytaniu, i zmieni się samo
-w dniu, w którym zrobimy `CRON_TZ`.
+jest błąd, ale trzeba o tym wiedzieć przy czytaniu. ~~I zmieni się samo
+w dniu, w którym zrobimy `CRON_TZ`.~~
+
+**Sprostowanie 13.09, potwierdzone biegami 13.09 i 14.09:** nie zmieni
+się. `CRON_TZ` działa tylko wewnątrz `cron`, a skrypt dalej widzi zegar
+maszyny w UTC. Po wgraniu strefy linia startu pokazała `16:00:02`, a od
+25.10 pokaże `17:00:0X` przy biegu o 18:00 polskiego.
 
 ### Decyzja 2 — co liczymy
 
@@ -445,9 +450,14 @@ pamiętać przy debugowaniu pobierania.
 nie dotyka w żadnym miejscu. Pamięć Producenta i podsumowanie są od niej
 niezależne.
 
-**`CRON_TZ` zmieni godzinę w linii startu.** Dziś stanęłoby tam `16:00`,
+~~**`CRON_TZ` zmieni godzinę w linii startu.** Dziś stanęłoby tam `16:00`,
 po zmianie strefy `18:00`. To jest oczekiwane i będzie pierwszym widocznym
-dowodem, że strefa weszła.
+dowodem, że strefa weszła.~~
+
+**Sprostowanie 13.09, potwierdzone 14.09:** nie zmieni. Po wgraniu
+`CRON_TZ` linia startu dalej pokazuje czas UTC (`16:00:02` 13.09 i 14.09).
+Dowodem, że strefa weszła, był wpis `RELOAD` w dzienniku systemowym razem
+z godziną biegu — zob. [[Notatka-2026-09-13-strefa-czasowa-cron]].
 
 ---
 
