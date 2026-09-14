@@ -38,12 +38,27 @@ Czarne okno, w którym wpisujesz polecenia zamiast klikać.
 *Jak SMS do komputera zamiast rozmowy przez przyciski.*
 
 ### venv (środowisko wirtualne)
-Osobna szuflada z bibliotekami dla jednego projektu. W praktyce folder
-z własnym `python.exe`, własnym `pip` i własnym miejscem na biblioteki
-(`Lib\site-packages`). Co `pip` zainstaluje w tym środowisku, nie trafia do
-Pythona całego komputera.
-*Żeby narzędzia z różnych projektów się nie kłóciły: laptop ma `.venv`
-z pandas 3.0.5, EC2 ma `venv` z pandas 2.3.3.*
+**Po co:** bez venv wszystkie projekty na komputerze dzielą jeden wspólny
+zestaw bibliotek, a w nim mieści się tylko jedna wersja każdej biblioteki.
+Instalacja nowszej wersji dla jednego projektu po cichu zmienia działanie
+drugiego. venv daje każdemu projektowi **osobny zestaw bibliotek w jego
+własnych wersjach**. Ten zestaw da się spisać (`pip freeze`) i odtworzyć
+na innej maszynie (`pip install -r plik`).
+**Co to jest:** folder z własnym `python.exe`, własnym `pip` i własnym
+miejscem na biblioteki (`Lib\site-packages`). Co `pip` zainstaluje w tym
+środowisku, nie trafia do wspólnego zestawu komputera.
+*Projekt „Lodziarnia" jest pisany pod pandas 2, projekt „Pogoda" potrzebuje
+pandas 3. Bez venv `pip install pandas==3.0.5` dla Pogody usuwa pandas 2,
+bo miejsce jest jedno. W Lodziarni warunek `lody["smak"].dtype == object`
+zmienia wtedy wynik z `True` na `False`, bo pandas 3 daje kolumnie
+z tekstem typ `str`, a nie `object` (sprawdzone 14.09 na pandas 3.0.5).
+Czyszczenie spacji przestaje działać, bez żadnego błędu na ekranie. Z venv
+każdy projekt ma swoje pandas i nic się nie zmienia. U nas: laptop ma
+`.venv` z pandas 3.0.5, EC2 ma `venv` z pandas 2.3.3, bo Python 3.9 na
+EC2 nie przyjmie pandas 3.*
+**Do zapamiętania:** osobny zestaw bibliotek w konkretnych wersjach dla
+jednego projektu — żeby instalowanie czegoś dla innego projektu go nie
+zepsuło i żeby dało się ten zestaw odtworzyć na innej maszynie.
 
 ### Aktywacja venv (`Activate.ps1`, `deactivate`)
 Aktywacja dopisuje folder `.venv\Scripts` na **początek** listy `PATH`,
