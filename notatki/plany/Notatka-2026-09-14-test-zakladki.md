@@ -24,8 +24,11 @@ członka grupy zamiast `no active members`. Konsument kończy bez
 minucie było już `no active members`. W lodziarni: kucharz wyszedł bez „do
 widzenia" i przez chwilę jeszcze figuruje na liście obecnych.
 
-**Zostało:** bieg `cron` 15 września ma pokazać `(2316, 3)` na samym EC2.
-Kodu i `crontab` nie zmienia. Dotyczy tylko Kafki na EC2.
+~~**Zostało:** bieg `cron` 15 września ma pokazać `(2316, 3)` na samym EC2.~~
+**Potwierdzone 15 września, odczyt po 18:15:** na EC2 dwa razy `(2316, 3)`
+(2313 + 3 nowe dni, powtórki z testu nie dodały wiersza), `Odebrano 3
+wiadomości`, zakładka `2345 2345 0` i `no active members`. Brakuje tylko
+sygnału awarii, jak przy każdej naprawie.
 
 ---
 

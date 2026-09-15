@@ -91,7 +91,8 @@ dane · 🟠 ukryta awaria, nikt się nie dowie · 🟡 brud, dług, mylące ·
   spółek (`nowych dni: 1` trzy razy). CBF dostało jednak `201.0`,
   dokładnie tyle co 11.09. Możliwe, że kurs się nie zmienił; możliwe, że
   Yahoo o 18:00 oddało świecę bez dzisiejszej ceny. **Nie sprawdzone ze
-  źródłem zewnętrznym.**
+  źródłem zewnętrznym.** **15.09:** CBF `197.4`, więc cena u Yahoo się
+  zmienia; `201.0` z 14.09 dalej niesprawdzone.
 
   Skutek, gdyby Yahoo kiedyś spóźniło się bardziej: wieczorny bieg nie
   znajduje nowych dni, Konsument wypisuje `Odebrano 0`, a Silver o 18:10
@@ -346,7 +347,9 @@ Stan sprzed naprawy:
   zapisują CSV do folderu repozytorium na instancji. Nic ich nie
   zabiera. Power BI, strona, ktokolwiek — nie mają skąd czytać.
   Dane wchodzą do chmury i wychodzą z niej z powrotem na jeden dysk za
-  SSH.
+  SSH. **15.09 w toku (krok 5):** `gold.py` wysyła oba pliki do S3 `gold/`
+  za przełącznikiem `GOLD_DO_S3`; sprawdzone jednorazową wysyłką z laptopa,
+  na EC2 jeszcze nie ma kodu ani zmiennej, tabel w Athenie brak.
 - 🟠 **Dwie maszyny liczą to samo i obie wersje trafiają do gita.**
   Lokalny Harmonogram (18:10) uruchamia `pipeline.bat` → `silver.py` +
   `gold.py` na Windowsie, wynik ląduje w `silver/` i `gold/`, które są
@@ -629,7 +632,7 @@ zamknięte przekreślone, nowe dopisane.
 |---|---|---|
 | 1 | Producent przestaje gubić dane | ✅ 08.09 — sprawdzone lokalnie i przez `cron` na EC2 |
 | 2 | Zabezpieczenie kompakcji | ✅ 08.09 — obie ścieżki sprawdzone biegiem |
-| 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka potwierdzona 09.09 przez `cron`; **ścieżka bez zakładki sprawdzona 14.09 testem** (`Odebrano 15`, powtórki w S3 bajt w bajt, Silver bez zmian — szczegóły w 2.3). Brakuje potwierdzenia Silvera na EC2 biegiem 15.09 |
+| 3a | Konsument `'earliest'` | ✅ 08.09 wdrożone; zwykła ścieżka potwierdzona 09.09 przez `cron`; **ścieżka bez zakładki sprawdzona 14.09 testem** (`Odebrano 15`, powtórki w S3 bajt w bajt, Silver bez zmian — szczegóły w 2.3). **Silver na EC2 potwierdził 15.09 biegiem `cron`:** 2 × `(2316, 3)`, `Odebrano 3 wiadomości`, pozycja 2345, blok 24 — powtórki nie dodały wiersza. Brakuje głośnej awarii (krok 8) |
 | 3b | Producent i Konsument w jednej linii `crontab` | ✅ **10.09 sprawdzone biegiem `cron` na EC2.** Wszystkie cztery liczby przewidziane 09.09 trafione: w `errors.txt` ścieżka i trzy adresy Yahoo **przed** `Odebrano 3 wiadomości` (dowód, że przekierowanie łapie oba skrypty), `(2307, 3)` dwa razy, 769 wierszy w plikach spółek, pozycja grupy 2336/2336 przy LAG 0. Niezależne potwierdzenie z Windowsa: lokalny Silver o 18:10 wyciągnął z Atheny 2307 wierszy z dzisiejszą datą dla wszystkich trzech spółek. Kopia sprzed edycji `~/crontab-kopia-0909.txt` zostaje na EC2 |
 | 4 | Sprzątanie kodu i konfiguracji | ✅ **11.09 wdrożone na EC2 i sprawdzone biegiem `cron`.** Zakres zrobiony 10.09 lokalnie: `timeout=(10, 30)`, martwy kod i cztery pliki-śmieci, `config.py` na bucket/region/bazę/adres Atheny, siedem `print`-ów, martwy import `ticker` w Konsumencie. Notatka: [[Notatka-2026-09-10-sprzatanie-kodu]]. **Dowód z 11.09, wszystkie sześć liczb policzonych przed biegiem i trafionych:** `errors.txt` 417 → 440, blok jednego biegu 49 → 23 linie, sam blok Golda 37 → 11 linii, pliki spółek 770, `errors.log` dalej 8, pozycja grupy 2339/2339 przy LAG 0. W bloku ani jednego `dtype:`, ani wiersza z twardych numerów 748–752, ani samotnej liczby `38`. Potwierdzenie niezależne z Windowsa: lokalny `silver/clean_data.csv` 2311 linii i ranking identyczny co do ostatniej cyfry, mimo trzynastu różnic w pakietach i dwóch wersji Pythona. Z pięciu warunków „zrobione" spełnia cztery; piąty, głośna awaria, nie jest zadaniem tego kroku i czeka na krok 8. Świadomie odłożone poza ten krok: `CRON_TZ` |
 | 4a | Podsumowanie w Producencie | 🟨 **11.09 napisane i sprawdzone lokalnie.** Zdjęte ze sprzątania 10.09, bo wymagało żywego brokera. Notatka z czterema decyzjami i dwoma testami: [[Notatka-2026-09-11-podsumowanie-w-producencie]]. Test z martwym brokerem zdany: `nowych dni 7, wysłane 0, stan nietknięte` na spółkę, pliki nietknięte przy 762 wierszach, `errors.log` +4. **Na EC2 nie trafiło 11.09 celowo**, bo wieczorny bieg potwierdzał krok 4. Zostaje test na EC2 zwykłym biegiem `cron`: oczekiwane `nowych dni 1, wysłane 1, stan zapisane` i długość bloku bez zmian, cztery linie za cztery |
@@ -638,7 +641,8 @@ zamknięte przekreślone, nowe dopisane.
 | 4a, uzupełnienie 14.09 | Podsumowanie w Producencie | ✅ **Ścieżka dnia giełdowego sprawdzona na EC2** biegiem `cron` 14.09: linia startu w linii 483 z `16:00:02`, trzy razy `nowych dni: 1, wysłane: 1, stan: zapisane`, pliki spółek 771, `Odebrano 3 wiadomości`, blok 24 linie (23 plus linia nowego Golda), `errors.txt` 506, grupa 2342. Wszystkie trzy ścieżki sprawdzone: awaria brokera (11.09, lokalnie), „nic nowego" (12.09, EC2), dzień giełdowy (14.09, EC2). Z pięciu warunków „zrobione" brakuje głośnej awarii (krok 8) |
 | 4c | `CRON_TZ` i godziny biegów | ✅ **13.09 wdrożone, sprawdzone biegami 13.09 i 14.09** (szczegóły w 2.10). Brakuje biegu po zmianie czasu 26.10 (poprawny pokaże `17:00:0X`) i głośnej awarii (krok 8) |
 | 9 | Gold: pełne miesiące w rankingu | ✅ **12.09 naprawione i sprawdzone lokalnie trzema testami, 13.09 w gicie (`3c488f1`), 14.09 na EC2 i sprawdzone biegiem `cron`** (szczegóły w 2.6). Wzięte poza kolejnością decyzją Gracjana z 11.09. Brakuje głośnej awarii (krok 8) |
-| 5–8, 10 | reszta | ⬜ |
+| 5 | Wynik Golda do S3 i Atheny | 🟨 **15.09 w toku.** Notatka [[Notatka-2026-09-15-wynik-golda-do-s3]] zatwierdzona, pięć decyzji zgodnie z rekomendacją (nadpisywać, CSV, przełącznik `GOLD_DO_S3` tylko na EC2, tabele ręcznie SQL, bez kolumny z godziną). Uprawnienia sprawdzone przed kodem: rola EC2 ma `AmazonS3FullAccess` i `AmazonAthenaFullAccess`, brak polityk wpisanych w rolę i polityki bucketa, `gold/` puste. Przełącznik napisany, sprawdzony lokalnie w obu drogach; pierwsza wysyłka z laptopa (jednorazowy wyjątek od decyzji 3) co do bajta: 157240 + 365 = 157605. Brakuje: tabel w Athenie, wdrożenia na EC2 ze zmienną w `crontab`, głośnej awarii |
+| 6–8, 10 | reszta | ⬜ |
 
 Uzasadnienie kolejności przy każdej pozycji: dlaczego tu, a nie gdzie
 indziej.

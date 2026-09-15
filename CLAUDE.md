@@ -18,7 +18,11 @@ podstawy, `pytest` podstawy, `kafka-python` (Producent/Konsument, `group_id`,
 `commit`), `boto3` (`put_object`, `upload_file`, `delete_object`),
 `pyathena` + SQL w Athenie (w tym `UNION`, `GROUP BY`, `HAVING`, `"$path"`),
 Harmonogram Windows, `cron`, `systemd` na poziomie „enable/start/status",
-SSH, `git` (w tym `git mv`, `git rm --cached`, `.gitignore`).
+SSH, `git` (w tym `git mv`, `git rm --cached`, `.gitignore`), zmienne
+środowiskowe (`os.environ.get`, `$env:`, `Remove-Item Env:`). **Pracuje
+zwykle w PowerShellu** (15.09) — składnia `$env:NAZWA`, nie `%NAZWA%`;
+przed komendą zależną od powłoki patrzeć, czy wklejony wiersz zaczyna się
+od `PS`.
 
 **Nie zna jeszcze:** klas, `async`, dekoratorów poza `@pytest.mark`,
 testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
@@ -116,7 +120,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (14.09 wieczorem)
+## Stan projektu — uczciwie (15.09 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -153,21 +157,32 @@ Przy każdej godzinie mówić, w jakiej strefie jest.
 - **Gold** (`gold.py`): zmiany procentowe i ranking „najbardziej zmiennego
   **pełnego** miesiąca" (bez pierwszego i ostatniego miesiąca historii
   spółki i bez miesięcy poniżej 15 dni notowań) → `gold/*.csv` na dysku EC2.
+  **Od 15.09 w gicie, ale jeszcze nie na EC2:** po zapisie na dysk, gdy
+  zmienna `GOLD_DO_S3` jest równa `1`, wysyła oba pliki do S3
+  (`gold/dane_dzienne/dane_dzienne.csv`, `gold/ranking/ranking.csv`) i pisze
+  `S3: wysłano …` na plik; bez zmiennej pisze
+  `S3: Pominięto, brak GOLD_DO_S3 == 1`.
 - **`bronze`** w S3 to Parquet do końca poprzedniego miesiąca, przepisywany
   ręcznie przez `compaction.py`, **wyłącznie z laptopa** (pierwszy bieg
   z prawdziwym kasowaniem: 1 października).
 - **Lokalny Harmonogram Windows** liczy Silver+Gold równolegle o 18:10 jako
   „zapas" (`kod/pipeline.bat`, pełne ścieżki do `.venv\Scripts\python.exe`).
+  Od 15.09 z nowym `gold.py`, bez przełącznika, więc nic nie wysyła do S3.
 
 **Normalny blok jednego biegu w `errors.txt`:**
 - w dzień giełdowy **24 linie**: Producent 4, ostrzeżenie `kafka-python` 2,
   `boto3` 2, `Odebrano` 1, `pandas` 2, Silver 1, Gold 12;
 - bez nowych wiadomości **22 linie**, bo Konsument tworzy klienta S3,
   a z nim ostrzeżenie `boto3`, tylko wtedy, gdy ma co zapisać.
+- **po wdrożeniu nowego `gold.py` na EC2:** ze zmienną `GOLD_DO_S3=1` +4
+  linie (2 ostrzeżenia `boto3`, bo Gold to osobny program, i 2 × „wysłano”),
+  czyli **28 / 26**; bez zmiennej +1 („Pominięto”), czyli **25 / 23**.
 
-Stan 14.09 po biegu i teście: `errors.txt` 506, `errors.log` 8, pliki spółek
-po 771, zakładka `2342`, najstarsza wiadomość w topicu 2327, w S3 `live/`
-27 plików.
+Stan 15.09 po biegu: `errors.txt` 530, `errors.log` 8, pliki spółek po 772,
+zakładka `2345`. W S3 `live/` 30 plików (27 + 3 z biegu, wynika
+z `Odebrano 3`, listą nie liczone). W S3 `gold/` 2 pliki wysłane raz
+z laptopa 15.09 o 19:19 polskiego: 157240 i 365 bajtów, co do cyfry zgodne
+z wynikiem EC2 z tego dnia.
 
 ### Kolejność napraw — gdzie jesteśmy
 
@@ -176,14 +191,21 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
 1. **Producent nie gubi danych** — ✅ 08.09.
 2. **Strażnik kompakcji** — ✅ 08.09.
 3. **Konsument `earliest` i jedna linia `crontab`** — ✅ 08–10.09.
-   **Ścieżka bez zakładki sprawdzona testem 14.09.**
+   **Ścieżka bez zakładki sprawdzona testem 14.09, Silver na EC2 potwierdził
+   15.09** (`(2316, 3)`, powtórki nie dodały wiersza).
 4. **Sprzątanie kodu** — ✅ 11.09 na EC2. Do tego:
    - podsumowanie Producenta, ✅ trzy ścieżki: awaria brokera 11.09
      lokalnie, „nic nowego" 12.09 na EC2, dzień giełdowy 14.09 na EC2;
    - spisy wymagań dla dwóch maszyn, ✅ 11.09;
    - `CRON_TZ`, ✅ 13–14.09.
-5. **Wynik Golda do S3 i Atheny** — ⬜, następny w kolejności, zaczyna się
-   od notatki projektowej.
+5. **Wynik Golda do S3 i Atheny** — 🟨 w toku od 15.09. Notatka
+   `notatki/plany/Notatka-2026-09-15-wynik-golda-do-s3.md` zatwierdzona (pięć
+   decyzji: nadpisywać, CSV, przełącznik tylko na EC2, tabele ręcznie SQL,
+   bez kolumny z godziną). Uprawnienia sprawdzone. Przełącznik w `gold.py`
+   napisany przez Gracjana, sprawdzony na laptopie w obu drogach, pierwsza
+   wysyłka z laptopa co do bajta (wyjątek od decyzji 3, jednorazowy).
+   **Nie ma:** tabel w Athenie, kodu na EC2, zmiennej w `crontab`, głośnej
+   awarii.
 6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** —
    ⬜.
 7. **Test prawdziwej drogi** — ⬜.
@@ -197,7 +219,8 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
 
 ### Wciąż otwarte (najkrócej, pełne opisy w przeglądzie)
 
-- Wynik Golda kończy na dysku EC2 i nic go nie czyta.
+- Wynik Golda z EC2 kończy na dysku EC2. W S3 leżą na razie pliki wysłane
+  raz z laptopa (15.09), tabel w Athenie brak.
 - Producent uruchomiony przed 17:00 zapisuje cenę z trwającej sesji jako
   zamknięcie.
 - Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
@@ -214,7 +237,7 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
   - **podejrzenie, niesprawdzone:** `kafka-python` sam zapisuje zakładkę
     co 5 s, możliwe że zanim wiadomości trafią do S3;
   - CBF 14.09 `201.0`, identycznie jak 11.09, niesprawdzone ze źródłem
-    zewnętrznym.
+    zewnętrznym; 15.09 `197.4`, więc cena u Yahoo się zmienia.
 - **Poza kolejnością, do decyzji Gracjana:**
   - Python 3.10 na EC2, jedyna sprawa, która pogarsza się sama, bo `boto3`
     porzucił 3.9 w kwietniu 2026;
@@ -222,9 +245,16 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
   - ostrzeżenie `value_deserializer`;
   - słowa „niedobór pamięci" w komentarzu `compaction.py` (prawdziwy powód
     to brak biblioteki);
-  - plan B dla źródła danych.
+  - plan B dla źródła danych;
+  - **(15.09) kompakcja, wykresy (`wykresy.py`, `ranking.py`) i Power BI nie
+    mają miejsca w kolejności napraw.** Propozycja Claude'a: kompakcja na EC2
+    po sygnale awarii i Pythonie 3.10 (w `cron` byłaby comiesięcznym
+    kasowaniem, którego nikt nie ogląda); wykresy i Power BI przepiąć na
+    Athenę zaraz po wyłączeniu Harmonogramu, bo inaczej pokażą stare dane
+    bez błędu. Silvera do S3 nie potrzeba: `gold/dane_dzienne.csv` ma
+    wszystkie jego kolumny. Niezdecydowane.
 
-### Test „zakładki nie ma" — wynik z 14.09
+### Test „zakładki nie ma" — wynik z 14.09, potwierdzony na EC2 15.09
 
 Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
 
@@ -239,7 +269,8 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   co przed testem.
 - **Pomyłka Claude'a:** przewidział `no active members` zaraz po biegu,
   a wyszedł jeszcze członek grupy (brak `close()`).
-- **Brakuje:** potwierdzenia Silvera na EC2 (bieg 15.09) i sygnału awarii.
+- **15.09 na EC2:** 2 × `(2316, 3)`, `Odebrano 3`, zakładka 2345. Brakuje
+  tylko sygnału awarii.
 - **Skutek za miesiąc:** 3 pliki powtórek w `live/`, więc kompakcja 1.10
   wypisze o 3 więcej w `Usunięto N plików`.
 
@@ -258,6 +289,12 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   grupy był jeszcze na liście.
 - **14.09:** pierwsza wersja notatki o teście zakładki niezrozumiała, stąd
   dopisek w zasadzie 10.
+- **15.09:** blok po nowym Goldzie „+1 linia”. Będzie +4: Gold jako osobny
+  program wypisze też 2 linie ostrzeżenia `boto3`.
+- **15.09:** `echo %GOLD_DO_S3%` (składnia cmd) podane do PowerShella, gdzie
+  zawsze wypisuje sam napis i nic nie sprawdza.
+- **15.09:** `git status` „5 linii” po teście wysyłki. Było 6, bo Claude
+  chwilę wcześniej sam zmienił notatkę z 14.09.
 
 ### Priorytet Gracjana (08.09)
 
@@ -267,28 +304,34 @@ dopiero potem.
 
 ### Na następną sesję
 
-Zgodnie z zasadą 6 temat wybiera Gracjan. Ustalony jest tylko odczyt.
+**Gracjan wybrał 15.09:** sesja 16.09 zaczyna się od dwóch rzeczy z wyniku
+Golda do S3 i Atheny.
 
-1. **15.09 po 18:15, odczyt biegu `cron`.** Zamyka test zakładki na EC2.
-   Przewidywania:
-   - `507:=== Data pomiaru Producenta: 2026-09-15 16:00:0X ===`;
-   - `errors.txt` 530, blok 24, `errors.log` 8, pliki spółek po 772;
-   - `Odebrano 3 wiadomości`;
-   - dwa razy `(2316, 3)`;
-   - linia Golda `114` i `108`;
-   - zakładka `2345 2345 0`.
-2. **Do wyboru Gracjana:**
-   - wynik Golda do S3 i Atheny (następny w kolejności napraw);
-   - trzy drobiazgi z 14.09;
-   - Python 3.10 na EC2;
-   - pozostałe punkty „poza kolejnością".
-3. **Terminy:**
-   - najbliższy weekend: blok 22 linie;
-   - 1.10: kompakcja z laptopa;
-   - 26.10: pierwszy bieg po zmianie czasu (`17:00:0X`).
+1. **Tabele w Athenie.** Najpierw kształt `CREATE EXTERNAL TABLE` dla CSV
+   z nagłówkiem na przykładzie lodziarni (wejście i wyjście), potem Gracjan
+   zakłada dwie tabele z laptopa. Sprawdzenie: `COUNT(*)` rankingu = 3, danych
+   dziennych = liczba wierszy pliku w S3 w tej chwili (pliki z laptopa: 2316;
+   po biegu EC2 ze zmienną: 2319); co Athena pokazuje w pustych komórkach.
+   Kolumny CSV Athena dopasowuje **po kolejności**, nie po nazwie.
+2. **Wdrożenie na EC2, przed 17:50.** `git pull` z rytuałem z zasady 14,
+   potem zmienna `GOLD_DO_S3=1` w `crontab`: kopia `crontab -l`, nowy plik,
+   `diff`, wgranie, `diff` z maszyną (procedura z notatki 13.09, część 7).
+   Zmienna musi stać **nad** linią `10 18` (przypisania w `crontab` działają
+   tylko na linie pod nimi). Na EC2 jest już precedens: linia
+   `KAFKA_BOOTSTRAP=…`.
+3. **Przewidywania biegu 16.09** (linia startu `531:`, godzina `16:00:0X`
+   UTC):
+   - bez wdrożenia: `errors.txt` 554, blok 24, pliki spółek 773,
+     `Odebrano 3`, 2 × `(2319, 3)`, `114` i `108`, zakładka `2348 2348 0`;
+   - nowy `gold.py` bez zmiennej: blok 25, ostatnia linia
+     `S3: Pominięto, brak GOLD_DO_S3 == 1`;
+   - nowy `gold.py` ze zmienną: blok 28, `errors.txt` 558, na końcu
+     2 × `S3: wysłano …`, w S3 pliki z datą 16.09 około 18:10 polskiego
+     (`aws s3 ls` na laptopie pokazuje czas polski).
+4. **Terminy:** weekend blok 22 linie (albo 26 / 23 po wdrożeniu), 1.10
+   kompakcja z laptopa, 26.10 pierwszy bieg po zmianie czasu (`17:00:0X`).
 
-**EC2 stoi na `3c488f1`.** Commity z 14.09 to dokumentacja i dane z laptopa,
-bez kodu. EC2 nie musi ich pobierać przed biegiem 15.09. Przy następnym
+**EC2 stoi na `3c488f1`.** Commity z 15.09 zawierają nowy `gold.py`. Przy
 `git pull` — rytuał z zasady 14.
 
 ### Kopie
@@ -314,7 +357,7 @@ Pythona (osobny projekt): `DE/Python_l/`.
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`
 i `notatki/Slownik.md` **są śledzone**. Poza gitem, przez `.gitignore`, są
 `notatki/dziennik/` i `notatki/.obsidian/`. Znaczy to, że **wszystkie wpisy
-dziennika (31 plików na 14.09), czyli cały zapis nauki z tego projektu,
+dziennika (32 pliki na 15.09), czyli cały zapis nauki z tego projektu,
 istnieją wyłącznie na laptopie i w OneDrive, ani jeden nie jest
 w repozytorium**. Decyzja, czy ma tak zostać, należy do Gracjana i nie była
 dotąd nigdzie uzasadniona.

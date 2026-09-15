@@ -164,6 +164,22 @@ uruchamianych w **tym samym oknie**. Znika po zamknięciu okna.
 *`$env:KAFKA_BOOTSTRAP = "127.0.0.1:9092"` każe Producentowi łączyć się
 z martwym adresem zamiast z prawdziwym brokerem. Samo `$env:KAFKA_BOOTSTRAP`
 wypisuje obecną wartość — warto sprawdzić przed uruchomieniem.*
+`Remove-Item Env:NAZWA` usuwa zmienną z okna; potem `echo $env:NAZWA`
+wypisuje pustą linię. **W cmd składnia jest inna:** `set NAZWA=1` ustawia,
+`set NAZWA=` usuwa, `%NAZWA%` wstawia wartość. `echo %NAZWA%` wpisane do
+PowerShella niczego nie sprawdza — zawsze wypisuje sam napis `%NAZWA%`.
+Poznać, gdzie jestem: wiersz PowerShella zaczyna się od `PS`, wiersz cmd nie.
+*15.09: `$env:GOLD_DO_S3 = "1"` → `python kod\gold.py` wysłał pliki do S3,
+`Remove-Item Env:GOLD_DO_S3` wyłączył przełącznik.*
+
+### `os.environ.get` i przełącznik ze zmiennej
+`os.environ.get("NAZWA")` odczytuje w Pythonie zmienną środowiskową.
+Zwraca **tekst** albo `None`, gdy zmiennej nie ma. Przełącznik to `if`,
+który coś robi tylko przy konkretnej wartości.
+*Wejście i wyjście z 15.09 dla `os.environ.get("LODY_DO_S3") == "1"`: brak
+zmiennej → `None` → `False`; `1` → `True`; `0`, `tak`, ` 1` ze spacją →
+`False`. Ten sam `gold.py` na laptopie tylko pisze „Pominięto", a na EC2
+(zmienna w `crontab`) wysyła do S3.*
 
 ---
 
@@ -472,6 +488,26 @@ z S3 bez klikania w konsoli.
 *Nigdy nie trafiają do kodu ani do gita — trzymane osobno, poza
 projektem.*
 
+### `aws sts get-caller-identity`
+Pyta AWS: „kim jestem?". Wypisuje numer konta i `Arn`, czyli pełną nazwę
+tożsamości, której używa ta maszyna.
+*15.09 z laptopa: `Arn` kończy się na `:user/gpw-tracker-admin`.*
+
+### Rola i polityka IAM (`list-attached-role-policies`, `list-role-policies`)
+**Rola** to zestaw uprawnień, który maszyna (np. EC2) dostaje bez hasła.
+**Polityka** to jedna lista „wolno / nie wolno". Do roli można podpiąć
+gotowe polityki AWS (`list-attached-role-policies`) albo wpisać własne
+wprost w rolę (`list-role-policies`) — to dwie osobne listy i trzeba
+sprawdzić obie.
+*15.09 dla `gpw_tracker_ec2_role`: podpięte `AmazonS3FullAccess`
+i `AmazonAthenaFullAccess`, wpisane wprost `[]`.*
+
+### Polityka bucketa (`get-bucket-policy`)
+Sam bucket S3 może mieć politykę, która zabrania zapisu niezależnie od
+uprawnień roli. `aws s3api get-bucket-policy --bucket nazwa` ją wypisuje.
+*15.09: błąd `NoSuchBucketPolicy` — tu błąd był dobrą wiadomością, bo znaczy
+„bucket nie ma własnych zakazów".*
+
 ### Daemon (`-daemon`)
 Proces działający w tle, niezależnie od okna terminala, w którym go
 uruchomiono. Zamknięcie terminala go nie zabija.
@@ -583,7 +619,32 @@ do podfolderów, `--summarize` dopisuje na końcu `Total Objects` (liczba
 plików) i `Total Size` (bajty). `aws s3 cp s3://…/plik -` kopiuje plik na
 `-`, czyli na ekran, zamiast na dysk.
 *14.09: `Total Objects: 24` przed testem zakładki i `27` po; nowy plik CBF
-wypisany na ekran miał 5 linii.*
+wypisany na ekran miał 5 linii.* *15.09: godzinę pliku `aws s3 ls` na
+laptopie pokazuje w czasie laptopa (polskim), np. `19:19:08`.*
+
+### Prefiks, czyli „folder" w S3, i `PRE`
+S3 nie ma prawdziwych folderów. `gold/ranking/ranking.csv` to **jedna długa
+nazwa pliku**, a `gold/ranking/` to jej początek, czyli prefiks. `aws s3 ls`
+i Athena pokazują prefiksy tak, jakby były folderami; w wypisie oznacza je
+`PRE`.
+*15.09: `aws s3 ls s3://gpw-tracker-bucket/` → `PRE athena-results/`,
+`PRE bronze/`, `PRE live/`.*
+
+### `upload_file` i nadpisanie pliku w S3
+`s3.upload_file(plik_na_dysku, bucket, nazwa_w_S3)` wysyła plik **taki,
+jaki leży na dysku w chwili wysyłki**. Wysłanie pod tę samą nazwę zastępuje
+poprzedni plik bez pytania i bez błędu.
+*15.09: dlatego w `gold.py` wysyłka stoi pod oboma `to_csv` — wysłana
+przed nimi byłaby wczorajsza, a log i tak napisałby „wysłano".*
+
+### Tabela w Athenie to opis folderu
+Tabela w Athenie nie kopiuje danych. Mówi tylko: pliki leżą pod tym
+prefiksem i mają takie kolumny. Przy każdym zapytaniu Athena czyta
+**wszystkie** pliki pod prefiksem; kolumny CSV dopasowuje po kolejności,
+nie po nazwie.
+*Lodziarnia: w folderze `wyniki/ranking_lodow/` jeden plik z 2 smakami →
+`SELECT *` zwraca 2 wiersze; ktoś zostawia obok kopię → 4 wiersze, bez
+błędu.*
 
 ---
 
