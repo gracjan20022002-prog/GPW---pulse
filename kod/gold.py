@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+import boto3
+from config import BUCKET
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MIN_DNI = 15
 gold = pd.read_csv(os.path.join(BASE_DIR, "silver", "clean_data.csv"))
@@ -22,3 +24,10 @@ sp_rank = sp_rank.rename(columns={"std": "odchylenie_standardowe", "count": "dni
 print(sp_rank)
 gold.to_csv(os.path.join(BASE_DIR, "gold", "dane_dzienne.csv"), index=False)
 sp_rank.to_csv(os.path.join(BASE_DIR, "gold", "ranking.csv"), index=False)
+if os.environ.get("GOLD_DO_S3") == "1":
+    s3 = boto3.client("s3")
+    for nazwa in ["dane_dzienne", "ranking"]:
+        s3.upload_file(os.path.join(BASE_DIR, "gold", f"{nazwa}.csv"), BUCKET, f"gold/{nazwa}/{nazwa}.csv")
+        print(f"S3: wysłano {nazwa}.csv")
+else:
+    print("S3: Pominięto, brak GOLD_DO_S3 == 1")
