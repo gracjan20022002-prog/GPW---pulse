@@ -646,6 +646,35 @@ nie po nazwie.
 `SELECT *` zwraca 2 wiersze; ktoś zostawia obok kopię → 4 wiersze, bez
 błędu.*
 
+### `CREATE EXTERNAL TABLE`
+Polecenie SQL, którym zakłada się taki opis folderu. Nie tworzy pliku i nie
+kopiuje danych — dopisuje wpis do katalogu Atheny. Cztery części, które
+trzeba znać:
+- **`EXTERNAL`** — dane są na zewnątrz, więc `DROP TABLE` kasuje **sam
+  opis**, a pliki w S3 zostają nietknięte. Dlatego pomyłkę w tabeli naprawia
+  się przez skasowanie i założenie od nowa.
+- **`ROW FORMAT DELIMITED` + `FIELDS TERMINATED BY ','`** — plik jest
+  tekstowy, a kolumny rozdziela przecinek (*delimited* = rozdzielony,
+  *fields* = kolumny).
+- **`LOCATION 's3://…/folder/'`** — folder, nie plik, z ukośnikiem na końcu.
+- **`TBLPROPERTIES ('skip.header.line.count'='1')`** — pomiń pierwszą linię
+  każdego pliku, czyli nagłówek (*header* = nagłówek).
+*16.09 tak powstały `gold_dane_dzienne` i `gold_ranking_spolek`.*
+
+### `NULL` (pusta komórka)
+Brak wartości — nie zero i nie pusty tekst. W pliku CSV puste pole między
+dwoma przecinkami, w Athenie `NULL`. Szuka się go przez `WHERE kolumna IS
+NULL`, nigdy przez `= NULL`.
+*16.09: `zmiana_proc` jest pusta w pierwszym dniu notowań każdej spółki, bo
+nie ma jeszcze dnia poprzedniego — zapytanie zwróciło 3 wiersze, po jednym
+na spółkę.*
+
+### `Data scanned`
+Liczba, którą konsola Atheny pokazuje przy każdym zapytaniu: ile bajtów
+naprawdę przeczytała. Athena liczy po niej opłatę, ale przydaje się też jako
+darmowe sprawdzenie, czy tabela czyta ten plik, o którym myślisz.
+*16.09: `0.36 KB` przy pliku `ranking.csv` o rozmiarze 365 bajtów.*
+
 ---
 
 ## Powłoka i cron (Linux)

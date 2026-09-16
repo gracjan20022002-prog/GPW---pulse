@@ -120,7 +120,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (15.09 wieczorem)
+## Stan projektu — uczciwie (16.09 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -178,11 +178,15 @@ Przy każdej godzinie mówić, w jakiej strefie jest.
   linie (2 ostrzeżenia `boto3`, bo Gold to osobny program, i 2 × „wysłano”),
   czyli **28 / 26**; bez zmiennej +1 („Pominięto”), czyli **25 / 23**.
 
-Stan 15.09 po biegu: `errors.txt` 530, `errors.log` 8, pliki spółek po 772,
-zakładka `2345`. W S3 `live/` 30 plików (27 + 3 z biegu, wynika
-z `Odebrano 3`, listą nie liczone). W S3 `gold/` 2 pliki wysłane raz
-z laptopa 15.09 o 19:19 polskiego: 157240 i 365 bajtów, co do cyfry zgodne
-z wynikiem EC2 z tego dnia.
+Stan 16.09 po biegu: `errors.txt` 554, `errors.log` 8, pliki spółek po 773
+(cały folder `companies/` razem 2881 linii), zakładka `2348`. W S3 `live/`
+33 pliki (30 + 3 z biegu, wynika z `Odebrano 3`, listą nie liczone). W S3
+`gold/` dalej 2 pliki wysłane raz z laptopa 15.09 o 19:19 polskiego: 157240
+i 365 bajtów.
+
+**Rozjazd, który jest zamierzony:** EC2 liczy `(2319, 3)`, a Athena pokazuje
+2316, bo w S3 leżą pliki z 15.09. Zniknie przy pierwszym biegu EC2
+z przełącznikiem i sam będzie dowodem, że wysyłka doszła.
 
 ### Kolejność napraw — gdzie jesteśmy
 
@@ -204,8 +208,12 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    bez kolumny z godziną). Uprawnienia sprawdzone. Przełącznik w `gold.py`
    napisany przez Gracjana, sprawdzony na laptopie w obu drogach, pierwsza
    wysyłka z laptopa co do bajta (wyjątek od decyzji 3, jednorazowy).
-   **Nie ma:** tabel w Athenie, kodu na EC2, zmiennej w `crontab`, głośnej
-   awarii.
+   **Tabele w Athenie ✅ 16.09:** `gold_dane_dzienne` i `gold_ranking_spolek`
+   w bazie `gpw-tracker_db`, założone ręcznie `CREATE EXTERNAL TABLE`
+   z konsoli. Sprawdzone: `COUNT(*)` 2316 i 3, pusta komórka `zmiana_proc`
+   to `NULL` (3 wiersze, po 1 na spółkę), `Data scanned` 153.55 KB i 0.36 KB
+   zgodne z rozmiarem plików.
+   **Nie ma:** kodu na EC2, zmiennej w `crontab`, głośnej awarii.
 6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** —
    ⬜.
 7. **Test prawdziwej drogi** — ⬜.
@@ -237,7 +245,9 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
   - **podejrzenie, niesprawdzone:** `kafka-python` sam zapisuje zakładkę
     co 5 s, możliwe że zanim wiadomości trafią do S3;
   - CBF 14.09 `201.0`, identycznie jak 11.09, niesprawdzone ze źródłem
-    zewnętrznym; 15.09 `197.4`, więc cena u Yahoo się zmienia.
+    zewnętrznym; 15.09 `197.4`, 16.09 `195.3`, więc cena u Yahoo się zmienia
+    i podejrzenie o zamrożoną wartość odpada. Porównania z innym źródłem
+    dalej nie było.
 - **Poza kolejnością, do decyzji Gracjana:**
   - Python 3.10 na EC2, jedyna sprawa, która pogarsza się sama, bo `boto3`
     porzucił 3.9 w kwietniu 2026;
@@ -304,31 +314,30 @@ dopiero potem.
 
 ### Na następną sesję
 
-**Gracjan wybrał 15.09:** sesja 16.09 zaczyna się od dwóch rzeczy z wyniku
-Golda do S3 i Atheny.
+**Sesja 16.09 skończyła się na tabelach w Athenie.** Czym zacząć
+następną — decyzja Gracjana, nie była podejmowana. Gotowe do wzięcia:
 
-1. **Tabele w Athenie.** Najpierw kształt `CREATE EXTERNAL TABLE` dla CSV
-   z nagłówkiem na przykładzie lodziarni (wejście i wyjście), potem Gracjan
-   zakłada dwie tabele z laptopa. Sprawdzenie: `COUNT(*)` rankingu = 3, danych
-   dziennych = liczba wierszy pliku w S3 w tej chwili (pliki z laptopa: 2316;
-   po biegu EC2 ze zmienną: 2319); co Athena pokazuje w pustych komórkach.
-   Kolumny CSV Athena dopasowuje **po kolejności**, nie po nazwie.
-2. **Wdrożenie na EC2, przed 17:50.** `git pull` z rytuałem z zasady 14,
-   potem zmienna `GOLD_DO_S3=1` w `crontab`: kopia `crontab -l`, nowy plik,
-   `diff`, wgranie, `diff` z maszyną (procedura z notatki 13.09, część 7).
-   Zmienna musi stać **nad** linią `10 18` (przypisania w `crontab` działają
-   tylko na linie pod nimi). Na EC2 jest już precedens: linia
-   `KAFKA_BOOTSTRAP=…`.
-3. **Przewidywania biegu 16.09** (linia startu `531:`, godzina `16:00:0X`
-   UTC):
-   - bez wdrożenia: `errors.txt` 554, blok 24, pliki spółek 773,
-     `Odebrano 3`, 2 × `(2319, 3)`, `114` i `108`, zakładka `2348 2348 0`;
-   - nowy `gold.py` bez zmiennej: blok 25, ostatnia linia
-     `S3: Pominięto, brak GOLD_DO_S3 == 1`;
-   - nowy `gold.py` ze zmienną: blok 28, `errors.txt` 558, na końcu
-     2 × `S3: wysłano …`, w S3 pliki z datą 16.09 około 18:10 polskiego
-     (`aws s3 ls` na laptopie pokazuje czas polski).
-4. **Terminy:** weekend blok 22 linie (albo 26 / 23 po wdrożeniu), 1.10
+1. **Wdrożenie na EC2** — domyka naprawę „wynik Golda do S3 i Atheny".
+   `git pull` z rytuałem z zasady 14, potem zmienna `GOLD_DO_S3=1`
+   w `crontab`: kopia `crontab -l`, nowy plik, `diff`, wgranie, `diff`
+   z maszyną (procedura z notatki 13.09, część 7). Zmienna musi stać **nad**
+   linią `10 18` — przypisania w `crontab` działają tylko na linie pod nimi;
+   precedens na EC2 to linia `KAFKA_BOOTSTRAP=…`. **Robić zaraz po biegu,
+   nie przed** — wtedy jest doba zapasu zamiast kilkunastu minut.
+2. **Przewidywania pierwszego biegu po wdrożeniu** (dzień giełdowy, linia
+   startu `555:`, godzina `16:00:0X` UTC):
+   - **bez wdrożenia:** `errors.txt` 578, blok 24, pliki spółek 774,
+     `Odebrano 3`, 2 × `(2322, 3)`, zakładka `2351`, w Athenie dalej 2316;
+   - **nowy `gold.py` bez zmiennej:** blok 25, `errors.txt` 579, ostatnia
+     linia `S3: Pominięto, brak GOLD_DO_S3 == 1`;
+   - **nowy `gold.py` ze zmienną:** blok 28, `errors.txt` 582, 2 × `S3:
+     wysłano …`, w S3 pliki z datą dnia biegu około 18:10 polskiego
+     (`aws s3 ls` na laptopie pokazuje czas polski), a `COUNT(*)`
+     `gold_dane_dzienne` **2322** zamiast 2316. To ostatnia liczba jest
+     dowodem, że droga EC2 → S3 → Athena działa w całości.
+3. **Jedno zapytanie `SELECT *` na obu tabelach** — 16.09 oglądaliśmy
+   `COUNT(*)`, kolumnę `spolka` i puste komórki, ale nie komplet kolumn.
+4. **Terminy:** weekend blok 22 linie (26 po wdrożeniu ze zmienną), 1.10
    kompakcja z laptopa, 26.10 pierwszy bieg po zmianie czasu (`17:00:0X`).
 
 **EC2 stoi na `3c488f1`.** Commity z 15.09 zawierają nowy `gold.py`. Przy
@@ -387,3 +396,20 @@ dotąd nigdzie uzasadniona.
 **S3** (z laptopa, narzędzie `aws` zainstalowane): bucket
 `gpw-tracker-bucket`, podgląd `aws s3 ls s3://gpw-tracker-bucket/live/
 --recursive --summarize`.
+
+**Athena:** baza `gpw-tracker_db`, region `eu-north-1`, wyniki zapytań
+w `s3://gpw-tracker-bucket/athena-results/` (konsola ma własne ustawienie,
+niezależne od `silver.py`). Cztery tabele:
+
+| Tabela | Czyta | Format |
+|---|---|---|
+| `bronze` | `bronze/`, partycje `spolka`, `data` | Parquet |
+| `live` | `live/`, partycje `spolka` | JSON |
+| `gold_dane_dzienne` | `gold/dane_dzienne/` | CSV z nagłówkiem, 5 kolumn |
+| `gold_ranking_spolek` | `gold/ranking/` | CSV z nagłówkiem, 7 kolumn |
+
+Obie tabele `gold_*` założone 16.09 ręcznie, z pominięciem pierwszej linii
+(`skip.header.line.count`). Kolumny Athena dopasowuje **po kolejności**,
+nie po nazwie, więc **każda zmiana kolumn w `gold.py` wymaga zmiany tabeli
+w tej samej sesji**. Do folderów tabel nic nie wgrywamy ręcznie — każdy
+dodatkowy plik po cichu dokłada wiersze.

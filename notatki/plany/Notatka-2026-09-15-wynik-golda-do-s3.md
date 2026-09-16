@@ -6,11 +6,11 @@ tylko na EC2, tabele ręcznie, bez kolumny z godziną obliczenia. Przed kodem
 sprawdzamy dwie rzeczy z części „Niesprawdzone": uprawnienia i folder `gold/`
 w S3.
 
-**Stan 15 września wieczorem:** uprawnienia sprawdzone, kod napisany,
-test bez przełącznika i jednorazowa wysyłka z laptopa zgodne
-z przewidywaniami (szczegóły niżej). **Nie ma jeszcze:** tabel w Athenie,
-kodu na EC2, zmiennej `GOLD_DO_S3=1` w `crontab`, głośnej awarii.
-Następna sesja zaczyna od tabel i wdrożenia na EC2.
+**Stan 16 września wieczorem:** uprawnienia sprawdzone, kod napisany, test
+bez przełącznika i jednorazowa wysyłka z laptopa zgodne z przewidywaniami,
+**tabele w Athenie założone i sprawdzone** (szczegóły niżej). **Nie ma
+jeszcze:** kodu na EC2, zmiennej `GOLD_DO_S3=1` w `crontab`, głośnej
+awarii. Zostało wdrożenie na EC2.
 
 To piąta naprawa z kolejności ustalonej 8 września (przegląd, część 5):
 „Wynik Golda do S3 i do Atheny".
@@ -290,11 +290,43 @@ w czasie laptopa (polskim): `19:19:08`, a nie w UTC.
 
 Wysyłka działa z laptopa. **Z EC2 jeszcze nie była uruchomiona.**
 
+## Tabele w Athenie — założone 16 września
+
+Ręcznie, poleceniem `CREATE EXTERNAL TABLE` z konsoli Atheny, w bazie
+`gpw-tracker_db` w regionie `eu-north-1`.
+
+| Tabela | Czyta folder | Kolumn |
+|---|---|---|
+| `gold_dane_dzienne` | `s3://gpw-tracker-bucket/gold/dane_dzienne/` | 5 |
+| `gold_ranking_spolek` | `s3://gpw-tracker-bucket/gold/ranking/` | 7 |
+
+Trzy decyzje przy zakładaniu:
+1. **`data` jako `string`, nie `timestamp`** — spójnie z `bronze` i `live`.
+2. **Nazwa zaczyna się od warstwy**, tak jak `bronze` i `live`. Nazwę
+   rankingu Gracjan zmienił na `gold_ranking_spolek`.
+3. **Konsola Atheny**, nie skrypt — dwa polecenia uruchamiane raz w życiu.
+
+Sprawdzenie, wszystko zgodnie z przewidywaniem:
+
+| Co | Oczekiwane | Wyszło |
+|---|---|---|
+| `COUNT(*)` danych dziennych | 2316 | 2316 |
+| `COUNT(*)` rankingu | 3 | 3 |
+| puste `zmiana_proc` | 3 wiersze, po `1` na spółkę | CBF.WA 1, SNT.WA 1, XTB.WA 1 |
+| `Data scanned` | tyle, ile ważą pliki | 153.55 KB i 0.36 KB przy 157240 i 365 bajtach |
+
+**Pusta komórka to `NULL`** — punkt z sekcji „Niesprawdzone" jest zamknięty.
+
+`Data scanned` wyszło przy okazji jako darmowy dowód, że tabele czytają
+dokładnie te pliki, które laptop wysłał 15.09.
+
 ## Niesprawdzone
 
-- **Jak tabela pokaże pustą komórkę:** `zmiana_proc` pierwszego dnia spółki
-  i spółkę bez pełnego miesiąca w rankingu. Spodziewam się pustej wartości
-  (`NULL`). Sprawdzimy zapytaniem.
+- **Komplet kolumn na ekranie.** 16.09 oglądaliśmy `COUNT(*)`, kolumnę
+  `spolka` i puste komórki. Jedno `SELECT *` na obu tabelach domknie sprawę.
+- **Zapis z EC2.** Dowodem będzie dopiero pierwszy bieg Golda na EC2
+  z przełącznikiem: pliki w S3 z datą tego dnia i `COUNT(*)`
+  `gold_dane_dzienne` większy o liczbę nowych dni.
 
 ## Poza zakresem
 
