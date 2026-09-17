@@ -9,6 +9,7 @@ consumer = KafkaConsumer(
     bootstrap_servers=[BOOTSTRAP],
     group_id='gpw_consumer',
     auto_offset_reset='earliest',
+    enable_auto_commit=False,
     value_deserializer=lambda x: loads(x.decode('utf-8')),
     consumer_timeout_ms=5000
 )
@@ -28,3 +29,4 @@ if odebrane:
         s3.put_object(Bucket=BUCKET, Key=f"live/spolka={tick}/{nowy_plik}", Body=zawartosc.encode("utf-8"))
 consumer.commit()
 print(f"Odebrano {sum(len(w) for w in odebrane.values())} wiadomości")
+consumer.close()
