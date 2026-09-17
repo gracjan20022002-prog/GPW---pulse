@@ -258,6 +258,19 @@ Sposób, w jaki program prosi inny program o dane.
 ### Endpoint
 Konkretny adres API, pod który wysyłasz pytanie.
 
+### `AWS_ENDPOINT_URL_S3`
+Zmienna środowiskowa, którą mówi się `boto3`: „adres S3 jest tutaj",
+zamiast prawdziwego adresu AWS. Służy do testów na lokalnych podróbkach
+S3 — i do celowego psucia połączenia.
+*17.09 tak odcięliśmy Konsumentowi zapis do S3, żeby pokazać utratę
+danych: `AWS_ENDPOINT_URL_S3=http://localhost:1` przed komendą. Nikt nie
+słucha na porcie 1, więc `put_object` rzucił
+`EndpointConnectionError`. Nic nie wyszło na zewnątrz, nic w AWS nie
+zostało ruszone i kod pozostał nietknięty.*
+*Przy okazji wyszło coś ważniejszego: `boto3.client("s3")` przeszedł bez
+błędu, bo klient powstaje **bez** łączenia się z siecią. Awaria przychodzi
+dopiero przy pierwszym prawdziwym zapisie.*
+
 ### Status code
 Trzycyfrowa odpowiedź serwera. **200** = w porządku. **404** = nie znaleziono.
 **500** = awaria po ich stronie.
@@ -588,13 +601,29 @@ wiadomość doszła, wysyła się ją ponownie, a powtórki odsiewa odbiorca.
 jutro wyśle dzień drugi raz, `silver.py` odrzuci duplikat. Straconego
 dnia nie da się odzyskać, duplikat tak.*
 
+### Dostarczanie „co najwyżej raz" (at-most-once)
+Przeciwieństwo powyższego: wiadomość nigdy się nie zdubluje, ale może
+przepaść. Tak zachowuje się odbiorca, który odhacza przeczytane **przed**
+zapisaniem — gdy zapis padnie, nie ma już do czego wrócić.
+*Tak działał nasz Konsument do 17.09, przez włączony
+`enable_auto_commit`. Wybór między tymi dwiema zasadami jest wyborem, co
+boli mniej. U nas powtórki nie bolą wcale, bo Silver je odsiewa dwoma
+sitami: `UNION` w zapytaniu i `drop_duplicates` po dniu i spółce. Utrata
+boli na zawsze. Dlatego 17.09 wybraliśmy „co najmniej raz".*
+
 ### Członek grupy i `consumer.close()`
 Konsument, który czyta, jest **członkiem** swojej grupy. `consumer.close()`
 mówi brokerowi „wychodzę". Bez niego broker trzyma Konsumenta na liście
-jeszcze kilkanaście sekund, aż uzna ciszę za wyjście.
+jeszcze kilkanaście sekund, aż uzna ciszę za wyjście. Ma to skutek
+praktyczny: `--reset-offsets` wymaga grupy bez aktywnych członków.
 *14.09 tuż po ręcznym biegu `--describe` pokazał `kafka-python-3.0.11-…`
 z `/127.0.0.1` zamiast `no active members`; minutę później lista była
 pusta. W lodziarni: kucharz wyszedł bez „do widzenia".*
+*17.09 dopisane do Konsumenta — po udanym biegu `--describe` od razu pokazał
+`no active members`. **Ale `close()` stoi za `put_object`**, więc przy
+awarii zapisu program pada, zanim do niego dojdzie: sprzątanie po sobie
+działa tylko na ścieżce, która się udaje. Pełne rozwiązanie wymagałoby
+`finally`.*
 
 ### `--delete --group` a `--reset-offsets`
 `kafka-consumer-groups.sh --delete --group nazwa` kasuje grupę razem z jej
@@ -605,13 +634,27 @@ przestawia pozycję na początek — zakładka dalej jest, więc
 *Test 14.09 użył `--delete`: `Odebrano 15 wiadomości` pokazało, że
 `earliest` naprawdę działa.*
 
+### `--reset-offsets --shift-by` i `--dry-run`
+`--shift-by n` przesuwa zakładkę o `n` pozycji; `n` może być **ujemne**,
+czyli cofać. Zakres trzeba podać jawnie: `--topic nazwa` albo
+`--all-topics`. **`--dry-run` jest domyślny** — bez `--execute` narzędzie
+tylko wypisuje plan i niczego nie zmienia. Wymaga grupy bez aktywnych
+członków.
+*17.09 na EC2: `--shift-by -3 --dry-run` wypisało `NEW-OFFSET 2348`, potem
+to samo z `--execute` zapisało tę pozycję. Tak przygotowaliśmy trzy
+wiadomości do testu — bezpiecznie, bo były już w S3 z biegu o 18:00.*
+
 ### Automatyczny zapis pozycji (`enable_auto_commit`)
 Ustawienie `kafka-python`. Gdy włączone (domyślnie), biblioteka sama
-zapisuje pozycję grupy co kilka sekund w trakcie czytania, niezależnie od
-naszego `commit()`.
-*Podejrzenie z 14.09, niesprawdzone: nasz Konsument może mieć zapisaną
-pozycję, zanim wiadomości trafią do S3 — jak kucharz, który odhacza
-zamówienie, zanim lody wyjdą z kuchni.*
+zapisuje pozycję grupy co 5 sekund w trakcie czytania, niezależnie od
+naszego `commit()`. Zapis zachodzi wewnątrz `poll()`, czyli **w trakcie**
+pętli po wiadomościach, a nie po niej. Trzecim miejscem zapisu jest
+`close()`, które sprawdza ten sam przełącznik.
+*17.09 podejrzenie z 14.09 potwierdzone w kodzie biblioteki i pokazane na
+żywo: zakładka przeskoczyła 2348 → 2351, choć w `live/` nie pojawił się ani
+jeden plik. Naprawa: `enable_auto_commit=False`, więc zakładkę przesuwa
+tylko nasz `commit()` — po udanym zapisie do S3. Kucharz odhacza zamówienie
+dopiero wtedy, gdy lody wyjdą z kuchni.*
 
 ### `aws s3 ls --recursive --summarize` i `aws s3 cp … -`
 `aws s3 ls s3://bucket/folder/` wypisuje pliki w S3. `--recursive` schodzi
@@ -660,6 +703,20 @@ trzeba znać:
 - **`TBLPROPERTIES ('skip.header.line.count'='1')`** — pomiń pierwszą linię
   każdego pliku, czyli nagłówek (*header* = nagłówek).
 *16.09 tak powstały `gold_dane_dzienne` i `gold_ranking_spolek`.*
+
+### `ALTER TABLE … CHANGE COLUMN`
+Zmienia nazwę, typ, kolejność albo komentarz kolumny w tabeli Atheny.
+Składnia: `ALTER TABLE tabela CHANGE COLUMN stara nowa typ`. **Typ trzeba
+podać, nawet gdy się nie zmienia.** Nie rusza plików w S3 — poprawia sam
+opis w katalogu Glue. Dla kilku kolumn naraz jest
+`ALTER TABLE … REPLACE COLUMNS (…)`.
+*Lodziarnia: `ALTER TABLE lody CHANGE COLUMN ile galki int` — kolumna `ile`
+nazywa się od tej chwili `galki`, liczby te same, plik nietknięty.*
+*17.09 Gracjan zmienił tak `pierwsza_cena` na `pierwotna_cena`
+i `ostatnia_cena` na `aktualna_cena` w `gold_ranking_spolek`. Skutek
+uboczny: nagłówek w pliku CSV ma nadal stare nazwy. Nie szkodzi, bo
+nagłówek jest pomijany, a kolumny dopasowują się po kolejności — ale
+czytając plik i tabelę obok siebie widać rozjazd.*
 
 ### `NULL` (pusta komórka)
 Brak wartości — nie zero i nie pusty tekst. W pliku CSV puste pole między
@@ -804,6 +861,19 @@ początku linii" — bez niego wzorzec trafia też w środek innych napisów.
 *`sed -e 's/^0 5 /0 7 /' -e 's/^10 5 /10 8 /' plan.txt`: chleb z 5:00 na
 7:00, bułki z 5:10 na 8:10. Bez `^` bułki lądują na 7:10, bo `0 5 ` siedzi
 w środku `10 5 `.*
+
+### `sed` z adresem i `a` (dopisz linię)
+`s` zamienia, `a` **dopisuje nową linię pod** tą, którą wskazał adres.
+Adresem może być wzorzec w ukośnikach — `/^SKLEP=/` znaczy „linia
+zaczynająca się od `SKLEP=`" — albo numer linii. Bez adresu polecenie
+działa na **każdej** linii. `a` pochodzi od angielskiego *append*, czyli
+„dołącz".
+*`sed '/^SKLEP=/a BUDZET=50' lista.txt` wstawia `BUDZET=50` zaraz pod
+`SKLEP=Biedronka`, a `mleko` i `chleb` zostają niżej, nietknięte.*
+*Dlaczego adresem jest treść, nie numer: `sed '2a …'` zadziała tak samo
+dziś, ale gdyby coś doszło na górze pliku, wstawiłoby linię w złe miejsce
+bez żadnego błędu. 17.09 tak wstawialiśmy `GOLD_DO_S3=1` pod
+`KAFKA_BOOTSTRAP=` w `crontab`.*
 
 ### Adresy w wypisie `diff`: `a`, `c`, `d`
 Pierwsza linia bloku mówi, co się stało: `a` — dodano (*add*), `c` —

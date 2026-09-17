@@ -45,6 +45,34 @@ Trzy obserwacje ponad przewidywania:
 aktywnych członków, a `--dry-run` jest **domyślny** — bez `--execute`
 narzędzie niczego nie zmienia. `--shift-by` przyjmuje wartości ujemne.
 
+### Wykonanie — zmiana i dwa testy po niej, 17 września wieczorem
+
+Kod napisał Gracjan: `enable_auto_commit=False` w konstruktorze (linia 12,
+pod `auto_offset_reset`) i `consumer.close()` jako ostatnia linia pliku, za
+`commit()` i za `print`. Commit `033107f`, wypchnięty na GitHub, wdrożony na
+EC2 z rytuałem z zasady 14.
+
+| Test | Co sprawdza | Przewidywanie | Wynik |
+|---|---|---|---|
+| **A** — zapis do S3 odcięty | zakładka **nie** rusza się | `2348  2351  3` | zgodnie |
+| **B** — bieg zwykły | zakładka rusza, `close()` porządkuje | `2351  2351  0` + `no active members` od razu | zgodnie, `Odebrano 3 wiadomości` |
+
+**Testy potwierdzają się nawzajem.** Test B odebrał trzy wiadomości, co było
+możliwe tylko dzięki temu, że test A nie ruszył zakładki. Przed naprawą
+wypisałby `Odebrano 0`.
+
+**Czego jeszcze nie ma:** biegu z `cron`. Oba testy były ręczne, choć na tej
+samej maszynie, tym samym Pythonem i tym samym brokerem. Pierwszym biegiem
+automatycznym z nowym kodem będzie piątek 18 września o 18:00 — wtedy warunek
+„działa na prawdziwej drodze danych" będzie spełniony w całości. Do tej pory
+naprawa jest wdrożona i sprawdzona, ale nie przez `cron`.
+
+**Warunek głośnej awarii pozostaje niespełniony**, tak jak przy każdej innej
+pozycji w kolejce napraw.
+
+**Koszt, zapłacony świadomie:** trzy powtórki w `live/` z testu B. Silver je
+odsieje, kompakcja 1 października wypisze o trzy pliki więcej.
+
 ## Sedno w trzech zdaniach
 
 Biblioteka `kafka-python` sama zapisuje zakładkę grupy co pięć sekund i robi

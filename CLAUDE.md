@@ -120,7 +120,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (16.09 wieczorem)
+## Stan projektu — uczciwie (17.09 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -152,16 +152,25 @@ Przy każdej godzinie mówić, w jakiej strefie jest.
 - **Konsument** (`kafka_consumer.py`): grupa `gpw_consumer`,
   `auto_offset_reset='earliest'`, czyta do 5 s ciszy, pisze po jednym
   pliku JSON na spółkę do S3 `live/spolka=…/`, na końcu `commit()`.
+  **Od 17.09 na EC2:** `enable_auto_commit=False` w konstruktorze
+  i `consumer.close()` w ostatniej linii. Zakładka przesuwa się **tylko** po
+  udanym zapisie do S3 — wcześniej biblioteka zapisywała ją sama co 5 s,
+  w trakcie pętli, czyli przed zapisem. Dowody, testy i ograniczenia:
+  `notatki/plany/Notatka-2026-09-17-zakladka-przed-zapisem.md`.
+  **Uwaga:** `close()` stoi za `put_object`, więc przy awarii zapisu się nie
+  wykonuje i broker przez kilkanaście sekund widzi martwego członka grupy.
+  To blokuje `--reset-offsets`, który wymaga grupy nieaktywnej.
 - **Silver** (`silver.py`): Athena `bronze UNION live`, odsiewa powtórzone
   dni → `silver/clean_data.csv` na dysku EC2.
 - **Gold** (`gold.py`): zmiany procentowe i ranking „najbardziej zmiennego
   **pełnego** miesiąca" (bez pierwszego i ostatniego miesiąca historii
   spółki i bez miesięcy poniżej 15 dni notowań) → `gold/*.csv` na dysku EC2.
-  **Od 15.09 w gicie, ale jeszcze nie na EC2:** po zapisie na dysk, gdy
-  zmienna `GOLD_DO_S3` jest równa `1`, wysyła oba pliki do S3
+  **Na EC2 od 17.09, działa z `cron`:** po zapisie na dysk, gdy zmienna
+  `GOLD_DO_S3` jest równa `1`, wysyła oba pliki do S3
   (`gold/dane_dzienne/dane_dzienne.csv`, `gold/ranking/ranking.csv`) i pisze
   `S3: wysłano …` na plik; bez zmiennej pisze
-  `S3: Pominięto, brak GOLD_DO_S3 == 1`.
+  `S3: Pominięto, brak GOLD_DO_S3 == 1`. Zmienna stoi w `crontab` na górze,
+  pod `KAFKA_BOOTSTRAP` — musi być **nad** linią `10 18`.
 - **`bronze`** w S3 to Parquet do końca poprzedniego miesiąca, przepisywany
   ręcznie przez `compaction.py`, **wyłącznie z laptopa** (pierwszy bieg
   z prawdziwym kasowaniem: 1 października).
@@ -169,24 +178,24 @@ Przy każdej godzinie mówić, w jakiej strefie jest.
   „zapas" (`kod/pipeline.bat`, pełne ścieżki do `.venv\Scripts\python.exe`).
   Od 15.09 z nowym `gold.py`, bez przełącznika, więc nic nie wysyła do S3.
 
-**Normalny blok jednego biegu w `errors.txt`:**
-- w dzień giełdowy **24 linie**: Producent 4, ostrzeżenie `kafka-python` 2,
-  `boto3` 2, `Odebrano` 1, `pandas` 2, Silver 1, Gold 12;
-- bez nowych wiadomości **22 linie**, bo Konsument tworzy klienta S3,
+**Normalny blok jednego biegu w `errors.txt`, stan od 17.09:**
+- w dzień giełdowy **28 linii**: Producent 4, ostrzeżenie `kafka-python` 2,
+  `boto3` 2, `Odebrano` 1, `pandas` 2, Silver 1, Gold 12, ostrzeżenie
+  `boto3` w Goldzie 2 (osobny program), 2 × `S3: wysłano`;
+- bez nowych wiadomości **26 linii**, bo Konsument tworzy klienta S3,
   a z nim ostrzeżenie `boto3`, tylko wtedy, gdy ma co zapisać.
-- **po wdrożeniu nowego `gold.py` na EC2:** ze zmienną `GOLD_DO_S3=1` +4
-  linie (2 ostrzeżenia `boto3`, bo Gold to osobny program, i 2 × „wysłano”),
-  czyli **28 / 26**; bez zmiennej +1 („Pominięto”), czyli **25 / 23**.
+- Zmiany w Konsumencie z 17.09 **nie dodają ani nie ujmują linii**. Gdyby
+  blok się zmienił, znaczyłoby to, że zmieniło się coś jeszcze.
 
-Stan 16.09 po biegu: `errors.txt` 554, `errors.log` 8, pliki spółek po 773
-(cały folder `companies/` razem 2881 linii), zakładka `2348`. W S3 `live/`
-33 pliki (30 + 3 z biegu, wynika z `Odebrano 3`, listą nie liczone). W S3
-`gold/` dalej 2 pliki wysłane raz z laptopa 15.09 o 19:19 polskiego: 157240
-i 365 bajtów.
+Stan 17.09 po biegu i po testach: `errors.txt` 582, `errors.log` 8, pliki
+spółek po 774, zakładka `2351`, EC2 i Athena zgodnie **2322**. W S3 `gold/`
+leżą pliki wysłane z EC2 przez `cron` o 18:10 polskiego. W `live/` **trzy
+powtórki z testu B** — Silver je odsieje, kompakcja 1.10 wypisze o trzy
+pliki więcej.
 
-**Rozjazd, który jest zamierzony:** EC2 liczy `(2319, 3)`, a Athena pokazuje
-2316, bo w S3 leżą pliki z 15.09. Zniknie przy pierwszym biegu EC2
-z przełącznikiem i sam będzie dowodem, że wysyłka doszła.
+**Rozjazd z 15–16.09 zniknął, zgodnie z przewidywaniem.** EC2 i Athena
+pokazują tę samą liczbę, bo pliki w S3 pochodzą teraz z biegu na EC2, a nie
+z jednorazowej wysyłki z laptopa.
 
 ### Kolejność napraw — gdzie jesteśmy
 
@@ -197,23 +206,30 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
 3. **Konsument `earliest` i jedna linia `crontab`** — ✅ 08–10.09.
    **Ścieżka bez zakładki sprawdzona testem 14.09, Silver na EC2 potwierdził
    15.09** (`(2316, 3)`, powtórki nie dodały wiersza).
+   **Domknięty głębiej 17.09:** naprawione gubienie danych przy **awarii**
+   zapisu do S3. Wada dopisana 14.09 jako podejrzenie, 17.09 potwierdzona
+   w kodzie `kafka-python 3.0.11`, pokazana na żywo (zakładka przeskoczyła
+   2348 → 2351 przy pustym `live/`), naprawiona przez
+   `enable_auto_commit=False` + `consumer.close()`. Dwa testy po zmianie:
+   zapis odcięty → zakładka **stoi** (`2348 2351 3`); bieg zwykły →
+   `Odebrano 3`, `2351 2351 0`, `no active members` od razu. **Nie ma
+   jeszcze biegu z `cron`** na nowym Konsumencie — pierwszy 18.09 o 18:00.
 4. **Sprzątanie kodu** — ✅ 11.09 na EC2. Do tego:
    - podsumowanie Producenta, ✅ trzy ścieżki: awaria brokera 11.09
      lokalnie, „nic nowego" 12.09 na EC2, dzień giełdowy 14.09 na EC2;
    - spisy wymagań dla dwóch maszyn, ✅ 11.09;
    - `CRON_TZ`, ✅ 13–14.09.
-5. **Wynik Golda do S3 i Atheny** — 🟨 w toku od 15.09. Notatka
+5. **Wynik Golda do S3 i Atheny** — ✅ **17.09**. Notatka
    `notatki/plany/Notatka-2026-09-15-wynik-golda-do-s3.md` zatwierdzona (pięć
    decyzji: nadpisywać, CSV, przełącznik tylko na EC2, tabele ręcznie SQL,
-   bez kolumny z godziną). Uprawnienia sprawdzone. Przełącznik w `gold.py`
-   napisany przez Gracjana, sprawdzony na laptopie w obu drogach, pierwsza
-   wysyłka z laptopa co do bajta (wyjątek od decyzji 3, jednorazowy).
-   **Tabele w Athenie ✅ 16.09:** `gold_dane_dzienne` i `gold_ranking_spolek`
-   w bazie `gpw-tracker_db`, założone ręcznie `CREATE EXTERNAL TABLE`
-   z konsoli. Sprawdzone: `COUNT(*)` 2316 i 3, pusta komórka `zmiana_proc`
-   to `NULL` (3 wiersze, po 1 na spółkę), `Data scanned` 153.55 KB i 0.36 KB
-   zgodne z rozmiarem plików.
-   **Nie ma:** kodu na EC2, zmiennej w `crontab`, głośnej awarii.
+   bez kolumny z godziną). Przełącznik w `gold.py` napisany przez Gracjana.
+   Tabele w Athenie założone ręcznie 16.09. **17.09:** kod na EC2
+   (`git pull` do `070b478`), `GOLD_DO_S3=1` w `crontab` z `REPLACE`
+   14:59:47 UTC i `RELOAD` 15:00:01 UTC, bieg z `cron` o 18:10 polskiego
+   wypisał 2 × `S3: wysłano`, a `COUNT(*)` na `gold_dane_dzienne` dał
+   **2322** zamiast 2316. **To ta liczba jest dowodem** — plik policzony
+   przez `cron` sam przeszedł do S3 i Athena go czyta.
+   **Niespełniony tylko warunek (c):** awaria nadal cicha.
 6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** —
    ⬜.
 7. **Test prawdziwej drogi** — ⬜.
@@ -227,8 +243,6 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
 
 ### Wciąż otwarte (najkrócej, pełne opisy w przeglądzie)
 
-- Wynik Golda z EC2 kończy na dysku EC2. W S3 leżą na razie pliki wysłane
-  raz z laptopa (15.09), tabel w Athenie brak.
 - Producent uruchomiony przed 17:00 zapisuje cenę z trwającej sesji jako
   zamknięcie.
 - Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
@@ -239,15 +253,26 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
 - Korekty cen Yahoo nie docierają do S3.
 - Nierówne okna `range=3y` dla nowej spółki (13.09).
 - README obiecuje więcej, niż jest.
-- **Nowe 14.09, wszystkie w przeglądzie:**
-  - Konsument bez `consumer.close()`, więc broker przez kilkanaście sekund
-    widzi go jako członka grupy;
-  - **podejrzenie, niesprawdzone:** `kafka-python` sam zapisuje zakładkę
-    co 5 s, możliwe że zanim wiadomości trafią do S3;
-  - CBF 14.09 `201.0`, identycznie jak 11.09, niesprawdzone ze źródłem
-    zewnętrznym; 15.09 `197.4`, 16.09 `195.3`, więc cena u Yahoo się zmienia
-    i podejrzenie o zamrożoną wartość odpada. Porównania z innym źródłem
-    dalej nie było.
+- **Trzy sprawy z 14.09 — wszystkie zamknięte 17.09:**
+  - `consumer.close()` — ✅ dopisane, sprawdzone (`no active members` od
+    razu po biegu). **Zostaje ograniczenie:** `close()` stoi za
+    `put_object`, więc przy awarii się nie wykonuje. Pełne rozwiązanie
+    wymaga `finally` — odłożone świadomie, nie gubi danych;
+  - zakładka przed zapisem — ✅ z podejrzenia zrobił się fakt potwierdzony
+    w kodzie i na żywo, potem naprawiony (patrz punkt 3 kolejki);
+  - CBF — ✅ porównane z BiznesRadarem: 14.09 `201.00`, 15.09 `197.40`,
+    16.09 `195.30`, **co do grosza zgodnie z Yahoo**. Cena z 17.09 (`204.00`)
+    do sprawdzenia, gdy serwisy dodadzą czwartkową sesję — publikują
+    z dobowym opóźnieniem.
+- **Nowe 17.09:**
+  - **rozjazd nazw kolumn**, zamierzony: plik CSV w S3 ma w nagłówku
+    `pierwsza_cena` i `ostatnia_cena`, a tabela `gold_ranking_spolek`
+    `pierwotna_cena` i `aktualna_cena`. Nic nie psuje (nagłówek pomijany,
+    dopasowanie po kolejności), ale trzeba o tym wiedzieć. Zrównanie nazw
+    wymagałoby zmiany w `gold.py`, czyli wdrożenia na EC2;
+  - Cyber_Folks połączył się z Shoperem, 15.09 weszło ponad 3,2 mln akcji
+    serii F. Przy takich zdarzeniach kursy historyczne bywają przeliczane
+    wstecz — to zaostrza znaną wadę „korekty cen nie docierają do S3".
 - **Poza kolejnością, do decyzji Gracjana:**
   - Python 3.10 na EC2, jedyna sprawa, która pogarsza się sama, bo `boto3`
     porzucił 3.9 w kwietniu 2026;
@@ -305,6 +330,23 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   zawsze wypisuje sam napis i nic nie sprawdza.
 - **15.09:** `git status` „5 linii” po teście wysyłki. Było 6, bo Claude
   chwilę wcześniej sam zmienił notatkę z 14.09.
+- **17.09:** liczenie godziny z głowy zamiast sprawdzenia zegara. Claude
+  napisał „jest 17:56", gdy było 17:37 — i wcześniej też szacował czas na
+  podstawie postępu rozmowy. Gracjan sprostował. **Wniosek: przed każdą
+  wypowiedzią o godzinie uruchomić `date`.**
+- **17.09:** przewidziane „`3 insertions`" przy `git commit`, a wyszło 321.
+  Liczba 3 dotyczyła samego `kafka_consumer.py`; `git commit` sumuje
+  wszystkie pliki w commicie, a w tym był też plik notatki (318 linii),
+  którego długość Claude znał. **Wniosek: przy `git commit` podawać sumę,
+  przy `git diff plik` — liczbę dla pliku.**
+- **17.09:** w notatce zapisane, że jeden bieg testowy dowiedzie zarówno
+  nieruszonej zakładki, jak i działania `close()`. Niewykonalne — przy
+  awarii zapisu program pada przed `close()`. Poprawione w notatce po
+  napisaniu kodu, rozdzielone na dwa testy.
+- **17.09:** „aktualna cena 191,2 zł" z wyszukiwarki podana jako możliwy
+  punkt odniesienia dla dzisiejszego biegu. Arytmetyka się nie domykała
+  (spadek 3,34% od 195,30 dałby 188,8), więc wartość była niewiarygodna od
+  początku i nie powinna trafić do rozmowy jako poszlaka.
 
 ### Priorytet Gracjana (08.09)
 
@@ -314,34 +356,39 @@ dopiero potem.
 
 ### Na następną sesję
 
-**Sesja 16.09 skończyła się na tabelach w Athenie.** Czym zacząć
-następną — decyzja Gracjana, nie była podejmowana. Gotowe do wzięcia:
+**Tematu nie wybrano** — sesja 17.09 skończyła się na dokumentacji. Wybór
+należy do Gracjana. Poniżej to, co jest gotowe do wzięcia, a na końcu
+propozycja Claude'a.
 
-1. **Wdrożenie na EC2** — domyka naprawę „wynik Golda do S3 i Atheny".
-   `git pull` z rytuałem z zasady 14, potem zmienna `GOLD_DO_S3=1`
-   w `crontab`: kopia `crontab -l`, nowy plik, `diff`, wgranie, `diff`
-   z maszyną (procedura z notatki 13.09, część 7). Zmienna musi stać **nad**
-   linią `10 18` — przypisania w `crontab` działają tylko na linie pod nimi;
-   precedens na EC2 to linia `KAFKA_BOOTSTRAP=…`. **Robić zaraz po biegu,
-   nie przed** — wtedy jest doba zapasu zamiast kilkunastu minut.
-2. **Przewidywania pierwszego biegu po wdrożeniu** (dzień giełdowy, linia
-   startu `555:`, godzina `16:00:0X` UTC):
-   - **bez wdrożenia:** `errors.txt` 578, blok 24, pliki spółek 774,
-     `Odebrano 3`, 2 × `(2322, 3)`, zakładka `2351`, w Athenie dalej 2316;
-   - **nowy `gold.py` bez zmiennej:** blok 25, `errors.txt` 579, ostatnia
-     linia `S3: Pominięto, brak GOLD_DO_S3 == 1`;
-   - **nowy `gold.py` ze zmienną:** blok 28, `errors.txt` 582, 2 × `S3:
-     wysłano …`, w S3 pliki z datą dnia biegu około 18:10 polskiego
-     (`aws s3 ls` na laptopie pokazuje czas polski), a `COUNT(*)`
-     `gold_dane_dzienne` **2322** zamiast 2316. To ostatnia liczba jest
-     dowodem, że droga EC2 → S3 → Athena działa w całości.
-3. **Jedno zapytanie `SELECT *` na obu tabelach** — 16.09 oglądaliśmy
-   `COUNT(*)`, kolumnę `spolka` i puste komórki, ale nie komplet kolumn.
-4. **Terminy:** weekend blok 22 linie (26 po wdrożeniu ze zmienną), 1.10
-   kompakcja z laptopa, 26.10 pierwszy bieg po zmianie czasu (`17:00:0X`).
+1. **Sprawdzenie biegu z 18.09 — trzeba zrobić niezależnie od tematu.**
+   To pierwszy bieg z `cron` na nowym Konsumencie, czyli ostatni brakujący
+   warunek (a) dla naprawy numer 3. Przewidywania, zapisane 17.09 przed
+   biegiem (dzień giełdowy, godzina w linii startu `16:00:0X` UTC):
+   linia startu `583`, blok **28 linii**, `errors.txt` **610**,
+   `Odebrano 3 wiadomości`, 2 × `(2325, 3)`, zakładka `2354 2354 0`,
+   `COUNT(*)` na `gold_dane_dzienne` **2325**, pliki spółek po **775**.
+   **Liczba 2325, a nie 2328, jest sprawdzeniem samym w sobie** — trzy
+   powtórki z testu B (17.09) nie mogą dodać wierszy, bo Silver je odsiewa.
+2. **Cena CBF `204.00` z 17.09** do porównania z BiznesRadarem
+   (`biznesradar.pl/notowania-historyczne/CBF`). Serwisy publikują sesję
+   z dobowym opóźnieniem, więc 17.09 pojawi się u nich 18.09. Poszlaka za
+   poprawnością: wszystkie trzy spółki poszły w górę, a Yahoo zgadzał się co
+   do grosza w trzech poprzednich dniach.
+3. **Dane z lokalnego Harmonogramu z 17.09** — nie zacommitowane, bo sesja
+   skończyła się na kodzie i dokumentacji.
+4. **Terminy:** weekend blok **26 linii**, 1.10 kompakcja z laptopa
+   (wypisze o 3 pliki więcej z powodu testu B), 26.10 pierwszy bieg po
+   zmianie czasu (`17:00:0X` w linii startu i to będzie poprawne).
 
-**EC2 stoi na `3c488f1`.** Commity z 15.09 zawierają nowy `gold.py`. Przy
-`git pull` — rytuał z zasady 14.
+**Propozycja Claude'a: punkt 8 kolejki, sygnał awarii.** Uzasadnienie:
+17.09 dwa razy patrzyliśmy na `Traceback`, o którym nikt by się nie
+dowiedział — raz celowo w teście, raz przy okazji. Dopóki ten punkt jest
+otwarty, **każde ✅ w kolejce ma niespełniony warunek (c)**, więc jest to
+jedyna naprawa, która poprawia stan wszystkich pozostałych naraz. Decyzja
+Gracjana.
+
+**EC2 stoi na `033107f`**, tak samo jak laptop i GitHub. Przy `git pull` —
+rytuał z zasady 14.
 
 ### Kopie
 
@@ -353,7 +400,10 @@ następną — decyzja Gracjana, nie była podejmowana. Gotowe do wzięcia:
   - `~/crontab-kopia-0909.txt` to harmonogram sprzed 09.09 (cofnąłby o cztery
     dni);
   - `~/crontab-nowy.txt` to plik wgrany 09.09;
-  - `~/crontab-nowy-0913.txt` to plik wgrany 13.09.
+  - `~/crontab-nowy-0913.txt` to plik wgrany 13.09;
+  - `~/crontab-kopia-0917.txt` to stan sprzed `GOLD_DO_S3` — powrót:
+    `crontab ~/crontab-kopia-0917.txt`;
+  - `~/crontab-nowy-0917.txt` to plik wgrany 17.09 (pięć linii).
 
 ## Gdzie co jest
 
@@ -413,3 +463,18 @@ Obie tabele `gold_*` założone 16.09 ręcznie, z pominięciem pierwszej linii
 nie po nazwie, więc **każda zmiana kolumn w `gold.py` wymaga zmiany tabeli
 w tej samej sesji**. Do folderów tabel nic nie wgrywamy ręcznie — każdy
 dodatkowy plik po cichu dokłada wiersze.
+
+**Kolumny `gold_ranking_spolek` (stan 17.09):** `spolka`, `miesiac`,
+`odchylenie_standardowe`, `dni`, `pierwotna_cena`, `aktualna_cena`,
+`zmiana_caly_okres`. Dwie ostatnie nazwy zmienił Gracjan 17.09
+(`ALTER TABLE … CHANGE COLUMN`) z `pierwsza_cena` i `ostatnia_cena`.
+**Plik CSV w S3 ma nadal stare nazwy w nagłówku** — nie szkodzi, bo nagłówek
+jest pomijany, ale przy czytaniu pliku i tabeli obok siebie widać rozjazd.
+
+**Zmiana nazwy kolumny w Athenie nie rusza danych.** Trzy drogi:
+`ALTER TABLE … CHANGE COLUMN stara nowa typ` (typ trzeba podać, nawet
+niezmieniony), `ALTER TABLE … REPLACE COLUMNS (…)` dla kilku naraz, albo
+`DROP TABLE` i `CREATE EXTERNAL TABLE` od nowa. Przy tabeli `EXTERNAL`
+`DROP` kasuje sam opis, pliki w S3 zostają. **Niesprawdzone:** jak
+`CHANGE COLUMN` zachowa się na `bronze` — Parquet trzyma nazwy kolumn
+w samym pliku, więc dopasowanie może iść po nazwie, nie po pozycji.
