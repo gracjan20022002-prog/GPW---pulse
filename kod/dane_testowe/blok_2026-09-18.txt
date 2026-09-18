@@ -1,0 +1,28 @@
+=== Data pomiaru Producenta: 2026-09-18 16:00:02 ===
+CBF.WA: nowych dni: 1, wysłane: 1, stan: zapisane
+XTB.WA: nowych dni: 1, wysłane: 1, stan: zapisane
+SNT.WA: nowych dni: 1, wysłane: 1, stan: zapisane
+/home/ec2-user/GPW---pulse/kod/kafka_consumer.py:8: DeprecationWarning: value_deserializer does not implement kafka.serializer.Deserializer
+  consumer = KafkaConsumer(
+/home/ec2-user/GPW---pulse/venv/lib64/python3.9/site-packages/boto3/compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+Odebrano 3 wiadomości
+/home/ec2-user/GPW---pulse/kod/silver.py:11: UserWarning: pandas only supports SQLAlchemy connectable (engine/connection) or database string URI or sqlite3 DBAPI2 connection. Other DBAPI2 objects are not tested. Please consider using SQLAlchemy.
+  df = pd.read_sql("SELECT data, cena, spolka FROM bronze UNION SELECT data, cena, spolka FROM live", con)
+(2325, 3)
+/home/ec2-user/GPW---pulse/venv/lib64/python3.9/site-packages/boto3/compat.py:89: PythonDeprecationWarning: Boto3 will no longer support Python 3.9 starting April 29, 2026. To continue receiving service updates, bug fixes, and security updates please upgrade to Python 3.10 or later. More information can be found here: https://aws.amazon.com/blogs/developer/python-support-policy-updates-for-aws-sdks-and-tools/
+  warnings.warn(warning, PythonDeprecationWarning)
+(2325, 3)
+   spolka      first        last  calk_roznica
+1  SNT.WA  70.800003  352.600006    398.022586
+2  XTB.WA  37.939999  150.339996    296.257253
+0  CBF.WA  75.599998  202.800003    168.253978
+Pełna liczba wierszy tabeli miesięcznej: 114, Prawidłowa liczba wierszy tabeli miesięcznej: 108
+   spolka  miesiac  ...  ostatnia_cena  zmiana_caly_okres
+0  CBF.WA  2024-11  ...     202.800003         168.253978
+1  SNT.WA  2025-06  ...     352.600006         398.022586
+2  XTB.WA  2025-01  ...     150.339996         296.257253
+
+[3 rows x 7 columns]
+S3: wysłano dane_dzienne.csv
+S3: wysłano ranking.csv
