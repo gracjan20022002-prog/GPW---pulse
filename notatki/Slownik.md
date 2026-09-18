@@ -435,6 +435,65 @@ uruchomić.
 czyszczenie, liczenie wskaźników — jedno zadanie w Harmonogramie zamiast
 trzech osobnych.*
 
+### Sygnał awarii „przez ciszę” (dead man's switch, czuwak)
+Pilnowany program sam co jakiś czas zgłasza „żyję, wszystko dobrze”.
+Alarm podnosi **brak** zgłoszenia, więc nie trzeba wiedzieć, dlaczego
+program zamilkł. W polskich pociągach to samo nazywa się czuwakiem:
+maszynista co chwilę naciska przycisk, a gdy przestanie, pociąg sam hamuje.
+*Umowa „zadzwoń, jak coś pójdzie źle” nie złapie piekarza, który zaspał —
+ten, kto miał dzwonić, sam nie działa. Umowa „SMS o 6:00, a jak nie przyjdzie,
+budzik dzwoni o 6:30” złapie.*
+
+### Stróż (u nas healthchecks.io)
+Usługa poza naszą maszyną, która czeka na umówione zgłoszenie i wysyła
+e-mail, gdy nie przyjdzie na czas albo przyjdzie z informacją o awarii.
+Plan darmowy „Hobbyist”: 20 zadań, 100 wpisów historii na zadanie
+(sprawdzone 18.09). Konto bez logowania przez rok jest kasowane.
+*W projekcie: jedno zadanie „GPW - bieg dzienny”, harmonogram
+`30 18 * * *` w strefie `Europe/Warsaw`, zapas 30 minut.*
+
+### Skrypt kontrolny
+Nasz skrypt na EC2 (`kod/control.py`), który po biegu przegląda dzisiejszy
+blok `errors.txt` i decyduje: „komplet” albo „awaria + powód”. Nie mylić ze
+stróżem — skrypt kontrolny ocenia, stróż pilnuje, czy ocena w ogóle przyszła.
+
+### Dowód sukcesu zamiast szukania porażki
+Zasada sprawdzania: szukamy w logu linii, które pojawiają się **tylko przy
+udanym kroku**, zamiast słów oznaczających błąd. Porażka może mieć formę,
+której nikt nie przewidział; sukces ma jedną, znaną.
+*Producent przy martwym brokerze nie wypisuje żadnego „ERROR” w
+`errors.txt`, tylko `stan: nietknięte`. Szukanie złych słów by go przeoczyło,
+liczenie `stan: zapisane` — nie.*
+
+### Adres zgłoszenia (ping URL)
+Unikalny adres zadania u stróża: `https://hc-ping.com/` i 36 losowych
+znaków. Zwykłe zapytanie HTTP pod ten adres oznacza „udany bieg”. Kto zna
+adres, może zgłaszać w Twoim imieniu, więc to sekret — trzymany w `crontab`,
+nigdy w gicie.
+
+### `/fail` i treść zgłoszenia
+Dopisane na końcu adresu zgłoszenia `/fail` znaczy „awaria, nie czekaj” —
+stróż od razu przechodzi w stan awarii. Do zgłoszenia można dołączyć tekst
+(do 100 kB); stróż zapisuje go w historii zadania.
+*`requests.post(ADRES + "/fail", data="brak danych z kasy 2")`.*
+
+### Grace Time (zapas)
+Ile stróż czeka ponad umówioną godzinę, zanim podniesie alarm.
+*Harmonogram 18:30, zapas 30 minut → alarm najpóźniej o 19:00.*
+
+### Stany zadania u stróża
+*New* — nic jeszcze nie przyszło; w tym stanie stróż **nie alarmuje**
+(sprawdzone 18.09 w jego kodzie). *Up* — w porządku. *Late* — spóźnione,
+zapas jeszcze trwa. *Down* — awaria, idzie e-mail. *Paused* — wstrzymane
+ręcznie. E-mail przychodzi przy zmianie stanu (*Down*, powrót do *Up*), nie
+codziennie.
+
+### Harmonogram „Simple” a „Cron” u stróża
+*Simple* pilnuje **odstępu** między zgłoszeniami, *Cron* pilnuje **godziny**
+w wybranej strefie. Przy zmianie czasu odstęp między dwoma biegami o 18:30
+wynosi 25 godzin, więc *Simple* z jednym dniem i 30 minutami zapasu dałby
+fałszywy alarm.
+
 ---
 
 ## AWS i Kafka
@@ -731,6 +790,17 @@ Liczba, którą konsola Atheny pokazuje przy każdym zapytaniu: ile bajtów
 naprawdę przeczytała. Athena liczy po niej opłatę, ale przydaje się też jako
 darmowe sprawdzenie, czy tabela czyta ten plik, o którym myślisz.
 *16.09: `0.36 KB` przy pliku `ranking.csv` o rozmiarze 365 bajtów.*
+
+### SNS (Simple Notification Service)
+Usługa AWS do wysyłania powiadomień, m.in. e-maili. Tylko **doręcza** to,
+co dostanie — nie czeka na nic i nie zauważy, że wiadomość nie przyszła.
+*Dlatego 18.09 odpadła jako stróż: gdy EC2 leży, nikt jej nic nie przekaże,
+a pusta skrzynka wygląda jak zwykły wieczór.*
+
+### CloudWatch
+Usługa AWS do pomiarów i alarmów. Umie alarmować także przy **braku**
+danych, więc razem z SNS dałaby stróża w AWS. Szczegółów nie sprawdzaliśmy
+(18.09) — wybraliśmy prostszą drogę z jedną usługą zewnętrzną.
 
 ---
 
@@ -1143,6 +1213,75 @@ błędu.
 *Doklejenie tej samej tabeli drugi raz robi z `ostatnia_cena` dwie kolumny:
 `ostatnia_cena_x` i `ostatnia_cena_y`.*
 
+### `splitlines()`
+Tnie tekst na listę linii.
+*`"a\nb\nc".splitlines()` → `["a", "b", "c"]`.*
+
+### `.count("…")` na tekście
+Mówi, ile razy fragment występuje w tekście.
+*`blok.count("S3: wysłano")` → `2` w zwykły dzień.*
+
+### `startswith("…")`
+Sprawdza, czy tekst **zaczyna się** od danego fragmentu. Daje `True` albo
+`False`.
+*`"=== Data pomiaru Producenta: …".startswith("=== Data pomiaru")` → `True`.*
+
+### `"\n".join(lista)`
+Skleja elementy listy w jeden tekst, wstawiając między nie znak nowej linii.
+Odwrotność `splitlines()`.
+
+### `None` i `is None`
+`None` znaczy „nic, brak wartości”. Sprawdza się go przez `is None`.
+*`start = None` przed pętlą; jeśli po pętli dalej `start is None`, linii
+startu nie było wcale.*
+
+### Wycinek listy (`lista[a:]`)
+Wszystkie elementy od numeru `a` do końca.
+*`linie[28:]` z listy 56 linii to ostatnie 28.*
+
+### `\n` a `\N`
+`\n` w tekście to znak nowej linii. `\N` z wielkim N to początek specjalnego
+kodu `\N{NAZWA ZNAKU}`; samo `"\N"` to `SyntaxError` już przy wczytywaniu
+pliku — pada cały plik, nie jedna linia.
+
+### Import samego siebie (import cykliczny)
+Plik, który importuje coś z samego siebie. Python w połowie czytania pliku
+wraca do tego samego pliku, gdzie szukanej funkcji jeszcze nie ma.
+*`from control import sprawdz_blok` w pierwszych liniach `control.py` →
+`ImportError: cannot import name … from partially initialized module`.*
+
+### `len()` na tekście
+Liczy **znaki**, nie linie. Żeby policzyć linie: `len(tekst.splitlines())`.
+*Blok z 18.09: około 2300 znaków, 28 linii.*
+
+### Fixture (pytest)
+Gotowy składnik, który pytest sam podaje do testu. Pytest traktuje **każdy**
+parametr funkcji testowej jako fixture; jeśli nie zna składnika o tej nazwie
+i nie ma `parametrize`, zgłasza `fixture '…' not found`.
+*`def test_dwa_dni(tekst):` → błąd, bo nikt nie dostarcza `tekst`.*
+
+### Test bez `assert` i test przechodzący przypadkiem
+Test bez `assert` zawsze przechodzi — nic w nim nie może się nie udać.
+Test przechodzi też przypadkiem, gdy oczekuje wyniku, który daje również
+zepsuty kod.
+*18.09: `test_sobota` oczekuje 0 problemów — tyle samo daje niezmieniony
+wzór, gdyby `.replace` niczego nie trafił. `test_bez_startu` oczekuje `""` —
+tyle samo zwracała funkcja z literówką. Dlatego testy działają w parach
+i dlatego sprawdza się, że zamieniany fragment naprawdę jest we wzorze.*
+
+### `requests.post` i `data=`
+Jak `requests.get`, ale z **treścią**: `data=` to tekst, który idzie razem
+z zapytaniem. `get` puka do drzwi, `post` puka i wsuwa karteczkę.
+
+### Kodowanie latin-1 a UTF-8 (`.encode("utf-8")`)
+Tekst przed wysłaniem przez sieć zamienia się na bajty. UTF-8 zna polskie
+litery, latin-1 nie zna „ą”, „ę”, „ł”, „ś”, „ż”. `.encode("utf-8")` zamienia
+tekst na bajty samodzielnie, zanim zrobi to biblioteka.
+*EC2 ma `urllib3==1.26.20`, który oddaje tekst do `http.client`, a ten koduje
+latin-1 → `UnicodeEncodeError`. Laptop ma `urllib3==2.7.0`, który koduje
+UTF-8. Ten sam kod przechodzi na laptopie i pada na EC2 (sprawdzone 18.09
+w kodzie obu bibliotek).*
+
 ---
 
 ## Giełda
@@ -1184,6 +1323,14 @@ złotych, dwie różne liczby.*
 jest procentowa. XTB: 37,94 → 151,76 to +300%, bo cena końcowa jest
 czterokrotnością początkowej. Nazwa kolumny nie niesie jednostki, więc
 na stronie każda taka liczba będzie wymagała podpisu.
+
+### Kurs zamknięcia i archiwum notowań GPW
+Kurs zamknięcia ustala giełda w aukcji zamknięcia — ostatnich minutach sesji.
+Oficjalne archiwum jest na gpw.pl (Archiwum notowań) i to ono jest punktem
+odniesienia, nie serwisy pośrednie.
+*18.09: BiznesRadar podał w archiwum dla CBF z 17.09 cenę 203,80, a giełda
+204,00 — tyle, ile mamy z Yahoo. Nawet własny nagłówek BiznesRadaru (202,80,
+−1,20) wskazywał 204,00. Przyczyny nie sprawdziliśmy.*
 
 ---
 
