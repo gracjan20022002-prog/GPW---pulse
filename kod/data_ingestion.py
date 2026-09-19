@@ -6,13 +6,11 @@ from config import ticker
 from kafka import KafkaProducer
 from json import dumps
 from kafka.errors import KafkaError
-print(f"=== Data pomiaru Producenta: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
+print(f"=== Data pomiaru Producenta: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===", flush=True)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 logging.basicConfig(
-    filename = os.path.join(BASE_DIR, "companies", "errors.log"),
     level = logging.ERROR,
-    format = "%(asctime)s - %(levelname)s - %(message)s",
-    encoding = "utf-8"
+    format = "%(asctime)s - %(levelname)s - %(message)s"
 )
 BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "13.63.105.190:9092")
 try:
