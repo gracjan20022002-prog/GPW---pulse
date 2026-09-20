@@ -785,6 +785,15 @@ NULL`, nigdy przez `= NULL`.
 nie ma jeszcze dnia poprzedniego — zapytanie zwróciło 3 wiersze, po jednym
 na spółkę.*
 
+### `COUNT(DISTINCT …)`
+`COUNT(*)` liczy wszystkie wiersze, `COUNT(DISTINCT kolumna)` — tylko różne
+wartości w tej kolumnie. Gdy oba wyniki są równe, w kolumnie nie ma
+powtórzeń.
+*Dane pogodowe: `SELECT miasto, COUNT(*), COUNT(DISTINCT dzien) FROM pomiary
+GROUP BY miasto` → `Gdańsk 30 30`, `Kraków 31 30` — Kraków ma jedną powtórkę
+dnia. 20.09: `gold_dane_dzienne` dała `775 775` dla każdej spółki, więc żaden
+dzień się nie powtarza.*
+
 ### `Data scanned`
 Liczba, którą konsola Atheny pokazuje przy każdym zapytaniu: ile bajtów
 naprawdę przeczytała. Athena liczy po niej opłatę, ale przydaje się też jako
@@ -864,11 +873,14 @@ w linię 2 drugiego). Brak wypisu = pliki identyczne.
 ### `grep`, `sed -n`, `head`, `tail`, `cp`
 `grep "tekst" plik` wypisuje linie zawierające tekst (`-n` dodaje numer
 linii, `\|` znaczy „albo", `^(` — linia zaczynająca się od nawiasu).
+`-E` włącza wzorce rozszerzone, w których „albo" to samo `|` bez ukośnika.
 `sed -n '324,330p' plik` wypisuje linie od 324 do 330 i nic poza tym.
 `head -n 1` — pierwsza linia, `tail -n 1` — ostatnia. `cp a b` kopiuje
 plik `a` pod nazwę `b`.
 *`grep -n "Odebrano" errors.txt | tail -n 3` — trzy ostatnie wypisy
-Konsumenta z numerami linii.*
+Konsumenta z numerami linii. `grep -n -E "Traceback|Error|ERROR|nietknięte"
+errors.txt` — wszystkie miejsca z awarią naraz; 20.09 wynik pusty w całym
+pliku.*
 
 ### `nano`
 Domyślny edytor tekstu na EC2 (to on otwiera się pod `crontab -e`).
@@ -915,6 +927,18 @@ czas lokalny, uniwersalny i ustawioną strefę.
 Liczy linie w pliku. Najtańsze możliwe sprawdzenie „czy coś przybyło".
 *`wc -l companies/errors.txt` → `440`. Policzone **przed** biegiem
 i **po** nim daje dowód, którego nie da się podrobić okiem.*
+
+### Rozmiar w bajtach a liczba wierszy; koniec linii `\r\n` i `\n`
+Rozmiar pliku (`ls -l`, `aws s3 ls`) to liczba **bajtów**, nie wierszy.
+Każda linia kończy się znakiem końca linii, który też zajmuje bajty: Linux
+i S3 używają jednego (`\n`), Windows dwóch (`\r\n`). Ten sam plik tekstowy
+ma więc na Windowsie o jeden bajt więcej na każdą linię.
+*Plik z trzema liniami po cztery litery: Linux `3 × (4 + 1) = 15` bajtów,
+Windows `3 × (4 + 2) = 18`. 20.09: `dane_dzienne.csv` ma 157886 bajtów na
+laptopie i 155560 w S3, różnica 2326 = liczba linii (2325 wierszy i nagłówek);
+`ranking.csv` 364 i 360, różnica 4 = nagłówek i trzy spółki. Zgodność
+rozmiaru to mocny dowód, ale nie ostateczny — ostateczny daje suma SHA256
+(patrz „Suma kontrolna").*
 
 ### Podstawienie procesu `<( )`
 Pozwala podać **wynik komendy** tam, gdzie program spodziewa się nazwy
@@ -1331,6 +1355,17 @@ odniesienia, nie serwisy pośrednie.
 *18.09: BiznesRadar podał w archiwum dla CBF z 17.09 cenę 203,80, a giełda
 204,00 — tyle, ile mamy z Yahoo. Nawet własny nagłówek BiznesRadaru (202,80,
 −1,20) wskazywał 204,00. Przyczyny nie sprawdziliśmy.*
+
+### Dzień bez sesji a dziura w danych
+Giełda nie notuje w weekendy i święta, więc tych dni w danych brakuje i to
+jest w porządku. Odróżnienie: brak **tej samej daty u wszystkich spółek** to
+dzień bez sesji, brak **u jednej spółki** to błąd źródła. Kompletność liczy
+się kalendarzem: dni robocze w zakresie minus święta = liczba wierszy.
+*20.09: od 14.08.2023 do 18.09.2026 jest 810 dni roboczych; brakuje 35
+(Nowy Rok, Trzech Króli, Wielki Piątek, Poniedziałek Wielkanocny, 1 i 3
+maja, Boże Ciało, 15.08, 1 i 11.11, 24–26.12, 31.12), a 810 − 35 = 775 —
+tyle wierszy ma każda spółka. Daty 24.12 i 31.12 znamy z pamięci, nie
+z kalendarza GPW.*
 
 ---
 
