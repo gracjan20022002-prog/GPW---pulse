@@ -1,14 +1,12 @@
 # Notatka 18.09 — sygnał awarii
 
-**Stan: zatwierdzona w całości przez Gracjana 18.09** — decyzje 1(a), 2(a),
-3(a), 4 i 5 zgodnie z rekomendacją. **Postęp 18.09 wieczorem:** konto
-u stróża założone przez Gracjana, `kod/control.py` z funkcjami
-`sprawdz_blok` i `wytnij_blok`, 11 testów w `kod/test_control.py` na
-prawdziwym bloku z 18.09 (`kod/dane_testowe/blok_2026-09-18.txt`) —
-wszystkie przechodzą. Brakuje: części głównej skryptu (odczyt `errors.txt`,
-linia `Kontrola: …`, zgłoszenie), zmiany logu w Producencie, wdrożenia na EC2
-i testów 2–5. Punkt 8 kolejki napraw z przeglądu 08.09
-(„Sygnał awarii”), wzięty przed punktami 6 i 7 decyzją Gracjana z 18.09.
+**Stan: zatwierdzona w całości przez Gracjana 18.09; wdrożona 21.09.** Decyzje 1(a), 2(a),
+3(a), 4 i 5 zgodnie z rekomendacją. **Postęp:** 18.09 konto u stróża, `kod/control.py`
+z funkcjami `sprawdz_blok` i `wytnij_blok`, 11 testów na prawdziwym bloku z 18.09; 19.09 część
+główna skryptu, zmiana logu w Producencie i kod na EC2, testy 2–3 z prawdziwym stróżem;
+**21.09** linia `30 18` w `crontab`, test ciszy i pierwszy bieg z `cron` (wyniki w części „Jak
+sprawdzimy"). Punkt 8 kolejki napraw z przeglądu 08.09 („Sygnał awarii"), wzięty przed
+punktami 6 i 7 decyzją Gracjana z 18.09.
 
 ## Sedno w trzech zdaniach
 
@@ -131,18 +129,29 @@ słów. W weekend reguła działa tak samo: `nowych dni: 0` też kończy się
 
 ## Jak sprawdzimy
 
-Przy każdym teście wynik zapisany **przed** uruchomieniem.
+Przy każdym teście wynik zapisany **przed** uruchomieniem. **Wyniki (dopisane 21.09):**
 
-1. Laptop, `pytest`, bez sieci: funkcja skryptu kontrolnego na sztucznych blokach —
-   dzień giełdowy, sobota, `nietknięte`, `Traceback`, brak `S3: wysłano`.
-2. EC2, ręcznie, na prawdziwym `errors.txt` → stróż pokazuje „udany”.
-3. EC2, wymuszona awaria na kopii logu → e-mail z powodem.
-4. Cisza — nic nie wysyłamy → e-mail po okresie ciszy.
-5. Pierwszy bieg z `cron` o 18:30 → „udany”. Dopiero wtedy warunek (d).
+1. Laptop, `pytest`, bez sieci: funkcje skryptu kontrolnego na sztucznych blokach —
+   dzień giełdowy, sobota, `nietknięte`, `Traceback`, brak `S3: wysłano`. **Zaliczone**
+   (18.09 jedenaście testów, `11 passed` wklejone 19.09).
+2. EC2, ręcznie, na prawdziwym `errors.txt` → stróż pokazuje „udany". **Zaliczone 19.09**
+   (`Kontrola: OK`, kod 0, wpis `#2 OK`, `GET` z `13.63.105.190`).
+3. EC2, wymuszona awaria → e-mail z powodem. **Zaliczone 19.09**, awaria wymuszona złą datą
+   (nie kopią logu): `Kontrola: AWARIA - Brak pomiaru producenta z 2026-09-19`, wpis `#1
+   Failure` (POST, 2351 bajtów = 57 + 2294, policzone przed odczytem), mail `DOWN`
+   z treścią i całym blokiem, polskie litery bez krzaków.
+4. Cisza — nic nie wysyłamy → e-mail po okresie ciszy. **Zaliczone 19.09 wieczorem,
+   potwierdzone 21.09 zrzutem maila:** `Status Changed to Down at Sat, 19 Sep 2026 19:00:00
+   +0200` — czas polski, więc strefa `Europe/Warsaw` działa.
+5. Pierwszy bieg z `cron` o 18:30 → „udany". **Zaliczone 21.09:** linia `30 18` wgrana
+   16:53 polskiego, bieg o 18:30:02, start w linii 663, `wc -l` 691, ostatnia linia
+   `Kontrola: OK`, stróż `#3 OK` (`down → up`), mail `UP` („downtime lasted 1 day, 23
+   hours"). Dopiero teraz warunek (d) z definicji „zrobione" jest spełniony; zastrzeżenia
+   w CLAUDE.md (jeden bieg, awaria pokazana tylko wymuszona, strefa dopiero 25.10).
 
 ## Co to zepsuje za miesiąc
 
-- Blok w `errors.txt` urośnie o jedną linię (wynik skryptu kontrolnego): **29** w dzień
+- Blok w `errors.txt` urósł o jedną linię (wynik skryptu kontrolnego; **potwierdzone 21.09**): **29** w dzień
   giełdowy, **27** bez nowych wiadomości. Wszystkie przewidywania od
   wdrożenia — z nową liczbą.
 - Przy decyzji 3(a) `errors.log` przestaje rosnąć, a w dni z błędem Producenta

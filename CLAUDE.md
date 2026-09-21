@@ -125,7 +125,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (20.09 wieczorem)
+## Stan projektu — uczciwie (21.09 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -137,11 +137,15 @@ nie README.
 Na EC2 (`t3.micro`, Elastic IP `13.63.105.190`, 24/7) `cron` uruchamia
 codziennie **o 18:00 czasu polskiego** jedną linię
 `data_ingestion.py ; kafka_consumer.py` i **o 18:10** `silver.py &&
-gold.py`. Od 13.09 na górze `crontab` stoi `CRON_TZ=Europe/Warsaw`, więc
+gold.py`, a **od 21.09 o 18:30** skrypt kontrolny `control.py`. Od 13.09 na górze
+`crontab` stoi `CRON_TZ=Europe/Warsaw`, więc
 godziny w pliku (`0 18`, `10 18`) są polskie przez cały rok. Sprawdzone
 wpisem `RELOAD` w dzienniku systemowym i biegami 13.09 (niedziela) oraz
 14.09 (dzień giełdowy). Pełny tekst `crontab`:
-`notatki/plany/Notatka-2026-09-13-strefa-czasowa-cron.md`, część 4.
+`notatki/plany/Notatka-2026-09-13-strefa-czasowa-cron.md`, część 4 (stan z 13.09).
+**Od 21.09 `crontab` ma siedem linii:** `CRON_TZ`, `KAFKA_BOOTSTRAP`, `GOLD_DO_S3`,
+`STROZ_URL` (adres stróża, **nigdy w gicie**), `0 18`, `10 18` i `30 18` (skrypt
+kontrolny). Wgrany 21.09 o 14:53:03 UTC (16:53 polskiego).
 
 **UWAGA przy czytaniu logu:** strefa działa **tylko wewnątrz `cron`**.
 Skrypty, log, `ls -l`, narzędzia Kafki i dziennik systemowy dalej chodzą
@@ -183,9 +187,19 @@ Przy każdej godzinie mówić, w jakiej strefie jest.
 - **`bronze`** w S3 to Parquet do końca poprzedniego miesiąca, przepisywany
   ręcznie przez `compaction.py`, **wyłącznie z laptopa** (pierwszy bieg
   z prawdziwym kasowaniem: 1 października).
-- **Lokalny Harmonogram Windows** liczy Silver+Gold równolegle o 18:10 jako
+- **Lokalny Harmonogram Windows (WYŁĄCZONY 21.09)** liczył Silver+Gold równolegle o 18:10 jako
   „zapas" (`kod/pipeline.bat`, pełne ścieżki do `.venv\Scripts\python.exe`).
-  Od 15.09 z nowym `gold.py`, bez przełącznika, więc nic nie wysyła do S3.
+  Od 15.09 z nowym `gold.py`, bez przełącznika, więc nic nie wysyłał do S3.
+  **21.09:** zadanie `GPW Pulse - pipeline` (codziennie od 02.09 o 18:10, akcja
+  `cmd.exe /c … kod\pipeline.bat`) ma stan `Disabled`; wraca komendą
+  `Enable-ScheduledTask`. `kod/pipeline.bat` zostaje w gicie.
+- **Silver i gold poza gitem (od 21.09, commit `6af7b48`).** `.gitignore` ma
+  `silver/*`, `!silver/.gitkeep`, `gold/*`, `!gold/.gitkeep`; w obu folderach leży
+  pusty `.gitkeep`, bo git nie trzyma pustych folderów, a `silver.py` i `gold.py`
+  nie zakładają folderu (`to_csv`). EC2 na `6af7b48` od 21.09 ok. 19:03, w folderach
+  sam `.gitkeep`; pliki `.csv` wracają z pierwszym biegiem o 18:10 (**sprawdzian
+  22.09**). Lokalne pliki stoją od 20.09 20:22:04. Notatka:
+  `notatki/plany/Notatka-2026-09-21-jedno-miejsce-liczenia.md`.
 
 **Normalny blok jednego biegu w `errors.txt`, stan od 17.09:**
 - w dzień giełdowy **28 linii**: Producent 4, ostrzeżenie `kafka-python` 2,
@@ -195,6 +209,11 @@ Przy każdej godzinie mówić, w jakiej strefie jest.
   a z nim ostrzeżenie `boto3`, tylko wtedy, gdy ma co zapisać.
 - Zmiany w Konsumencie z 17.09 **nie dodają ani nie ujmują linii**. Gdyby
   blok się zmienił, znaczyłoby to, że zmieniło się coś jeszcze.
+- **Od 21.09** po bloku z 18:00 dochodzi jedna linia skryptu kontrolnego z 18:30
+  (`Kontrola: OK`): w dzień giełdowy **29 linii**, bez nowych wiadomości **27**.
+  Potwierdzone 21.09 (start w linii 663, `Kontrola: OK` w linii 691). Przy
+  martwym brokerze blok urośnie o 4 linie `ERROR` (trzy z biblioteki Kafki, jedna
+  nasza).
 
 Stan 20.09 wieczorem, odczytany na EC2 i w Athenie: `errors.txt` **662
 linie**. Linie startu biegów: 441 (12.09), 462, 483, 507, 531, 555, 583
@@ -213,8 +232,19 @@ kończy linię dwoma znakami, Linux jednym), `ranking.csv` 360 = 364 − 4.
 **Zero linii `Traceback`, `Error`, `ERROR`, `nietknięte` w całym pliku.**
 Log przed linią 441 ma stary kształt bez linii startu, więc biegów sprzed
 12.09 tą metodą nie liczymy. Ranking bez zmian: CBF 202,80, SNT 352,60,
-XTB 150,34. `errors.log` 8 (stan z 17.09, 20.09 nieodczytany). W `live/`
+XTB 150,34. `errors.log` 8 (stan z 17.09; potwierdzone 21.09). W `live/`
 trzy powtórki z testu B — kompakcja 1.10 wypisze o trzy pliki więcej.
+
+**Stan 21.09 wieczorem** (dzień giełdowy, po pierwszym biegu skryptu kontrolnego z
+`cron`): `errors.txt` **691** linii; start biegu w linii **663** (`16:00:02` UTC), blok
+28 linii (663–690), `Kontrola: OK` w linii 691 (18:30:02 polskiego); Silver i Gold po
+`(2328, 3)`; zakładka `2357 2357 0`, `no active members`; pliki spółek po 776 (razem
+2328); `COUNT(*)` na `gold_dane_dzienne`: 776 dni na spółkę, `do` = `2026-09-21
+17:00:00`; S3 `gold/` z 16:10:07 UTC: `dane_dzienne.csv` 155778 B, `ranking.csv`
+359 B (lokalnego pliku do porównania rozmiaru już nie ma). `errors.log` 8. Zero linii
+`Traceback`, `Error`, `ERROR`, `nietknięte`. Ranking: CBF 212,80, SNT 351,40, XTB
+148,58 — zgodne z archiwum GPW (odczyt narzędziem, streszczenie strony; procenty
++4,93 / −0,34 / −1,17 zgodne z liczonymi od cen z 18.09).
 
 **Kompletność sesji** (lokalny `gold/dane_dzienne.csv`, rozmiar zgodny
 z S3 po odjęciu końców linii): po 775 unikalnych dni na spółkę, te same
@@ -223,54 +253,66 @@ przerw to święta lub dni bez sesji (24.12 i 31.12 z pamięci, nie
 z kalendarza GPW). Największy skok dzienny −16,4% (SNT 30.06.2025);
 pojedynczych skoków nie porównywaliśmy z archiwum. **Niepotwierdzone
 zewnętrznie:** ceny sprzed 14.09, poza CBF z 14–17.09 oraz SNT i XTB
-z 17.09; ceny z 18.09 czekają na archiwum GPW.
+z 17.09; ceny z 18.09 i z 21.09 potwierdzone w archiwum GPW (przez narzędzie, nie
+własnym okiem). **Lokalny `gold/dane_dzienne.csv` stoi od 20.09** (Harmonogram
+wyłączony), więc kompletność od 22.09 liczyć przez Athenę albo z pliku pobranego
+z S3.
 
-### Codzienna kontrola po biegu (ułożona i sprawdzona 20.09)
+### Codzienna kontrola po biegu (ułożona 20.09, przeliczona 21.09)
 
-Kiedy: po 18:10 polskiego, bo dopiero wtedy kończą się Silver i Gold.
-Godziny w logu są w UTC (patrz UWAGA wyżej). Przewidywania zapisać
-**przed** puszczeniem komend. „Dzień giełdowy" to dzień z nowymi świecami,
-„weekend/święto" to dzień bez. Wzory zakładają blok bez skryptu
-kontrolnego; po jego wdrożeniu dochodzi 1 linia `Kontrola:` (29 / 27).
+Kiedy: po 18:32 polskiego, bo skrypt kontrolny kończy o 18:30, a Silver i Gold o
+18:10. Godziny w logu są w UTC (patrz UWAGA wyżej). Przewidywania zapisać **przed**
+puszczeniem komend. „Dzień giełdowy" to dzień z nowymi świecami, „weekend/święto" to
+dzień bez. Od 21.09 blok ma **29 linii** w dzień giełdowy (28 + `Kontrola: OK`) i **27**
+w weekend/święto (26 + `Kontrola:`).
 
 1. **[lokalny PowerShell, venv nieistotne]** `cd "C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\aws\aws ec2 key"`.
 2. **[lokalny PowerShell, venv nieistotne]** `ssh -i "gpw-tracker-key.pem"
    ec2-user@13.63.105.190` — ma być wiersz `[ec2-user@ip-… ~]$`.
-3. **[EC2, przez SSH]** `date` — dzisiejszy dzień, UTC, po 16:10 (latem).
-4. **[EC2, przez SSH]** `grep -n "=== Data pomiaru"
-   ~/GPW---pulse/companies/errors.txt | tail -n 3` — ostatnia linia startu
-   z dzisiejszą datą i `16:00:0X` (od 25.10 `17:00:0X`); jej numer =
-   numer poprzedniej + rozmiar poprzedniego bloku.
-5. **[EC2, przez SSH]** `wc -l ~/GPW---pulse/companies/errors.txt` — numer
-   dzisiejszej linii startu + rozmiar bloku − 1 (20.09: 637 + 26 − 1 = 662).
-6. **[EC2, przez SSH]** `tail -n 28 ~/GPW---pulse/companies/errors.txt`
-   w dzień giełdowy, `tail -n 26` w weekend/święto — pierwsza linia wyniku
-   to dzisiejszy start; 3 × `nowych dni: N, wysłane: N, stan: zapisane`
-   (N = 1 albo 0), `Odebrano 3` albo `Odebrano 0`, 2 × `(M, 3)`,
-   2 × `S3: wysłano`, brak `Traceback`. M = poprzednie + 3 w dzień
-   giełdowy, bez zmian w weekend (20.09: 2325).
-7. **[EC2, przez SSH]** `grep -n -E "Traceback|Error|ERROR|nietknięte"
-   ~/GPW---pulse/companies/errors.txt` — nic.
-8. **[EC2, przez SSH]** `wc -l ~/GPW---pulse/companies/*.WA.txt` — po tyle
-   wierszy, ile dni ma spółka (20.09: 775), +1 na dzień giełdowy; `total` =
-   3 × ta liczba. Maska `*.WA.txt` celowo omija `errors.txt`.
-9. **[EC2, przez SSH]** `~/kafka_2.13-4.3.1/bin/kafka-consumer-groups.sh
-   --bootstrap-server localhost:9094 --describe --group gpw_consumer` —
-   `CURRENT-OFFSET` = `LOG-END-OFFSET`, `LAG 0`; `no active members` jest
-   normalne. Dzień giełdowy: +3 względem poprzedniego (20.09: 2354).
-10. **[konsola Athena w przeglądarce, region eu-north-1, baza
-    `gpw-tracker_db`]** `SELECT spolka, COUNT(*) AS wiersze,
-    COUNT(DISTINCT data) AS dni, MIN(data) AS od, MAX(data) AS do FROM
-    gold_dane_dzienne GROUP BY spolka;` — 3 wiersze, `wiersze` = `dni` =
-    liczba z kroku 8, `do` = ostatnia sesja (20.09: `2026-09-18 17:00:00`).
-11. **[EC2, przez SSH]** `aws s3 ls s3://gpw-tracker-bucket/gold/ --recursive`
-    — dwa pliki z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2;
-    z laptopa niesprawdzone). Rozmiar `dane_dzienne.csv` w S3 = lokalny −
-    liczba linii (Windows), w weekend bez zmian.
+3. **[EC2, przez SSH]** `cd ~/GPW---pulse` — wiersz ma się kończyć na
+   `GPW---pulse]$`.
+4. **[EC2, przez SSH]** `date` — dzisiejszy dzień, UTC, po 16:32 (latem).
+5. **[EC2, przez SSH]** `grep -n "=== Data pomiaru" companies/errors.txt | tail -n 2` —
+   dwie ostatnie linie startu; dzisiejsza z `16:00:0X` (od 25.10 `17:00:0X`); jej numer =
+   numer poprzedniej + rozmiar poprzedniego bloku **z linią `Kontrola:`** (21.09: 663).
+6. **[EC2, przez SSH]** `wc -l companies/errors.txt` — numer dzisiejszej linii startu +
+   rozmiar bloku z `Kontrola:` − 1 (21.09: 663 + 29 − 1 = 691).
+7. **[EC2, przez SSH]** `tail -n 29 companies/errors.txt` w dzień giełdowy, `tail -n 27`
+   w weekend/święto — pierwsza linia to dzisiejszy start; 3 × `nowych dni: N, wysłane: N,
+   stan: zapisane` (N = 1 albo 0), `Odebrano 3` albo `Odebrano 0`, 2 × `(M, 3)`,
+   2 × `S3: wysłano`, brak `Traceback`, **ostatnia linia `Kontrola: OK`**. M = poprzednie
+   + 3 w dzień giełdowy, bez zmian w weekend (21.09: 2328).
+8. **[EC2, przez SSH]** `grep -n -E "Traceback|Error|ERROR|nietknięte" companies/errors.txt`
+   — nic.
+9. **[EC2, przez SSH]** `wc -l companies/*.WA.txt` — po tyle wierszy, ile dni ma spółka
+   (21.09: 776), +1 na dzień giełdowy; `total` = 3 × ta liczba. Maska `*.WA.txt` celowo
+   omija `errors.txt`.
+10. **[EC2, przez SSH]** `wc -l companies/errors.log` — 8, bez zmian (od 19.09 Producent
+    pisze błędy do `errors.txt`).
+11. **[EC2, przez SSH]** `~/kafka_2.13-4.3.1/bin/kafka-consumer-groups.sh
+    --bootstrap-server localhost:9094 --describe --group gpw_consumer` — `CURRENT-OFFSET`
+    = `LOG-END-OFFSET`, `LAG 0`; `no active members` jest normalne. Dzień giełdowy: +3
+    względem poprzedniego (21.09: 2357).
+12. **[konsola Athena w przeglądarce, region eu-north-1, baza `gpw-tracker_db`]**
+    `SELECT spolka, COUNT(*) AS wiersze, COUNT(DISTINCT data) AS dni, MIN(data) AS od,
+    MAX(data) AS do FROM gold_dane_dzienne GROUP BY spolka;` — 3 wiersze, `wiersze` = `dni`
+    = liczba z kroku 9, `do` = ostatnia sesja (21.09: `2026-09-21 17:00:00`).
+13. **[EC2, przez SSH]** `aws s3 ls s3://gpw-tracker-bucket/gold/ --recursive` — dwa pliki
+    z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2). Rozmiar `dane_dzienne.csv`: 155778 B
+    na 21.09, rośnie o ok. 73 B na wiersz (ok. +220 B na dzień giełdowy); `ranking.csv`
+    ok. 360 B. **Lokalnego pliku do porównania rozmiaru nie ma od 21.09** (Harmonogram
+    wyłączony).
+14. **[przeglądarka]** stróż: `Up`, ostatnie zgłoszenie ok. 18:30 (`Europe/Warsaw`), typ `GET`
+    z `13.63.105.190`, liczba zgłoszeń +1 na dzień (21.09: 3). Zrzuty przycinać bez pola
+    z adresem zgłoszenia.
+15. **[EC2, przez SSH]** (od 22.09, po punkcie 6) `ls -a silver gold` — w każdym
+    `.gitkeep` i pliki `.csv`; `git status --short` — pusty.
 
-Przy rozjeździe: wkleić wynik, porównać liczba po liczbie, niczego nie
-uruchamiać ponownie. To kontrola ręczna — nie zastępuje sygnału awarii
-(punkt 8 kolejki), bo awaria dalej jest cicha.
+Przy rozjeździe: wkleić wynik, porównać liczba po liczbie, niczego nie uruchamiać
+ponownie. To kontrola ręczna, która uzupełnia sygnał awarii, a go nie zastępuje: sygnał
+(od 21.09 w `cron`) łapie brak zgłoszenia, `Traceback`, brak `stan: zapisane`, `Odebrano`
+albo `S3: wysłano`, ale **nie** łapie złych danych przy udanym biegu ani braku świecy
+w dzień giełdowy.
 
 ### Kolejność napraw — gdzie jesteśmy
 
@@ -308,79 +350,113 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    **2322** zamiast 2316. **To ta liczba jest dowodem** — plik policzony
    przez `cron` sam przeszedł do S3 i Athena go czyta.
    **Niespełniony tylko warunek (c):** awaria nadal cicha.
-6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** —
-   ⬜.
-7. **Test prawdziwej drogi** — ⬜.
-8. **Sygnał awarii** — 🟨 **18–19.09 w toku**, wzięty przed 6 i 7 decyzją
-   Gracjana. Dotyczy wszystkiego: **każde ✅ wyżej ma niespełniony warunek
-   (c)**, bo awarię widać tylko w logu, którego nikt nie czyta. Stan
-   szczegółowo niżej, w „Sygnał awarii — stan 20.09".
+6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** — 🟨 **21.09
+   wdrożone na laptopie i EC2, sprawdzian 22.09 o 18:10.** Notatka
+   `notatki/plany/Notatka-2026-09-21-jedno-miejsce-liczenia.md` zatwierdzona: cztery
+   decyzje zgodnie z rekomendacją (`.gitkeep`, wyłączenie a nie usunięcie zadania,
+   `pipeline.bat` zostaje, historia gita nietknięta), piąta (termin): laptop od razu, EC2
+   po potwierdzeniu 18:30 (tego samego wieczoru). Laptop: `.gitignore` z wyjątkiem
+   `.gitkeep`, `git rm --cached`, commit `6af7b48` (`6 files changed, 4 insertions(+),
+   4656 deletions(-)`, zgodnie z przewidywaniem), zadanie `GPW Pulse - pipeline` w stanie
+   `Disabled`. Próba na klonie testowym zgodna (bez rytuału `pull` się przerywa, po
+   rytuale kasuje pliki, foldery z `.gitkeep` zostają). EC2: rytuał i `pull` do `6af7b48`,
+   sześć przewidywań zgodnych, w `silver/` i `gold/` sam `.gitkeep`. **Brakuje:** biegu
+   z `cron` o 18:10 22.09 na odtworzonych folderach; przepięcia wykresów, `ranking.py`,
+   `test_plikow.py` i Power BI (czytają lokalne pliki, stojące od 20.09); zmiany zasady
+   14 po sprawdzianie.
+7. **Test prawdziwej drogi** — ⬜ następny w kolejce; miał iść na końcu, gdy kształt
+   łańcucha jest ostateczny, czyli po sprawdzianie punktu 6.
+8. **Sygnał awarii** — ✅ **21.09, z zastrzeżeniami**, wzięty przed 6 i 7 decyzją Gracjana
+   18.09. Notatka zatwierdzona, `control.py` i 11 testów, 19.09 kod na EC2 i testy 2–3
+   z prawdziwym stróżem, 21.09 linia `30 18` w `crontab` (16:53 polskiego), test ciszy
+   (mail `DOWN` 19.09 19:00:00 +0200) i pierwszy bieg z `cron` o 18:30:02 zgodny
+   z przewidywaniem (start w linii 663, `wc -l` 691, `Kontrola: OK`, stróż `#3 OK`,
+   `down → up`). Warunki (a)–(d) spełnione jednym biegiem, (e) niniejszy opis.
+   **Zastrzeżenia:** to jeden bieg, nie tydzień; głośna awaria pokazana na dwóch testach
+   wymuszonych, nie na prawdziwej awarii potoku; sygnał nie łapie złych danych przy
+   udanym biegu, braku świecy w dzień giełdowy (wygląda jak sobota) ani lokalnych rzeczy;
+   strefę sprawdzi dopiero 25.10; zależy od jednej osoby po stronie stróża. Skutek dla
+   reszty listy: każde ✅ wyżej miało niespełniony warunek (c) — od 21.09 awaria w zakresie
+   sygnału jest głośna (mail). Stan szczegółowo niżej, w „Sygnał awarii — stan 21.09
+   wieczorem".
 9. **Pełne miesiące w rankingu** — ✅ 12.09 lokalnie, 14.09 na EC2, wzięte
    poza kolejnością.
 10. **Dokumentacja** — ⬜ w tle: README od nowa, dziesięć wpisów dziennika
     bez „Czego się nauczyłem", plany do posprzątania.
 
-### Sygnał awarii — stan 20.09
+### Sygnał awarii — stan 21.09 wieczorem
 
-Notatka: `notatki/plany/Notatka-2026-09-18-sygnal-awarii.md`, **zatwierdzona
-w całości**. Dwa słowa, żeby się nie mylić: **skrypt kontrolny** to nasz
-skrypt na EC2, który ocenia dzisiejszy blok; **stróż** to usługa poza EC2
-(healthchecks.io), która czeka na zgłoszenie i pisze e-mail, gdy nie
-przyjdzie albo przyjdzie z awarią.
+Notatka: `notatki/plany/Notatka-2026-09-18-sygnal-awarii.md`, **zatwierdzona w całości**,
+wyniki testów dopisane 21.09. Dwa słowa, żeby się nie mylić: **skrypt kontrolny** to nasz
+skrypt na EC2, który ocenia dzisiejszy blok; **stróż** to usługa poza EC2 (healthchecks.io),
+która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z awarią.
 
-- **Decyzje:** stróż zewnętrzny, plan darmowy (nie SNS — sama SNS nie
-  złapie martwego EC2 ani niedziałającego `cron`); „dowód sukcesu" zamiast
-  szukania złych słów: `stan: zapisane` przy każdej spółce z
-  `config.ticker`, `Odebrano`, 2 × `S3: wysłano`, zero `Traceback`;
-  Producent pisze błędy do `errors.txt` (koniec osobnego `errors.log`);
-  adres zgłoszenia jako `STROZ_URL` w `crontab`, **nigdy w gicie**; skrypt
-  kontrolny o 18:30 polskiego, zapas 30 minut, strefa `Europe/Warsaw`
-  w stróżu (nie UTC — inaczej 25.10 fałszywy alarm).
-- **U stróża:** konto założone przez Gracjana. Zadanie `GPW - bieg dzienny`
-  (Cron `30 18 * * *`, `Europe/Warsaw`, Grace 30 min) — **zapisu nie
-  potwierdziliśmy w rozmowie**. Zadanie w stanie *New* nie alarmuje
-  (sprawdzone w kodzie stróża). **Od pierwszego zgłoszenia stróż czeka
-  codziennie o 18:30** — wdrożenie na EC2 za jednym posiedzeniem albo
-  zadanie w *Paused*. Konto bez logowania przez rok jest kasowane.
-  Obsługa stróża to jedna osoba — sami piszą, że możliwe są przerwy
-  wielodniowe.
-- **Kod na laptopie:** `kod/control.py` — `sprawdz_blok(blok, spolki, dzis)`
-  zwraca listę problemów, `wytnij_blok(tekst)` wycina blok od ostatniej
-  linii startu i odsiewa linie zaczynające się od `Kontrola:`;
-  `kod/test_control.py` — 11 testów na prawdziwym bloku z 18.09
-  (`kod/dane_testowe/blok_2026-09-18.txt`), według Gracjana wszystkie
-  przechodzą (wynik ośmiu pierwszych wklejony, `8 passed`). Nazwa
-  `control.py`, nie `kontrola.py` z notatki — wybór Gracjana.
+- **Decyzje:** stróż zewnętrzny, plan darmowy (nie SNS — sama SNS nie złapie martwego EC2 ani
+  niedziałającego `cron`); „dowód sukcesu" zamiast szukania złych słów: `stan: zapisane` przy
+  każdej spółce z `config.ticker`, `Odebrano`, 2 × `S3: wysłano`, zero `Traceback`; Producent
+  pisze błędy do `errors.txt` (koniec osobnego `errors.log`); adres zgłoszenia jako `STROZ_URL`
+  w `crontab`, **nigdy w gicie**; skrypt kontrolny o 18:30 polskiego, zapas 30 minut, strefa
+  `Europe/Warsaw` w stróżu (nie UTC — inaczej 25.10 fałszywy alarm).
+- **U stróża:** konto założone przez Gracjana. Zadanie `GPW - bieg dzienny` (Cron `30 18 * * *`,
+  `Europe/Warsaw`, Grace 30 min, e-mail na Interię włączony dla zadania) — ustawienia
+  potwierdzone 19.09 zrzutami. **Historia zdarzeń (zrzut 21.09):** 19.09 14:17 `new → down`
+  i `down → up` (dwa testy z EC2: awaria, potem OK), **19.09 19:00 `up → down` (cisza; test 4
+  z notatki zaliczony, strefa polska)**, 21.09 18:30 `down → up` (`#3 OK`, `GET` z
+  `13.63.105.190`). Stróż pisze tylko przy zmianie stanu (dwa dni ciszy dały jeden mail). Mail
+  `UP` 21.09: „downtime lasted 1 day, 23 hours", `Status Changed to Up at … 18:30:02 +0200`.
+  Hipoteza z 19.09 o ok. 15-minutowym opóźnieniu maili z Interii — niepotwierdzona (godziny
+  przyjścia maili z 21.09 nie zapisano). Konto bez logowania przez rok jest kasowane. Obsługa
+  stróża to jedna osoba — sami piszą, że możliwe są przerwy wielodniowe. Adres zgłoszenia
+  pojawił się 19.09 w rozmowie (odczyt `control.py`, zrzut ekranu) — ryzyko małe; przy
+  podejrzeniu wycieku nowe zadanie z nowym adresem. Zrzuty z 21.09 były przycięte bez pola
+  z adresem.
+- **Kod:** `kod/control.py` — `sprawdz_blok(blok, spolki, dzis)` zwraca listę problemów,
+  `wytnij_blok(tekst)` wycina blok od ostatniej linii startu i odsiewa linie zaczynające się
+  od `Kontrola:`, część główna (patrz niżej); `kod/test_control.py` — 11 testów na prawdziwym
+  bloku z 18.09 (`kod/dane_testowe/blok_2026-09-18.txt`), `11 passed` (wynik wklejony 19.09).
+  **Wyjaśnienie testów zrobione 19.09**, dwa razy: tabela 8 + 3 testów, potem kod linia po
+  linii i każdy test z przebiegiem; Gracjan: „wszystko już rozumiem". Nazwa `control.py`, nie
+  `kontrola.py` z notatki — wybór Gracjana.
 - **Dwie pułapki znalezione 18.09, obie w notatce:**
-  - komunikaty skryptu kontrolnego zawierają szukane słowa, więc drugi bieg
-    tego samego dnia widziałby własną linię i uznał awarię za komplet —
-    stąd odsiew i test `test_powtorna_kontrola`. **Linia wyniku skryptu
-    musi zaczynać się od `Kontrola:`**;
-  - polskie litery w treści zgłoszenia: EC2 ma `urllib3==1.26.20`, który
-    oddaje tekst do `http.client`, a ten koduje latin-1 →
-    `UnicodeEncodeError`. Laptop (`urllib3==2.7.0`) koduje UTF-8, więc test
-    na laptopie tego nie pokaże. Treść wysyłać jako `.encode("utf-8")`.
-- **19.09, commit `b28e3de` (dziennika z tego dnia nie ma):** część główna
-  `control.py` napisana — czyta `errors.txt` (albo plik z `KONTROLA_LOG`),
-  datę bierze z `KONTROLA_DATA` albo z dzisiejszej daty maszyny, adres
-  stróża z `STROZ_URL`; wypisuje `Kontrola: OK` albo `Kontrola: AWARIA - …`;
-  przy komplecie `get`, przy awarii `post …/fail` z treścią w UTF-8; przy
-  odpowiedzi innej niż 200 albo wyjątku linia `Kontrola: …` i kod wyjścia 1;
-  bez `STROZ_URL` `Kontrola: brak adresu stróża`. `data_ingestion.py`:
-  `basicConfig` bez `filename`, więc błędy ERROR idą na stderr, czyli do
-  `errors.txt`; `flush=True` przy linii startu (celu nie omawialiśmy).
-  **Nie sprawdzone:** czy część główna była uruchamiana i czy testy po tym
-  commicie przechodzą (nowych testów w commicie nie ma); czy EC2 ma ten
-  commit — `git log` na EC2 20.09 nie sprawdzany. W logach z 19 i 20.09 nie
-  ma linii `Kontrola:`, więc skryptu w `cron` nie ma. Od `033107f` w `kod/`
-  zmieniło się tylko `data_ingestion.py` (6 linii) i doszły nowe pliki
-  (`control.py`, `test_control.py`, wzór bloku).
-- **Brakuje:** wdrożenia na EC2 (rytuał z zasady 14, `STROZ_URL`
-  w `crontab`, linia skryptu o 18:30); testów 2–5 z notatki (mail przy
-  awarii); biegu z `cron` o 18:30; potwierdzenia zadania u stróża. Warunek
-  (c) nadal niespełniony.
-- **Blok w `errors.txt` po wdrożeniu:** 29 linii w dzień giełdowy, 27 bez
-  nowych wiadomości.
+  - komunikaty skryptu kontrolnego zawierają szukane słowa, więc drugi bieg tego samego dnia
+    widziałby własną linię i uznał awarię za komplet — stąd odsiew i test
+    `test_powtorna_kontrola`. **Linia wyniku skryptu musi zaczynać się od `Kontrola:`**;
+  - polskie litery w treści zgłoszenia: EC2 ma `urllib3==1.26.20`, który oddaje tekst do
+    `http.client`, a ten koduje latin-1 → `UnicodeEncodeError`. Laptop (`urllib3==2.7.0`)
+    koduje UTF-8, więc test na laptopie tego nie pokaże. Treść wysyłać jako
+    `.encode("utf-8")`. **Sprawdzone na EC2 19.09** (2351 bajtów co do bajta, litery bez
+    krzaków w treści wpisu i w mailu) — ryzyko zamknięte.
+- **19.09, commit `b28e3de`** (wpis `notatki/dziennik/2026-09-19.md` napisany 21.09
+  z transkryptu sesji): część główna `control.py` — czyta `errors.txt` (albo plik z
+  `KONTROLA_LOG`), datę bierze z `KONTROLA_DATA` albo z dzisiejszej daty maszyny, adres
+  stróża z `STROZ_URL`; wypisuje `Kontrola: OK` albo `Kontrola: AWARIA - …`; przy komplecie
+  `get`, przy awarii `post …/fail` z treścią w UTF-8; odpowiedź inna niż 200 albo wyjątek →
+  linia `Kontrola: …` i kod wyjścia 1; bez `STROZ_URL` druga linia `Kontrola: brak adresu
+  stróża`. `data_ingestion.py`: `basicConfig` bez `filename`, więc błędy `ERROR` idą na
+  stderr, czyli do `errors.txt`; `flush=True` przy linii startu, bo bez niego `ERROR`
+  lądował **przed** linią startu, poza blokiem (zwykły `print` do pliku czeka w buforze,
+  `stderr` nie) — pokazane na żywo na laptopie. Sprawdzone 19.09: lokalnie `11 passed`
+  i obie gałęzie wysyłki z fałszywym adresem; na EC2 (pull do `b28e3de`) testy 2 i 3
+  z notatki: data 18.09 → `Kontrola: OK`, data 19.09 → `Kontrola: AWARIA - …`, oba
+  kod 0; stróż: `#1 Failure` (POST, 2351 bajtów = 57 + 2294, policzone przed odczytem)
+  i `#2 OK` (GET); trzy maile na Interii (test z przycisku, DOWN, UP).
+- **21.09 — wgranie i pierwszy bieg z `cron`:** `crontab` wgrany o **14:53:03 UTC (16:53
+  polskiego)** z pliku `~/crontab-nowy-0919.txt` (kontrole przed: żywy `crontab` = kopia,
+  5 / 7 linii, `diff` z zamaskowanym adresem cztery linie, `wc -c` linii z adresem 67,
+  `date` 14:52:55 UTC, przed oknem 17:55). Bieg o 18:00 i skrypt kontrolny o 18:30:02:
+  start w linii **663** (`16:00:02` UTC), blok 28 linii, `Kontrola: OK` w linii **691**,
+  stróż `#3 OK` (18:30, `GET` z `13.63.105.190`, `down → up`), mail `UP`. Wszystkie
+  przewidywania zapisane przed odczytem.
+- **Blok w `errors.txt`:** 29 linii w dzień giełdowy, 27 bez nowych wiadomości —
+  **potwierdzone 21.09** dla dnia giełdowego.
+- **Czego sygnał świadomie nie łapie:** złych danych przy udanym biegu (Athena zwraca pół
+  tabeli, Yahoo poprawia ceny wstecz, cena z trwającej sesji); braku świecy o 18:00 w dzień
+  giełdowy (wygląda jak sobota, sam się naprawia dzień później); lokalnych rzeczy
+  (kompakcja z laptopa). Gdy EC2 leży albo `cron` nie ruszył, alarm idzie po 19:00 od
+  stróża, nie od skryptu.
+- **Zostaje:** 25.10 pierwszy prawdziwy sprawdzian strefy u stróża; obserwacja przez
+  kolejne dni (jeden bieg to za mało na „działa"); godzina przyjścia maili (hipoteza
+  o opóźnieniu z Interii).
 
 ### Wciąż otwarte (najkrócej, pełne opisy w przeglądzie)
 
@@ -389,9 +465,14 @@ przyjdzie albo przyjdzie z awarią.
 - Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
   o 17:45 brak świecy, o 18:00 jest).
 - Testy sprawdzają rzeczy obok potoku.
-- Nikt nie dowie się o awarii. Log jest podwójny, a czytamy tylko połowę:
-  `logging.error` → `errors.log`, `print` i `Traceback` → `errors.txt`.
+- Nikt nie dowie się o awarii — **zamknięte 21.09 w zakresie sygnału** (patrz „Sygnał awarii"). Log
+  podwójny naprawiony w kodzie 19.09: Producent pisze błędy na stderr do
+  `errors.txt`, `errors.log` przestał rosnąć (laptop: 6519 bajtów przed
+  i po; EC2: 8 linii, potwierdzone 21.09).
 - Korekty cen Yahoo nie docierają do S3.
+- **Nowe 21.09:** wykresy (`wykresy.py`, `ranking.py`), `test_plikow.py` i Power BI
+  czytają lokalne `gold/` i `silver/`, które stoją od 20.09 (Harmonogram wyłączony) —
+  pokażą stare dane bez błędu. Do przepięcia na Athenę; osobna decyzja i notatka.
 - Nierówne okna `range=3y` dla nowej spółki (13.09).
 - README obiecuje więcej, niż jest.
 - **Trzy sprawy z 14.09 — wszystkie zamknięte 17.09:**
@@ -429,7 +510,8 @@ przyjdzie albo przyjdzie z awarią.
     po sygnale awarii i Pythonie 3.10 (w `cron` byłaby comiesięcznym
     kasowaniem, którego nikt nie ogląda); wykresy i Power BI przepiąć na
     Athenę zaraz po wyłączeniu Harmonogramu, bo inaczej pokażą stare dane
-    bez błędu. Silvera do S3 nie potrzeba: `gold/dane_dzienne.csv` ma
+    bez błędu **(od 21.09 to się już dzieje: Harmonogram wyłączony)**. Silvera do S3
+    nie potrzeba: `gold/dane_dzienne.csv` ma
     wszystkie jego kolumny. Niezdecydowane.
 
 ### Test „zakładki nie ma" — wynik z 14.09, potwierdzony na EC2 15.09
@@ -511,6 +593,31 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   policzone przed komendą, ale wpisane do wiadomości dopiero po niej.
   Sprawdzenie było dobre, zapis „przed" nie. **Wniosek: liczbę napisać
   w wiadomości, dopiero potem puszczać komendę.**
+- **21.09:** na starcie sesji podałem stan sprzed 19.09 jako aktualny (EC2 na
+  `033107f`, zadanie u stróża niepotwierdzone, ceny z 18.09 otwarte, testy
+  niewyjaśnione, „nie wiemy, czy część główna była uruchamiana"), bo dziennika
+  z 19.09 nie było, a CLAUDE.md kończył się na 20.09. Transkrypt sesji z 19.09
+  pokazał, że kod jest na EC2, ustawienia stróża potwierdzone, ceny sprawdzone,
+  testy wyjaśnione, a część główna przetestowana. **Wniosek: dziennik
+  i CLAUDE.md pisać w dniu sesji, także gdy sesja urwie się w połowie; brak
+  wpisu z dnia to sygnał, że stan trzeba sprawdzić w transkrypcie
+  (`list_events` na sesji), a nie zakładać, że nic się nie zdarzyło.**
+- **19.09 (z transkryptu):** Claude kazał sprawdzać Gmaila, a maile idą na
+  Interię — adres wziął z danych sesji, nie z ustawień stróża. Pierwsze
+  przewidywanie testu z fałszywym adresem: jedna linia zamiast dwóch (zmienne
+  `$env:` zostają w oknie PowerShella). Sprostowane w sesji.
+- **21.09 (wieczór):** `git add` — przewidziano „brak wyniku", a wypisał ostrzeżenie
+  o końcach linii (`LF` na `CRLF`); wcześniej o nim wspominano tylko przy commicie.
+  Niegroźne.
+- **21.09:** kolejność linii w wynikach przewidziana błędnie: `git rm --cached` wypisuje
+  alfabetycznie, `git status --short` daje nieśledzone `??` na końcu. Treść zgodna.
+  **Wniosek: przewidywać liczby i słowa, nie układ.**
+- **21.09:** zakres godziny dla `date` na EC2 (15:00–15:15 UTC), a wyszło 14:52:55, bo
+  Gracjan szedł szybciej niż zakładano; odczyt `RELOAD` ustawiony bez odczekania,
+  więc pierwszy odczyt nie mógł go jeszcze zawierać (wpis potrzebuje kilku–
+  kilkunastu sekund).
+- **21.09:** wpis z 19.09 napisany najpierw w pierwszej osobie. Dziennik ma narrację
+  bezosobową, pierwsza osoba tylko w „Czego się nauczyłem". Przepisany.
 
 ### Priorytet Gracjana (08.09)
 
@@ -520,38 +627,39 @@ dopiero potem.
 
 ### Na następną sesję
 
-**Temat w toku: sygnał awarii.** Prośba Gracjana z 18.09 nadal czeka:
-zacząć od **spokojnego wyjaśnienia każdego z 11 testów** w
-`kod/test_control.py` — jak działa i dlaczego tak wygląda. 20.09 sesja
-poszła na kontrolę weekendu (wybór Gracjana), więc testów nie ruszaliśmy.
-Dalej, jeśli Gracjan zechce, według listy.
+**Sprawdzian punktu 6 (wtorek 22.09, bieg o 18:10)** i dalej według listy. 21.09 zrobiono:
+sygnał awarii w `cron` (pierwszy bieg 18:30), wyłączenie Harmonogramu, `silver/` i `gold/`
+poza gitem (laptop i EC2), dokumentację i notatkę o nawiasach (Gracjan czyta ją przed
+sesją: `notatki/plany/Notatka-2026-09-21-nawiasy-w-pythonie.md`).
 
-1. **Wyjaśnienie testów**, test po teście, z wejściem i wyjściem.
-2. **Codzienna kontrola po biegu** — komendy i wzory na dzień giełdowy
-   i weekend w sekcji „Codzienna kontrola po biegu", wyżej w tym pliku
-   (dzień giełdowy: blok 28 linii, `Odebrano 3`, +3 w zakładce i w
-   `COUNT(*)`, +1 w każdym pliku spółki). Odczyty z 18.09 domknięte 20.09.
-3. **Czy zadanie u stróża jest zapisane** w stanie *New*.
-4. **Ceny z 18.09 w archiwum GPW** (gpw.pl, Archiwum notowań, data
-   18-09-2026): nasz ranking ma CBF 202,80, SNT 352,60, XTB 150,34. O 17:51
-   18.09 archiwum jeszcze ich nie miało. **20.09 krok był w serii kontrolnej,
-   wyniku nie wklejono — nadal otwarte.**
-5. **Wdrożenie sygnału awarii na EC2.** Część główna `control.py` i zmiana
-   logu w Producencie są w gicie od 19.09 (`b28e3de`), nie w `cron`. Na
-   początek na EC2 `git log -1 --format=%h` (czy pull już był), potem —
-   **jednym posiedzeniem**, z zapasem przed 18:30, bo od pierwszego zgłoszenia
-   stróż czeka codziennie: rytuał z zasady 14, `STROZ_URL` w `crontab`, linia
-   skryptu o 18:30, testy 2–4 z notatki. Po wdrożeniu blok 29 / 27 linii.
-6. **Terminy:** 1.10 kompakcja z laptopa (wypisze o 3 pliki więcej z powodu
-   testu B); **25.10** (niedziela) pierwszy bieg po zmianie czasu —
-   `17:00:0X` w linii startu i to będzie poprawne; po wdrożeniu też pierwszy
-   sprawdzian strefy u stróża.
+1. **Sprawdzian 22.09 — przewidywania zapisane 21.09** (założenie: wtorek 22.09 to dzień
+   giełdowy i Yahoo ma świecę o 18:00; pełne kroki podać przed biegiem):
+   - linia startu **692** (`16:00:0X` UTC), po 18:32 `wc -l` **720**, ostatnia linia
+     `Kontrola: OK`;
+   - blok jak 21.09, ale 2 × `(2331, 3)`, `Odebrano 3`, 2 × `S3: wysłano`, bez `Traceback`
+     (folder istnieje);
+   - zakładka **2360**, pliki spółek **777** (razem 2331), Athena 777 na spółkę, `do` =
+     `2026-09-22 17:00:00`;
+   - S3 `gold/`: `dane_dzienne.csv` ok. **155990–156010 B** (155778 + 3 × ok. 73),
+     `ranking.csv` ok. 355–365 B;
+   - EC2 po biegu: `ls -a silver gold` — w `silver` `.gitkeep` i `clean_data.csv`, w `gold`
+     `.gitkeep`, `dane_dzienne.csv`, `ranking.csv`; `git status --short` **pusty** (pliki
+     ignorowane);
+   - stróż `Up`, ostatnie zgłoszenie ok. 18:30, łącznie 4; lokalny `silver\clean_data.csv`
+     dalej `20.09.2026 20:22:04`.
+2. **Po sprawdzianie:** zmienić zasadę 14 w tym pliku (rytuał `git checkout -- silver/ gold/`
+   przestaje być potrzebny, bo pliki są ignorowane, a `git status --short` na EC2 ma być
+   pusty) i dać ✅ przy punkcie 6.
+3. **Test prawdziwej drogi** (następny w kolejce) albo **przepięcie wykresów, `ranking.py`,
+   `test_plikow.py` i Power BI na Athenę** — do wyboru Gracjana; oba czekają na sprawdzian
+   punktu 6.
+4. **Notatka o nawiasach** — pytania Gracjana i ćwiczenia z odpowiedziami na początku sesji.
+5. **Terminy:** 1.10 kompakcja z laptopa (wypisze o 3 pliki więcej z powodu testu B);
+   **25.10** (niedziela) pierwszy bieg po zmianie czasu — `17:00:0X` w linii startu i to
+   będzie poprawne, a u stróża pierwszy prawdziwy sprawdzian strefy.
 
-**EC2 stał na `033107f` według stanu z 18.09; 20.09 nie sprawdzaliśmy
-`git log` na EC2.** Laptop i GitHub są na `b28e3de` (19.09) plus dokumentacja
-z 20.09. Jedyna zmiana w kodzie, którą EC2 uruchamia, to `data_ingestion.py`
-(6 linii, log błędów); reszta to nowe pliki `control.py` i testy. Przy
-`git pull` — rytuał z zasady 14.
+**EC2 jest na `6af7b48` od 21.09 ok. 19:03** (dziewięć plików, zgodnie z przewidywaniem;
+`git status --short` pusty). Od tego czasu w `kod/` nic się nie zmieniło.
 
 ### Kopie
 
@@ -566,13 +674,22 @@ z 20.09. Jedyna zmiana w kodzie, którą EC2 uruchamia, to `data_ingestion.py`
   - `~/crontab-nowy-0913.txt` to plik wgrany 13.09;
   - `~/crontab-kopia-0917.txt` to stan sprzed `GOLD_DO_S3` — powrót:
     `crontab ~/crontab-kopia-0917.txt`;
-  - `~/crontab-nowy-0917.txt` to plik wgrany 17.09 (pięć linii).
+  - `~/crontab-nowy-0917.txt` to plik wgrany 17.09 (pięć linii);
+  - `~/crontab-kopia-0919.txt` to stan pięciu linii z 19.09 (bez adresu
+    stróża) — powrót sprzed sygnału awarii: `crontab ~/crontab-kopia-0919.txt`;
+  - `~/crontab-nowy-0919.txt` to plik z `STROZ_URL` nad linią `0 18`
+    i linią `30 18 … control.py` (siedem linii, `chmod 600`, **zawiera adres
+    stróża** — nigdy do gita, nigdy na zrzut ekranu). Przygotowany 19.09,
+    **wgrany 21.09 o 14:53:03 UTC (16:53 polskiego)** i od tego dnia jest żywym
+    `crontab` (siedem linii). Powrót sprzed sygnału awarii: `crontab
+    ~/crontab-kopia-0919.txt`.
 
 ## Gdzie co jest
 
 Kod, dane i notatki razem w folderze projektu: `kod/`, `companies/`
 (pamięć Producenta, **poza gitem**, każda maszyna ma własną), `bronze/`
-(poza gitem), `silver/`, `gold/` (w gicie — do zmiany, gdy wynik trafi
+(poza gitem), `silver/`, `gold/` (**od 21.09 poza gitem**, w folderach tylko `.gitkeep`;
+dawniej w gicie, do czasu, gdy wynik trafi
 do S3), `wykresy/`, `notatki/`, `aws/` (klucz SSH, poza gitem). Skrypt
 kontrolny (od 18.09): `kod/control.py`, testy `kod/test_control.py`, wzór
 prawdziwego bloku logu `kod/dane_testowe/blok_2026-09-18.txt`. Testy

@@ -181,6 +181,34 @@ zmiennej → `None` → `False`; `1` → `True`; `0`, `tak`, ` 1` ze spacją →
 `False`. Ten sam `gold.py` na laptopie tylko pisze „Pominięto", a na EC2
 (zmienna w `crontab`) wysyła do S3.*
 
+### `Where-Object`, `$_`, `-match`, `Out-String`, `ForEach-Object`, `Select-Object` (PowerShell)
+Potok w PowerShellu przekazuje **obiekty**, nie tekst. `Where-Object { warunek }`
+zostawia tylko te elementy, dla których warunek jest prawdą; `$_` to bieżący
+element. `-match "słowo"` sprawdza, czy tekst zawiera słowo. `Out-String` zamienia
+obiekt na tekst, żeby dało się w nim szukać. `ForEach-Object { … }` robi coś dla
+każdego elementu, a `Select-Object a, b` zostawia tylko wskazane kolumny.
+*Procesy `chrome`, `notepad`, `code`: `Get-Process | Where-Object { $_.Name -match
+"chrome" }` wypisze tylko `chrome`. 21.09: `Get-ScheduledTask | Where-Object {
+($_.Actions | Out-String) -match "pipeline" }` znalazło zadanie, które uruchamia
+`pipeline.bat`.*
+
+### Pliki i foldery w PowerShellu: `New-Item`, `Get-Item`, `Get-ChildItem`, `Add-Content`, `Remove-Item`, `(Get-Content …).Count`
+`New-Item -ItemType File -Path "…"` tworzy pusty plik (bez `-Force` nie nadpisze
+istniejącego). `Get-Item` pokazuje jeden plik lub folder (rozmiar, datę zapisu),
+`Get-ChildItem` wypisuje zawartość folderu, `Add-Content plik "tekst"` dopisuje
+linię na końcu pliku. `Remove-Item -Recurse -Force folder` kasuje folder z zawartością
+bez pytań, więc ścieżkę sprawdza się przed użyciem. `(Get-Content plik).Count` liczy
+linie (odpowiednik `wc -l`).
+*`New-Item -ItemType File -Path "zdjecia\.gitkeep"` → tabelka z `Name` = `.gitkeep`
+i `Length` = 0.*
+
+### Ukryte pliki: kropka w nazwie i `ls -a`
+Na Linuksie plik, którego nazwa zaczyna się od kropki (`.gitkeep`, `.gitignore`), jest
+„ukryty": zwykłe `ls` go nie pokazuje. `ls -a` (*all*) pokazuje wszystko, także `.`
+(ten folder) i `..` (folder wyżej).
+*Folder `zdjecia` z `.gitkeep` i `kot.jpg`: `ls zdjecia` → `kot.jpg`, a `ls -a zdjecia`
+→ `.  ..  .gitkeep  kot.jpg`.*
+
 ---
 
 ## Git i GitHub
@@ -239,6 +267,59 @@ i sam zgaduje, że to ten sam plik.
 *Gdy treść została nietknięta, zobaczysz `renamed: stara -> nowa`. Gdy
 przy okazji zmieniłeś zawartość, git pokaże osobno `deleted` i `new
 file` — to też jest poprawne, tylko mniej czytelne.*
+
+### `.gitkeep` i `!` w `.gitignore`
+Git nie zapisuje pustych folderów. Pusty plik `.gitkeep` w środku to tylko sposób,
+żeby folder istniał w repozytorium. W `.gitignore` `silver/*` znaczy „wszystko w tym
+folderze", a `!silver/.gitkeep` „z wyjątkiem tego jednego pliku". Wzór `silver/` (sam
+folder) nie pozwoliłby na wyjątek.
+*Folder `zdjecia/` z `.gitkeep`, w `.gitignore` `zdjecia/*` i `!zdjecia/.gitkeep`:
+wrzucam `kot.jpg` → `git status` nic nie pokazuje, a `git ls-files zdjecia` →
+`zdjecia/.gitkeep`.*
+
+### `git check-ignore -v --no-index`
+Pokazuje, **która linia `.gitignore`** rozstrzyga o danym pliku. Bez `--no-index` git
+pomija pliki, które już śledzi. `!` przed wzorem w wyniku znaczy „wyjątek: plik nie jest
+ignorowany".
+*21.09: `.gitignore:13:silver/*  silver/clean_data.csv` (ignorowany) i
+`.gitignore:14:!silver/.gitkeep  silver/.gitkeep` (wyjątek).*
+
+### `git status --short` — dwa znaki na początku linii
+Pierwszy znak to stan w **przygotowanych do commitu** plikach (indeks), drugi to stan
+w **katalogu roboczym**. `M` zmieniony, `A` dodany, `D` usunięty, `??` nieśledzony.
+` M` (spacja, M) to zmiana jeszcze nieprzygotowana, a `M ` (M, spacja) już przygotowana.
+Nieśledzone `??` idą na końcu listy.
+*` M CLAUDE.md` — zmieniłem plik, nie dodałem go jeszcze; `D  gold/ranking.csv` —
+usunięty z gita; `?? notatka.md` — nowy plik, git go nie zna.*
+
+### `git clone`, `git reset --hard` i klon testowy
+`git clone . "folder"` robi kopię repozytorium do folderu. `git reset --hard commit`
+cofa **gałąź i pliki** do wskazanego commitu i kasuje niezacommitowane zmiany, więc
+wolno go używać tylko tam, gdzie nic się nie traci. Klon testowy to kopia, na której
+próbujemy ryzykowną operację, zanim zrobimy ją na prawdziwym miejscu.
+*21.09: klon w `%TEMP%`, cofnięty do `b28e3de`, żeby zobaczyć, co zrobi `pull` z usuniętymi
+plikami; potem skasowany.*
+
+### `git -C "folder" komenda`
+Uruchamia git tak, jakby wiersz stał w podanym folderze. Chroni przed pomyłką miejsca:
+wiersz zostaje w prawdziwym repozytorium, a komenda dotyczy klonu.
+*`git -C "C:\sklep" status` pokaże stan repozytorium `sklep`.*
+
+### `Fast-forward`
+Komunikat `git pull`, gdy lokalna gałąź jest po prostu **za** zdalną i wystarczy ją
+przesunąć do przodu, bez łączenia. Najprostszy i najbezpieczniejszy rodzaj `pull`.
+*Lokalnie commit A, na GitHubie A→B→C: `pull` przesuwa lokalną gałąź z A do C, wypisuje
+`Fast-forward` i listę zmienionych plików.*
+
+### Rytuał `git checkout -- silver/ gold/` przed `git pull`
+`git checkout -- ścieżka` odrzuca zmiany w podanych plikach i przywraca je do wersji
+z ostatniego commitu. Przed `pull` na EC2 był potrzebny, bo `cron` co dzień przepisywał
+śledzone pliki, a git odmawia `pull`, który mógłby nadpisać albo usunąć zmodyfikowany
+plik (`Your local changes … would be overwritten by merge … Aborting`). Nigdy `git stash`
+(zasada 14). Od 21.09 pliki są poza gitem, więc po pierwszym `pull` rytuał przestaje być
+potrzebny (do potwierdzenia 22.09).
+*Klon testowy 21.09: `pull` bez rytuału → błąd; po rytuale → pliki usunięte, foldery
+z `.gitkeep` zostają.*
 
 ---
 
@@ -493,6 +574,26 @@ codziennie.
 w wybranej strefie. Przy zmianie czasu odstęp między dwoma biegami o 18:30
 wynosi 25 godzin, więc *Simple* z jednym dniem i 30 minutami zapasu dałby
 fałszywy alarm.
+
+### Wyłączyć, nie usunąć (`Disable-ScheduledTask`)
+Zadanie w Harmonogramie można **wyłączyć** (stan `Disabled`, wraca komendą
+`Enable-ScheduledTask`) albo **usunąć**. Wyłączenie jest odwracalne jednym poleceniem
+i zostawia ślad, że zadanie kiedyś było.
+*21.09: `Disable-ScheduledTask -TaskName "GPW Pulse - pipeline"` → stan `Disabled`;
+`Get-ScheduledTask -TaskName "…" | Select-Object TaskName, State` to potwierdza.*
+
+### „Zapas" pozorny
+Zapas jest wart tyle, dokąd sięga. Lokalny Harmonogram liczył Silver i Gold na laptopie,
+ale wynik nie trafiał do S3 (`GOLD_DO_S3` tylko na EC2), więc chronił tylko lokalne
+pliki. Gdy EC2 padało, Athena i strona i tak stały.
+*Dwie piekarnie pieką ten sam chleb, ale tylko jedna wozi go do sklepu. Druga niczego
+nie ratuje.*
+
+### Cicha nieświeżość (stare dane bez błędu)
+Plik, który przestał się aktualizować, nadal się otwiera i wygląda poprawnie. Wykres albo
+test na takich danych nie zgłosi błędu, tylko pokaże wczorajszy stan.
+*Po wyłączeniu Harmonogramu `silver/clean_data.csv` stoi od 20.09 20:22. `wykresy.py`
+narysuje wykres bez błędu, ale ze starych danych.*
 
 ---
 
@@ -1013,6 +1114,40 @@ uruchomił zadanie.
 *13.09: `REPLACE` o 13:03:53 UTC, `RELOAD` o 13:04:01 UTC, osiem sekund
 później.*
 
+### Bufor i `flush=True`; `stdout` i `stderr`
+Program ma dwa wyjścia: zwykłe (`stdout`, tam idzie `print`) i błędów (`stderr`, tam
+idą komunikaty `logging.error`). Gdy zwykłe wyjście idzie do pliku, Python zbiera tekst
+w **buforze** i zapisuje go hurtem na końcu programu (albo gdy uzbiera się ok. 8 KB).
+Wyjście błędów zapisuje się od razu. Skutek: w pliku linia z błędem może stanąć **przed**
+linią, którą program wypisał wcześniej. `print(…, flush=True)` mówi „zapisz teraz, nie
+czekaj".
+*`print("początek")`, `print("BŁĄD", file=sys.stderr)`, `print("koniec")`. Na ekranie:
+początek, BŁĄD, koniec. Po `python demo.py > wynik.txt 2>&1` w pliku: BŁĄD, początek,
+koniec. Z `flush=True` przy „początek": początek, BŁĄD, koniec. 19.09 tak było
+w `errors.txt`, dopóki linia startu Producenta nie dostała `flush=True`.*
+
+### `read -s`, `export`, `unset` i `${#zmienna}`
+Wpisywanie sekretu w sesji SSH tak, żeby nie został na ekranie ani w historii.
+`read -s ZMIENNA` czeka na wklejoną linię i nic nie pokazuje (`-s` od *silent*).
+`export ZMIENNA` udostępnia zmienną programom uruchamianym z tej sesji. `${#ZMIENNA}`
+zwraca **długość** wartości, bez jej pokazywania. `unset ZMIENNA` usuwa zmienną.
+*`read -s HASLO`, wklejam `abc`, `echo ${#HASLO}` → `3`. 19.09: adres stróża miał mieć
+56 znaków, wyszło 522 (w schowku było coś dłuższego), więc `unset` i wklejenie od nowa.*
+
+### `chmod 600`
+Ustawia uprawnienia pliku tak, że czytać i zapisywać może **tylko właściciel**. Dla
+plików, w których leży sekret.
+*Plik `~/crontab-nowy-0919.txt` zawiera adres stróża, więc ma `chmod 600`.*
+
+### `wc -c`
+Liczy **bajty** (`wc -l` liczy linie). Nowa linia to też bajt.
+*`echo "lody" | wc -c` → `5` (cztery litery i nowa linia). 19.09: `grep '^STROZ_URL='
+plik | wc -c` → `67`: 10 znaków `STROZ_URL=`, 56 adresu, 1 nowa linia.*
+
+### `printf 'tekst %s\n' "$x"`
+Wypisuje tekst z wstawioną wartością: `%s` to miejsce na wartość, `\n` to nowa linia.
+*`KOLOR=bialy`, `printf 'KOLOR=%s\n' "$KOLOR"` → `KOLOR=bialy`.*
+
 ---
 
 ## Kod
@@ -1306,6 +1441,68 @@ latin-1 → `UnicodeEncodeError`. Laptop ma `urllib3==2.7.0`, który koduje
 UTF-8. Ten sam kod przechodzi na laptopie i pada na EC2 (sprawdzone 18.09
 w kodzie obu bibliotek).*
 
+### Nawiasy: trzy rodzaje i trzy pytania
+Nawias działa na to, co stoi tuż przed nim (`(` = wywołaj, `[` = wybierz element),
+a gdy nic przed nim nie stoi, tworzy wartość (`(` grupa, krotka lub generator, `[` lista,
+`{` słownik lub zbiór). Czytaj od lewej do prawej, a zagnieżdżone `f(g(x))` od środka.
+Trzy pytania: co stoi przed nawiasem; jeśli nazwa, to `(` wywołanie, a `[` wybór; jeśli
+nic, to grupa lub krotka, lista, słownik. Pełny opis w notatce
+`[[Notatka-2026-09-21-nawiasy-w-pythonie]]`.
+*`len(napisy[1])` → wybierz element 1, jego długość; `sorted(napisy)[0]` → posortuj
+listę, weź pierwszy; `sorted(napisy[0])` → posortuj litery jednego wyrazu.*
+
+### Zbiór (`set`) i pusty `{}`
+Zbiór to kolekcja bez powtórzeń i bez kolejności, zapisywana `{1, 2}`. Pusty `{}` to
+**słownik**, pusty zbiór to `set()`.
+*`{1, 1, 2}` → `{1, 2}`, a `type({})` → `dict`.*
+
+### Lista składana i słownik składany
+Zapis, który buduje nową listę z innej w jednej linii: `[co for element in skąd if
+warunek]`. W klamrach `{klucz: wartość for …}` buduje słownik, a bez dwukropka zbiór.
+*`[x * 2 for x in [1, 2, 3, 4] if x > 1]` → `[4, 6, 8]`; `{w: len(w) for w in ["lody",
+"kawa"]}` → `{'lody': 4, 'kawa': 4}`.*
+
+### f-string
+Tekst z literą `f` przed cudzysłowem; wszystko w `{ }` to wyrażenie, którego wynik
+trafia do tekstu. `{x:.2f}` formatuje liczbę do dwóch miejsc po przecinku, a `{{` i `}}`
+dają zwykłe klamry. Gdy tekst jest w `"…"`, wyrażenie w środku używa apostrofów (na
+Pythonie 3.9 z EC2 ten sam rodzaj cudzysłowu w środku to błąd składni, od 3.12 wolno).
+*`f"Cześć {imie}"` → `Cześć Ola`; `f"{ceny['kawa']}"` → `12.5`.*
+
+### `lambda`
+Funkcja bez nazwy, zapisana w jednej linii: `lambda x: x + 1`. Używana tam, gdzie funkcja
+jest potrzebna raz, np. jako `key=` przy sortowaniu.
+*`sorted(["lody", "kawa"], key=lambda s: s[-1])` → `['kawa', 'lody']` (po ostatniej
+literze).*
+
+### Generator
+Nawias z `for` w środku: przepis na ciąg wartości liczonych dopiero na żądanie. Gdy jest
+jedynym argumentem funkcji, jego nawias zlewa się z nawiasem wywołania.
+*`sum(x * x for x in range(4))` → `14`.*
+
+### `in` na liście, tekście i słowniku
+Na **tekście** sprawdza fragment, na **liście** cały element, na **słowniku** klucz.
+*`"kaw" in "kawa"` → `True`; `"kaw" in ["lody", "kawa"]` → `False`; `"kawa" in
+{"kawa": 12.5}` → `True`, a `12.5 in {"kawa": 12.5}` → `False`.*
+
+### `.replace("a", "b")`
+Zwraca **kopię** tekstu z każdym `a` zamienionym na `b`; oryginał zostaje. Gdy `a` nie ma
+w tekście, kopia jest identyczna i nie ma błędu.
+*`"lody: ok".replace("ok", "brak")` → `"lody: brak"`. W `test_control.py`
+`WZOR.replace(…)` daje zmienioną kopię wzoru, a `WZOR` zostaje.*
+
+### `if __name__ == "__main__":`
+Blok, który wykona się tylko wtedy, gdy plik uruchomiono bezpośrednio (`python plik.py`),
+a nie zaimportowano (`import plik`). Dzięki temu `pytest` może zaimportować `control.py`
+i przetestować funkcje bez uruchamiania całego skryptu.
+*Plik `lody.py` z `print("start")` pod tym `if`: `python lody.py` → `start`, a `import
+lody` → nic.*
+
+### `sys.exit(1)`
+Kończy program z **kodem wyjścia** 1 (0 = dobrze, inne = źle). `except Exception` go nie
+łapie, więc wyjście zostaje.
+*W `control.py`, gdy stróż odpowie czymś innym niż 200.*
+
 ---
 
 ## Giełda
@@ -1378,3 +1575,5 @@ z kalendarza GPW.*
 - [[Plan-04-pokazanie-wyniku]]
 - [[Plan-05-aws-migracja]]
 - [[Przeglad-2026-09-08-co-nie-gra]]
+- [[Notatka-2026-09-21-nawiasy-w-pythonie]]
+- [[Notatka-2026-09-21-jedno-miejsce-liczenia]]
