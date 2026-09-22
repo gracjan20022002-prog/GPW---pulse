@@ -113,9 +113,12 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
 
 13. **`git push` zawsze** w sekwencji commitu — EC2 widzi tylko GitHub.
 
-14. **Na EC2 przed `git pull`: `git checkout -- silver/ gold/`. Nigdy
-    `git stash`** — to on wysadził projekt 01.09. Po zmianie nazwy pliku
-    — ręcznie poprawić `crontab`.
+14. **Na EC2 `git pull` już nie wymaga rytuału `git checkout -- silver/
+    gold/`** — od 21.09 oba foldery są w `.gitignore` (`.gitkeep` jedyny
+    plik pod kontrolą wersji), sprawdzian 22.09 potwierdził `git status
+    --short` pusty po pełnym biegu `cron`. **Nigdy `git stash`** — to on
+    wysadził projekt 01.09. Po zmianie nazwy pliku — ręcznie poprawić
+    `crontab`.
 
 15. **Najpierw naprawa, potem budowa.** Żadnej nowej funkcji, dopóki
     lista wad z przeglądu 08.09 nie jest zamknięta w kolejności
@@ -125,7 +128,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (21.09 wieczorem)
+## Stan projektu — uczciwie (22.09 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -197,8 +200,10 @@ Przy każdej godzinie mówić, w jakiej strefie jest.
   `silver/*`, `!silver/.gitkeep`, `gold/*`, `!gold/.gitkeep`; w obu folderach leży
   pusty `.gitkeep`, bo git nie trzyma pustych folderów, a `silver.py` i `gold.py`
   nie zakładają folderu (`to_csv`). EC2 na `6af7b48` od 21.09 ok. 19:03, w folderach
-  sam `.gitkeep`; pliki `.csv` wracają z pierwszym biegiem o 18:10 (**sprawdzian
-  22.09**). Lokalne pliki stoją od 20.09 20:22:04. Notatka:
+  sam `.gitkeep`; pliki `.csv` **wróciły z pierwszym biegiem o 18:10 — sprawdzian
+  22.09 potwierdzony w całości**, `git status --short` po biegu dalej pusty.
+  Lokalne pliki na laptopie stoją od 20.09 20:22:04 (Harmonogram wyłączony, to
+  zamierzone). Notatka:
   `notatki/plany/Notatka-2026-09-21-jedno-miejsce-liczenia.md`.
 
 **Normalny blok jednego biegu w `errors.txt`, stan od 17.09:**
@@ -245,6 +250,21 @@ trzy powtórki z testu B — kompakcja 1.10 wypisze o trzy pliki więcej.
 `Traceback`, `Error`, `ERROR`, `nietknięte`. Ranking: CBF 212,80, SNT 351,40, XTB
 148,58 — zgodne z archiwum GPW (odczyt narzędziem, streszczenie strony; procenty
 +4,93 / −0,34 / −1,17 zgodne z liczonymi od cen z 18.09).
+
+**Stan 22.09 wieczorem** (dzień giełdowy, sprawdzian punktu 6 — folderów
+`silver/`/`gold/` odtworzonych z samego `.gitkeep`): `errors.txt` **720**
+linii; start biegu w linii **692** (`16:00:02` UTC, odczyt na EC2 ok. 19:04
+polskiego); blok 29 linii (692–720), `Kontrola: OK` w linii 720; Silver
+i Gold po `(2331, 3)`; zakładka `2360 2360 0`, `no active members`; pliki
+spółek po 777 (razem 2331); `COUNT(*)` na `gold_dane_dzienne`: 777 dni na
+spółkę na wszystkich trzech, `do` = `2026-09-22 17:00:00`; S3 `gold/`
+z 16:10:07 UTC: `dane_dzienne.csv` 155997 B, `ranking.csv` 364 B.
+`errors.log` 8, bez zmian. Zero linii `Traceback`, `Error`, `ERROR`,
+`nietknięte`. `ls -a silver gold` na EC2: w `silver` `.gitkeep`
+i `clean_data.csv`, w `gold` `.gitkeep`, `dane_dzienne.csv`,
+`ranking.csv`; `git status --short` **pusty**. Stróż: `#4 OK`, 22.09 18:30,
+`Up`, łącznie cztery zgłoszenia. Wszystkie piętnaście przewidywań zapisanych
+21.09 trafione co do liczby — patrz „Kolejność napraw", punkt 6.
 
 **Kompletność sesji** (lokalny `gold/dane_dzienne.csv`, rozmiar zgodny
 z S3 po odjęciu końców linii): po 775 unikalnych dni na spółkę, te same
@@ -350,8 +370,8 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    **2322** zamiast 2316. **To ta liczba jest dowodem** — plik policzony
    przez `cron` sam przeszedł do S3 i Athena go czyta.
    **Niespełniony tylko warunek (c):** awaria nadal cicha.
-6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** — 🟨 **21.09
-   wdrożone na laptopie i EC2, sprawdzian 22.09 o 18:10.** Notatka
+6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** — ✅ **21.09
+   wdrożone, 22.09 sprawdzian zamknięty.** Notatka
    `notatki/plany/Notatka-2026-09-21-jedno-miejsce-liczenia.md` zatwierdzona: cztery
    decyzje zgodnie z rekomendacją (`.gitkeep`, wyłączenie a nie usunięcie zadania,
    `pipeline.bat` zostaje, historia gita nietknięta), piąta (termin): laptop od razu, EC2
@@ -360,12 +380,25 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    4656 deletions(-)`, zgodnie z przewidywaniem), zadanie `GPW Pulse - pipeline` w stanie
    `Disabled`. Próba na klonie testowym zgodna (bez rytuału `pull` się przerywa, po
    rytuale kasuje pliki, foldery z `.gitkeep` zostają). EC2: rytuał i `pull` do `6af7b48`,
-   sześć przewidywań zgodnych, w `silver/` i `gold/` sam `.gitkeep`. **Brakuje:** biegu
-   z `cron` o 18:10 22.09 na odtworzonych folderach; przepięcia wykresów, `ranking.py`,
-   `test_plikow.py` i Power BI (czytają lokalne pliki, stojące od 20.09); zmiany zasady
-   14 po sprawdzianie.
-7. **Test prawdziwej drogi** — ⬜ następny w kolejce; miał iść na końcu, gdy kształt
-   łańcucha jest ostateczny, czyli po sprawdzianie punktu 6.
+   sześć przewidywań zgodnych, w `silver/` i `gold/` sam `.gitkeep`. **22.09:** pierwszy
+   bieg `cron` (18:00/18:10/18:30) na odtworzonych folderach — piętnaście przewidywań,
+   piętnaście trafień (linia startu 692, `wc -l` 720, `(2331,3)`, zakładka 2360, Athena
+   777/spółkę, S3 155997 B/364 B, stróż `Up`, `git status --short` pusty). Warunek (a)–(e)
+   definicji „zrobione" spełniony. **Zostaje, świadomie poza tym punktem:** przepięcie
+   wykresów, `ranking.py`, `test_plikow.py` i Power BI na Athenę (czytają lokalne pliki na
+   laptopie, stojące od 20.09) — osobna decyzja, jeszcze nie podjęta.
+7. **Test prawdziwej drogi** — 🟨 **notatka zatwierdzona 22.09**, kod jeszcze nie napisany.
+   `notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`: sedno — dzisiejsze testy
+   (`test_dzialania`, `test_powtorek`) sprawdzają rzeczy obok drogi danych, nic nie łączy
+   się z Athena i nie sprawdza „dziś brakuje spółki" ani „jest dzień z przyszłości".
+   Kształt wzorem `control.py` (czysta funkcja zwraca listę problemów, osobna warstwa
+   łączy się z Athena). Cztery decyzje zatwierdzone: (1) tabela `gold_dane_dzienne`
+   (koniec całej drogi, nie `live`); (2) dzień giełdowy wykrywany heurystyką
+   poniedziałek–piątek, nie listą świąt GPW — oceniona pracochłonność 20–30 minut,
+   świadomie przyjęty koszt: kilkanaście fałszywych alarmów rocznie w święta; (3) na start
+   uruchamiane ręcznie z laptopa, wpięcie do `control.py`/EC2 to osobna, późniejsza
+   decyzja; (4) sprawdza oba fakty z przeglądu **i** zgodność liczby dni między trzema
+   spółkami, od razu. Kod pisze Gracjan, zaczynając od kolejnej sesji.
 8. **Sygnał awarii** — ✅ **21.09, z zastrzeżeniami**, wzięty przed 6 i 7 decyzją Gracjana
    18.09. Notatka zatwierdzona, `control.py` i 11 testów, 19.09 kod na EC2 i testy 2–3
    z prawdziwym stróżem, 21.09 linia `30 18` w `crontab` (16:53 polskiego), test ciszy
@@ -464,7 +497,9 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
   zamknięcie.
 - Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
   o 17:45 brak świecy, o 18:00 jest).
-- Testy sprawdzają rzeczy obok potoku.
+- Testy sprawdzają rzeczy obok potoku — notatka do naprawy zatwierdzona
+  22.09: `notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`
+  (kolejność napraw, punkt 7).
 - Nikt nie dowie się o awarii — **zamknięte 21.09 w zakresie sygnału** (patrz „Sygnał awarii"). Log
   podwójny naprawiony w kodzie 19.09: Producent pisze błędy na stderr do
   `errors.txt`, `errors.log` przestał rosnąć (laptop: 6519 bajtów przed
@@ -627,39 +662,34 @@ dopiero potem.
 
 ### Na następną sesję
 
-**Sprawdzian punktu 6 (wtorek 22.09, bieg o 18:10)** i dalej według listy. 21.09 zrobiono:
-sygnał awarii w `cron` (pierwszy bieg 18:30), wyłączenie Harmonogramu, `silver/` i `gold/`
-poza gitem (laptop i EC2), dokumentację i notatkę o nawiasach (Gracjan czyta ją przed
-sesją: `notatki/plany/Notatka-2026-09-21-nawiasy-w-pythonie.md`).
+Punkt 6 zamknięty 22.09 (sprawdzian pełny, piętnaście trafień). Zaczynamy od kodu testu
+prawdziwej drogi (punkt 7), notatka zatwierdzona:
+`notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`. Reszta kolejności do
+ustalenia na starcie sesji.
 
-1. **Sprawdzian 22.09 — przewidywania zapisane 21.09** (założenie: wtorek 22.09 to dzień
-   giełdowy i Yahoo ma świecę o 18:00; pełne kroki podać przed biegiem):
-   - linia startu **692** (`16:00:0X` UTC), po 18:32 `wc -l` **720**, ostatnia linia
-     `Kontrola: OK`;
-   - blok jak 21.09, ale 2 × `(2331, 3)`, `Odebrano 3`, 2 × `S3: wysłano`, bez `Traceback`
-     (folder istnieje);
-   - zakładka **2360**, pliki spółek **777** (razem 2331), Athena 777 na spółkę, `do` =
-     `2026-09-22 17:00:00`;
-   - S3 `gold/`: `dane_dzienne.csv` ok. **155990–156010 B** (155778 + 3 × ok. 73),
-     `ranking.csv` ok. 355–365 B;
-   - EC2 po biegu: `ls -a silver gold` — w `silver` `.gitkeep` i `clean_data.csv`, w `gold`
-     `.gitkeep`, `dane_dzienne.csv`, `ranking.csv`; `git status --short` **pusty** (pliki
-     ignorowane);
-   - stróż `Up`, ostatnie zgłoszenie ok. 18:30, łącznie 4; lokalny `silver\clean_data.csv`
-     dalej `20.09.2026 20:22:04`.
-2. **Po sprawdzianie:** zmienić zasadę 14 w tym pliku (rytuał `git checkout -- silver/ gold/`
-   przestaje być potrzebny, bo pliki są ignorowane, a `git status --short` na EC2 ma być
-   pusty) i dać ✅ przy punkcie 6.
-3. **Test prawdziwej drogi** (następny w kolejce) albo **przepięcie wykresów, `ranking.py`,
-   `test_plikow.py` i Power BI na Athenę** — do wyboru Gracjana; oba czekają na sprawdzian
-   punktu 6.
-4. **Notatka o nawiasach** — pytania Gracjana i ćwiczenia z odpowiedziami na początku sesji.
+1. **Test prawdziwej drogi — kod.** Gracjan pisze: czysta funkcja (DataFrame → lista
+   problemów; trzy sprawdzenia — brak dzisiejszej daty w dzień pon–pt, data
+   z przyszłości, zgodność liczby dni między spółkami) i testy na zmyślonych danych,
+   wzorem `control.py`/`test_control.py`. Potem cienka warstwa łącząca się z Athena
+   (`gold_dane_dzienne`, jak `silver.py`). Claude pokazuje kształt na przykładzie
+   z lodziarnią z notatki, na żądanie.
+2. **Python 3.10/3.11 na EC2.** Przełożone z 22.09 (za blisko biegu o 18:00). Wymaga
+   sprawdzenia wersji systemu EC2 (`cat /etc/os-release`, robi Gracjan) i osobnej notatki
+   projektowej przed zmianą środowiska produkcyjnego (zasada 10) — dopiero potem kod.
+   Orientacyjna pracochłonność z 22.09: 30–45 min (Amazon Linux 2023, Python z `dnf`)
+   albo 1–1,5 godz. (Amazon Linux 2, kompilacja ze źródeł) — nie sprawdzone, które to.
+3. **Przepięcie wykresów, `ranking.py`, `test_plikow.py` i Power BI na Athenę** — czekało
+   na sprawdzian punktu 6 (zamknięty 22.09), teraz odblokowane; do wyboru Gracjana, kiedy.
+4. **Dokumentacja w tle** — README od nowa, dziesięć wpisów dziennika bez „Czego się
+   nauczyłem", plany do posprzątania.
 5. **Terminy:** 1.10 kompakcja z laptopa (wypisze o 3 pliki więcej z powodu testu B);
    **25.10** (niedziela) pierwszy bieg po zmianie czasu — `17:00:0X` w linii startu i to
    będzie poprawne, a u stróża pierwszy prawdziwy sprawdzian strefy.
 
 **EC2 jest na `6af7b48` od 21.09 ok. 19:03** (dziewięć plików, zgodnie z przewidywaniem;
-`git status --short` pusty). Od tego czasu w `kod/` nic się nie zmieniło.
+`git status --short` pusty). Od tego czasu w `kod/` nic się nie zmieniło. Sprawdzian 22.09
+potwierdził, że `git status --short` zostaje pusty także po pierwszym pełnym biegu `cron`
+na odtworzonych folderach.
 
 ### Kopie
 

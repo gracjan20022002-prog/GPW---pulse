@@ -1148,6 +1148,15 @@ plik | wc -c` → `67`: 10 znaków `STROZ_URL=`, 56 adresu, 1 nowa linia.*
 Wypisuje tekst z wstawioną wartością: `%s` to miejsce na wartość, `\n` to nowa linia.
 *`KOLOR=bialy`, `printf 'KOLOR=%s\n' "$KOLOR"` → `KOLOR=bialy`.*
 
+### `dnf` i `yum`
+Programy do instalowania oprogramowania na Linuksie (menedżery pakietów) —
+odpowiednik sklepu z aplikacjami, ale z linii komend. `yum` jest starszy, `dnf`
+nowszy. To, którego używa dana wersja systemu, decyduje, czy nowszy Python da się
+doinstalować jedną komendą, czy trzeba go budować ze źródeł.
+*Amazon Linux 2023 ma `dnf install python3.11` gotowe od ręki; Amazon Linux 2 nie
+ma nowszego Pythona w swoich repozytoriach wcale — 22.09 nie sprawdzone, którą
+wersję ma nasz EC2.*
+
 ---
 
 ## Kod
@@ -1502,6 +1511,20 @@ lody` → nic.*
 Kończy program z **kodem wyjścia** 1 (0 = dobrze, inne = źle). `except Exception` go nie
 łapie, więc wyjście zostaje.
 *W `control.py`, gdy stróż odpowie czymś innym niż 200.*
+
+### `.weekday()`
+Metoda obiektu daty (`datetime`), zwraca numer dnia tygodnia: 0 = poniedziałek,
+6 = niedziela (licząc od poniedziałku, nie od niedzieli).
+*`datetime(2026, 9, 22).weekday()` → `1` (wtorek). `dzien.weekday() < 5` sprawdza
+„czy to dzień roboczy pon–pt", bez wiedzy o świętach.*
+
+### Heurystyka
+Uproszczona reguła, która zwykle działa, ale nie zawsze — w zamian za prostotę
+przyjmujemy, że czasem się pomyli. Przeciwieństwo dokładnej reguły, która próbuje
+pokryć każdy przypadek.
+*„Dzień roboczy to pon–pt" to heurystyka: myli się w święta państwowe, ale nie
+wymaga trzymania i aktualizowania listy świąt. Wybrana 22.09 do testu prawdziwej
+drogi.*
 
 ---
 
