@@ -440,6 +440,47 @@ bez pisania własnej funkcji do wycinania tekstu.
 *`tabela["data"].dt.to_period("M")` zamienia całą kolumnę dat na „rok-miesiąc"
 (np. `2026-08`), żeby policzyć coś osobno dla każdego miesiąca.*
 
+### `.dt.date` (sama data bez godziny)
+Po `pd.to_datetime(...)` odcina godzinę i zostawia sam dzień. Bez tego
+`"2026-09-22 17:00:00"` nie równa się `date(2026, 9, 22)`.
+*`pd.to_datetime(df["data"]).dt.date` → `2026-09-22`. W `kod/path.py` tak powstaje
+kolumna `dzien` (23.09).*
+
+### `pd.DataFrame({...})` — tabela ze słownika
+Słownik: nazwa kolumny → lista wartości. Listy muszą mieć tę samą długość, inaczej
+`ValueError: All arrays must be of the same length`. Tak testy budują zmyśloną tabelę
+zamiast czytać plik albo Athenę.
+*`pd.DataFrame({"smak": ["wanilia", "czekolada"], "data": ["2026-09-22", "2026-09-22"]})`
+→ tabela 2 × 2.*
+
+### `.unique()`
+Każda wartość z kolumny tylko raz.
+*Kolumna `["czekolada", "czekolada", "wanilia"]` → `['czekolada', 'wanilia']`. Nowy pandas
+wypisuje to jako `<ArrowStringArray>`, ale pętla `for` działa jak na liście.*
+
+### `.nunique()`
+**Liczba** różnych wartości. Po `groupby` liczy osobno w każdej grupie, a na wyniku
+jeszcze raz mówi, ile jest różnych liczb.
+*`groupby("smak")["dzien"].nunique()` → czekolada 2, pistacjowy 1, wanilia 2; `.nunique()`
+na tym → `2`, czyli liczby się różnią. Przy komplecie byłoby `1`.*
+
+### `.to_dict()`
+Zamienia Series na słownik: etykieta → wartość, w jednej linii.
+*→ `{'czekolada': 2, 'pistacjowy': 1, 'wanilia': 2}` zamiast bloku kilku linii
+z `Name: dzien, dtype: int64`.*
+
+### `.tolist()` i pułapka `in` na kolumnie
+`.tolist()` zamienia kolumnę na zwykłą listę. `in` użyte na **samej kolumnie** (Series)
+sprawdza numery wierszy, a nie wartości.
+*Kolumna z datami 21.09 i 22.09: `date(2026, 9, 22) in kolumna` → `False` (źle),
+`date(2026, 9, 22) in kolumna.tolist()` → `True`, a `1 in kolumna` → `True`, bo wiersz nr 1
+istnieje.*
+
+### „The truth value of a Series is ambiguous"
+`ValueError`, gdy w `if` stoi cała kolumna naraz, np. `if ile > 1:`. Python nie wie, czy
+chodzi o „wszystkie", czy o „którąś". Trzeba zapytać o jedną liczbę, np.
+`if ile.nunique() > 1:`.
+
 ### dropna
 Metoda pandas, która wyrzuca z tabeli wiersze z brakującą wartością (`NaN`)
 w wybranej kolumnie.
@@ -1525,6 +1566,53 @@ pokryć każdy przypadek.
 *„Dzień roboczy to pon–pt" to heurystyka: myli się w święta państwowe, ale nie
 wymaga trzymania i aktualizowania listy świąt. Wybrana 22.09 do testu prawdziwej
 drogi.*
+
+### `date(rok, miesiąc, dzień)` i `date.today()`
+`date(2026, 9, 22)` tworzy datę bez godziny, a `date.today()` to dzisiejsza data z zegara
+maszyny. Obie to **data**, nie napis, więc mają `.weekday()`. Napis `"2026-09-22"` tylko
+wygląda jak data: `.weekday()` na nim da `AttributeError: 'str' object has no attribute
+'weekday'`.
+*W testach stała data udaje konkretny dzień, a w części `__main__` jest prawdziwe „dziś".*
+
+### `date.fromisoformat("RRRR-MM-DD")`
+Zamienia tekst w formacie `RRRR-MM-DD` na datę. Inny format daje `ValueError`.
+*`date.fromisoformat("2026-09-24")` → `datetime.date(2026, 9, 24)`;
+`date.fromisoformat("24.09.2026")` → `ValueError: Invalid isoformat string`. W `kod/path.py`
+razem z `os.environ.get("DROGA_DATA", str(date.today()))`: udawany dzień ze zmiennej albo
+dziś (23.09).*
+
+### Mnożenie i sklejanie list (`*`, `+`)
+`lista * 3` powtarza listę 3 razy, a `lista1 + lista2` skleja dwie listy. Doklejać można
+tylko listę, dlatego pojedynczy element trzeba wziąć w nawias: `+ [x]`.
+*`["x"] * 3` → `['x', 'x', 'x']`; `["a"] + ["b"]` → `['a', 'b']`. `["x"] * len(s) - 1` bez
+nawiasu → `TypeError: unsupported operand type(s) for -: 'list' and 'int'`; dobrze:
+`["x"] * (len(s) - 1)`.*
+
+### `if lista:` — pusta lista jak `False`
+Pusta lista `[]` liczy się jak `False`, a lista z czymkolwiek jak `True`.
+*`if wynik:` → „jeśli są jakieś problemy".*
+
+### `repr(...)`
+Pokazuje, czym wartość jest naprawdę, a nie tylko jak wygląda po wypisaniu.
+*`print(date(2026, 9, 24))` → `2026-09-24`, ale `repr(...)` → `datetime.date(2026, 9, 24)`;
+`repr("2026-09-24")` → `'2026-09-24'` (apostrofy oznaczają napis).*
+
+### `UnboundLocalError`
+Użycie zmiennej, która w tym biegu funkcji jeszcze nie dostała wartości. Najczęściej
+chodzi o zmienną z pętli, która nie wykonała się ani razu.
+*23.09: `{spolka}` w komunikacie sprawdzenia 3 brało zmienną z pętli sprawdzenia 2. Bez
+wpisów z przyszłości pętla nie ruszała i funkcja padała, a z nimi wskazywała złą spółkę.*
+
+### Jak pytest znajduje testy
+Tylko w plikach `test_*.py` i tylko funkcje, których nazwa zaczyna się od `test_`. Funkcja
+bez `test_` jest pomijana bez słowa. Z kolei funkcja z `test_` **zaimportowana** do pliku
+testów też zostaje uznana za test, a jej parametry za fixture (`fixture '…' not found`).
+Dlatego funkcja sprawdzająca nie może mieć `test_` w nazwie, a test musi.
+*23.09: `test_dat(df, spolki, dzis)` zaimportowana do testów → `1 passed, 1 error`
+(sprawdzone na lodziarni).*
+
+### `pytest -s`
+Pokazuje na ekranie to, co wypisuje `print` w testach. Bez `-s` pytest to chowa.
 
 ---
 

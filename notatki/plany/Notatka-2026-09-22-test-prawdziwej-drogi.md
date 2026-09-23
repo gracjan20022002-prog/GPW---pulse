@@ -7,6 +7,18 @@ zatwierdzone: (1) `gold_dane_dzienne`, (2) heurystyka pon–pt, (3) na start
 ręcznie z laptopa, potem przeniesienie na EC2, (4) dwa fakty z przeglądu
 i zgodność liczby dni między spółkami, od razu. Kod pisze Gracjan.
 
+**23.09: kod napisany i sprawdzony na laptopie.** `kod/path.py` (funkcja
+`sprawdz_daty` + część `__main__` z Atheną, data z `DROGA_DATA` albo dziś)
+i `kod/test_path.py` (6 testów, `6 passed`). Bieg na prawdziwej tabeli:
+`2334`, `Dane: OK`. Alarm na żywych danych przy udawanym dniu: 24.09 → trzy
+braki, 22.09 → trzy wpisy z przyszłości. Wszystko zgodne z przewidywaniami
+zapisanymi przed biegiem. Otwarte kwestie z „Czego nie sprawdziłem":
+- typ kolumny `data` nie ma znaczenia, bo `pd.to_datetime` obsłużył to, co
+  oddała Athena;
+- zapytanie z laptopa działa (czasu nie mierzyliśmy).
+
+Instrukcja krok po kroku: [[Notatka-2026-09-23-jak-napisac-testy-drogi]].
+
 ## Sedno w trzech zdaniach
 
 Dzisiejsze testy w `test_plikow.py` sprawdzają rzeczy obok drogi danych:

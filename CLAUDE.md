@@ -49,6 +49,14 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
    przykład na innych danych. Kroków z wcześniejszej wiadomości nie odsyłać
    („są wyżej") — powtórzyć je. Przy ocenie kodu: numer linii, co jest, co
    ma być, skutek — i przewidywany wynik testów przed uruchomieniem.
+   **Pełna instrukcja przed kodem (23.09, prośba Gracjana: „co chwilę
+   zmieniasz zasady… przygotuj mi gotową notatkę"):** zanim Gracjan zacznie
+   pisać kawałek kodu albo testów, dostaje jedną kompletną notatkę:
+   wszystkie zasady, wszystkie nowe pojęcia z wejściem i wyjściem, wszystkie
+   przypadki z wynikami sprawdzonymi uruchomieniem przykładu i tabelę
+   błędów. Przy ocenie kodu Claude odwołuje się tylko do niej. Coś nowego
+   = przyznanie, że notatka tego nie miała, i dopisanie. Wzór:
+   `notatki/plany/Notatka-2026-09-23-jak-napisac-testy-drogi.md`.
 
 4. **Każda komenda z etykietą maszyny i środowiska**, bez wyjątku,
    także ostatnia w sesji, także `git`: `[lokalny PowerShell, (.venv)
@@ -128,7 +136,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (22.09 wieczorem)
+## Stan projektu — uczciwie (23.09 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -266,6 +274,13 @@ i `clean_data.csv`, w `gold` `.gitkeep`, `dane_dzienne.csv`,
 `Up`, łącznie cztery zgłoszenia. Wszystkie piętnaście przewidywań zapisanych
 21.09 trafione co do liczby — patrz „Kolejność napraw", punkt 6.
 
+**Stan 23.09 wieczorem** (dzień giełdowy). **Codziennej kontroli na EC2 nie było**
+(log, zakładka, stróż, S3 nieodczytane). Jedyny odczyt to test prawdziwej drogi z laptopa
+ok. 19:20 polskiego: `gold_dane_dzienne` ma **2334** wiersze, po 778 dni na spółkę,
+każda z wpisem z 23.09, bez dni z przyszłości (`Dane: OK`). Pośrednio znaczy to, że bieg
+o 18:00/18:10 dopisał świece. Przewidywania na kontrolę z 23.09, gdyby ją robić z logu:
+start w linii 721, `wc -l` 749, 2 × `(2334, 3)`, zakładka 2363, pliki spółek po 778.
+
 **Kompletność sesji** (lokalny `gold/dane_dzienne.csv`, rozmiar zgodny
 z S3 po odjęciu końców linii): po 775 unikalnych dni na spółkę, te same
 daty u wszystkich trzech, 810 dni roboczych − 35 świąt = 775. Wszystkie 35
@@ -387,7 +402,8 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    definicji „zrobione" spełniony. **Zostaje, świadomie poza tym punktem:** przepięcie
    wykresów, `ranking.py`, `test_plikow.py` i Power BI na Athenę (czytają lokalne pliki na
    laptopie, stojące od 20.09) — osobna decyzja, jeszcze nie podjęta.
-7. **Test prawdziwej drogi** — 🟨 **notatka zatwierdzona 22.09**, kod jeszcze nie napisany.
+7. **Test prawdziwej drogi** — 🟨 **23.09 kod i testy na laptopie, sprawdzone na Athenie**;
+   brak głośnej awarii i EC2 (szczegóły na końcu punktu).
    `notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`: sedno — dzisiejsze testy
    (`test_dzialania`, `test_powtorek`) sprawdzają rzeczy obok drogi danych, nic nie łączy
    się z Athena i nie sprawdza „dziś brakuje spółki" ani „jest dzień z przyszłości".
@@ -398,7 +414,18 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    świadomie przyjęty koszt: kilkanaście fałszywych alarmów rocznie w święta; (3) na start
    uruchamiane ręcznie z laptopa, wpięcie do `control.py`/EC2 to osobna, późniejsza
    decyzja; (4) sprawdza oba fakty z przeglądu **i** zgodność liczby dni między trzema
-   spółkami, od razu. Kod pisze Gracjan, zaczynając od kolejnej sesji.
+   spółkami, od razu.
+   **23.09 kod napisany przez Gracjana i sprawdzony na laptopie.** `kod/path.py`:
+   `sprawdz_daty(df, spolki, dzis)` (trzy sprawdzenia, kolumna `dzien` przez
+   `.dt.date`) + `__main__` czytający `SELECT spolka, data FROM gold_dane_dzienne`
+   z datą z `$env:DROGA_DATA` albo `date.today()`, wypisuje `len(df)` i `Dane: OK` /
+   `Dane: Problem - …`. `kod/test_path.py`: 6 testów na zmyślonych danych
+   z `ticker`, **`6 passed`**. Bieg na Athenie: `2334`, `Dane: OK`. Alarm na żywych
+   danych przy udawanym dniu: 24.09 → trzy braki, 22.09 → trzy wpisy z przyszłości,
+   bez zmiennej → `OK` — trzy trafienia co do słowa. Instrukcja:
+   `notatki/plany/Notatka-2026-09-23-jak-napisac-testy-drogi.md`. Spełnione (a), (b),
+   (e); **niespełnione (c) i (d)**, bo test chodzi ręcznie z laptopa. Wpięcie do
+   `control.py` na EC2 to osobna decyzja (szacunek: 1,5–2 godz. z notatką).
 8. **Sygnał awarii** — ✅ **21.09, z zastrzeżeniami**, wzięty przed 6 i 7 decyzją Gracjana
    18.09. Notatka zatwierdzona, `control.py` i 11 testów, 19.09 kod na EC2 i testy 2–3
    z prawdziwym stróżem, 21.09 linia `30 18` w `crontab` (16:53 polskiego), test ciszy
@@ -497,9 +524,9 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
   zamknięcie.
 - Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
   o 17:45 brak świecy, o 18:00 jest).
-- Testy sprawdzają rzeczy obok potoku — notatka do naprawy zatwierdzona
-  22.09: `notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`
-  (kolejność napraw, punkt 7).
+- Testy sprawdzają rzeczy obok potoku — **od 23.09 jest test prawdziwej drogi**
+  (`kod/path.py`), ale uruchamiany ręcznie z laptopa, bez sygnału (kolejność napraw,
+  punkt 7). `test_plikow.py` dalej czyta lokalne pliki.
 - Nikt nie dowie się o awarii — **zamknięte 21.09 w zakresie sygnału** (patrz „Sygnał awarii"). Log
   podwójny naprawiony w kodzie 19.09: Producent pisze błędy na stderr do
   `errors.txt`, `errors.log` przestał rosnąć (laptop: 6519 bajtów przed
@@ -653,6 +680,14 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   kilkunastu sekund).
 - **21.09:** wpis z 19.09 napisany najpierw w pierwszej osobie. Dziennik ma narrację
   bezosobową, pierwsza osoba tylko w „Czego się nauczyłem". Przepisany.
+- **23.09:** zasady do funkcji i testów podawane po kawałku, dopiero przy ocenie
+  wklejonego kodu (`test_` w nazwie, `ticker` zamiast `df["spolka"]`, `[1:]`, liczenie
+  problemów ze wszystkich sprawdzeń). Gracjan to wytknął. Stąd dopisek w zasadzie 3
+  i notatka „wszystko w jednym miejscu".
+- **23.09:** o 16:45 zapowiedziany test alarmu przed 18:10, bez rezerwy na funkcję, testy
+  i część z Atheną. Nie zdążyliśmy. Zastąpiony udawanym dniem przez `DROGA_DATA`.
+- **23.09:** pierwsze przykłady testów z `* 3` i nazwami wpisanymi na sztywno, a
+  `len(...)`, `[0]` i `[1:]` dopiero później, więc Gracjan przepisywał tabele.
 
 ### Priorytet Gracjana (08.09)
 
@@ -662,17 +697,14 @@ dopiero potem.
 
 ### Na następną sesję
 
-Punkt 6 zamknięty 22.09 (sprawdzian pełny, piętnaście trafień). Zaczynamy od kodu testu
-prawdziwej drogi (punkt 7), notatka zatwierdzona:
-`notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`. Reszta kolejności do
-ustalenia na starcie sesji.
+Punkt 7 ma od 23.09 kod i testy na laptopie, sprawdzone na Athenie (`6 passed`, `2334`,
+`Dane: OK`, alarm na udawanym dniu). Kolejność do ustalenia na starcie sesji. **Przed
+każdym kawałkiem kodu: pełna notatka-instrukcja (zasada 3).**
 
-1. **Test prawdziwej drogi — kod.** Gracjan pisze: czysta funkcja (DataFrame → lista
-   problemów; trzy sprawdzenia — brak dzisiejszej daty w dzień pon–pt, data
-   z przyszłości, zgodność liczby dni między spółkami) i testy na zmyślonych danych,
-   wzorem `control.py`/`test_control.py`. Potem cienka warstwa łącząca się z Athena
-   (`gold_dane_dzienne`, jak `silver.py`). Claude pokazuje kształt na przykładzie
-   z lodziarnią z notatki, na żądanie.
+1. **Wpięcie testu prawdziwej drogi do `control.py` na EC2** (warunki (c) i (d) punktu 7).
+   Najpierw notatka projektowa: czy problemy z danymi idą do stróża, co gdy Athena nie
+   odpowie, jak wymusić awarię do testu. Szacunek: 1,5–2 godz., raczej dwie sesje.
+   **Nie w tym samym czasie co zmiana Pythona na EC2.**
 2. **Python 3.10/3.11 na EC2.** Przełożone z 22.09 (za blisko biegu o 18:00). Wymaga
    sprawdzenia wersji systemu EC2 (`cat /etc/os-release`, robi Gracjan) i osobnej notatki
    projektowej przed zmianą środowiska produkcyjnego (zasada 10) — dopiero potem kod.
@@ -687,7 +719,8 @@ ustalenia na starcie sesji.
    będzie poprawne, a u stróża pierwszy prawdziwy sprawdzian strefy.
 
 **EC2 jest na `6af7b48` od 21.09 ok. 19:03** (dziewięć plików, zgodnie z przewidywaniem;
-`git status --short` pusty). Od tego czasu w `kod/` nic się nie zmieniło. Sprawdzian 22.09
+`git status --short` pusty). 23.09 w `kod/` doszły `path.py` i `test_path.py`. Na EC2 nie są
+potrzebne, dopóki test nie trafi do `control.py`, a `git pull` ich nie uruchomi. Sprawdzian 22.09
 potwierdził, że `git status --short` zostaje pusty także po pierwszym pełnym biegu `cron`
 na odtworzonych folderach.
 
@@ -723,7 +756,10 @@ dawniej w gicie, do czasu, gdy wynik trafi
 do S3), `wykresy/`, `notatki/`, `aws/` (klucz SSH, poza gitem). Skrypt
 kontrolny (od 18.09): `kod/control.py`, testy `kod/test_control.py`, wzór
 prawdziwego bloku logu `kod/dane_testowe/blok_2026-09-18.txt`. Testy
-uruchamiane z folderu projektu: `pytest kod/test_control.py -v`. Nauka
+uruchamiane z folderu projektu: `pytest kod/test_control.py -v`. Test prawdziwej
+drogi (od 23.09): `kod/path.py`, testy `kod/test_path.py` (`pytest kod/test_path.py -v`),
+bieg na Athenie z laptopa `python kod/path.py`, udawany dzień
+`$env:DROGA_DATA = "RRRR-MM-DD"` (potem `Remove-Item Env:DROGA_DATA`). Nauka
 Pythona (osobny projekt): `DE/Python_l/`.
 
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`
