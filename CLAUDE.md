@@ -63,6 +63,14 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
    włączone]`, `[lokalny PowerShell, venv nieistotne]`, `[EC2, przez
    SSH]`. Gdy komenda zależy od `venv` — najpierw komenda włączająca
    i sprawdzenie `(.venv)` w wierszu poleceń.
+   **Każda komenda (i zapytanie SQL) w osobnym okienku kodu**, jedna na
+   okienko, pod swoim krokiem, żeby dało się ją od razu skopiować (25.09,
+   prośba Gracjana: „wcześniej lepiej wysyłałeś komendy… w oknie"). Etykieta
+   i oczekiwany wynik jako zwykły tekst obok, nie w okienku.
+   **Przy pisaniu kodu — krok po kroku** (25.09, „rozpisuj mi każdy krok po
+   kolei"): porcja kilku–kilkunastu kroków, każdy = jedna czynność w edytorze
+   (plik, numer linii, wcięcie w spacjach, co ma być widać), na końcu porcji
+   uruchomienie i prośba o wynik; następna porcja po wyniku.
 
 5. **Terminal, git, AWS, EC2 — zawsze Gracjan sam.** Claude może czytać
    lokalne pliki i stan gita. Nie dotyka EC2 ani AWS nawet do odczytu
@@ -136,7 +144,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (23.09 wieczorem)
+## Stan projektu — uczciwie (25.09 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -280,6 +288,22 @@ ok. 19:20 polskiego: `gold_dane_dzienne` ma **2334** wiersze, po 778 dni na spó
 każda z wpisem z 23.09, bez dni z przyszłości (`Dane: OK`). Pośrednio znaczy to, że bieg
 o 18:00/18:10 dopisał świece. Przewidywania na kontrolę z 23.09, gdyby ją robić z logu:
 start w linii 721, `wc -l` 749, 2 × `(2334, 3)`, zakładka 2363, pliki spółek po 778.
+**Potwierdzone 25.09:** linia startu 23.09 to 721.
+
+**Stan 25.09 wieczorem** (piątek, dzień giełdowy; 24.09 bez kontroli, sprawdzony razem
+z 25.09). Odczyt na EC2 o 17:54:35 UTC. Linie startu **721, 750, 779**, wszystkie
+`16:00:02` UTC. `wc -l` **807**. Bloki 24.09 i 25.09 po 29 linii: `(2337, 3)` i `(2340, 3)`,
+2 × `S3: wysłano`, `Kontrola: OK`. Zero linii `Traceback|Error|ERROR|nietknięte`. Pliki
+spółek po **780** (razem 2340). `errors.log` 8. Zakładka `2369 2369 0`, `no active members`.
+S3 `gold/` z 16:10:07 UTC: `dane_dzienne.csv` **156615 B** (w przewidzianym zakresie
+156550–156750), `ranking.csv` **338 B** (przewidziane „ok. 360”, szacunek bez wyliczenia).
+`silver`/`gold` z `.gitkeep` i `.csv`, `git status --short` pusty, EC2 na `6af7b48`. Athena:
+780 dni na spółkę, `od` 2023-08-14, `do` 2026-09-25 17:00:00, przeczytane 152,94 kB. Stróż:
+#5–#7 `OK` o 18:30 (23–25.09), bez zmiany stanu od 21.09 `down → up`. Ranking 25.09:
+CBF 204,60, SNT 353,00, XTB 151,50 (niesprawdzone w archiwum GPW). Przewidywania na następny
+dzień giełdowy (pon. 28.09, **jeśli kod z etapu B nie trafi wcześniej na EC2**): start
+w linii 808, `wc -l` 836, `(2343, 3)`, zakładka 2372, pliki po 781. Weekend 26–27.09: bloki
+po 27 linii.
 
 **Kompletność sesji** (lokalny `gold/dane_dzienne.csv`, rozmiar zgodny
 z S3 po odjęciu końców linii): po 775 unikalnych dni na spółkę, te same
@@ -402,8 +426,8 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    definicji „zrobione" spełniony. **Zostaje, świadomie poza tym punktem:** przepięcie
    wykresów, `ranking.py`, `test_plikow.py` i Power BI na Athenę (czytają lokalne pliki na
    laptopie, stojące od 20.09) — osobna decyzja, jeszcze nie podjęta.
-7. **Test prawdziwej drogi** — 🟨 **23.09 kod i testy na laptopie, sprawdzone na Athenie**;
-   brak głośnej awarii i EC2 (szczegóły na końcu punktu).
+7. **Test prawdziwej drogi** — 🟨 **25.09 wpięty do `control.py` na laptopie (etap A),
+   commit `8b8f585`**; brak (c) i (d), bo EC2 dalej na `6af7b48` (szczegóły na końcu punktu).
    `notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`: sedno — dzisiejsze testy
    (`test_dzialania`, `test_powtorek`) sprawdzają rzeczy obok drogi danych, nic nie łączy
    się z Athena i nie sprawdza „dziś brakuje spółki" ani „jest dzień z przyszłości".
@@ -424,8 +448,44 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    danych przy udawanym dniu: 24.09 → trzy braki, 22.09 → trzy wpisy z przyszłości,
    bez zmiennej → `OK` — trzy trafienia co do słowa. Instrukcja:
    `notatki/plany/Notatka-2026-09-23-jak-napisac-testy-drogi.md`. Spełnione (a), (b),
-   (e); **niespełnione (c) i (d)**, bo test chodzi ręcznie z laptopa. Wpięcie do
-   `control.py` na EC2 to osobna decyzja (szacunek: 1,5–2 godz. z notatką).
+   (e); **niespełnione (c) i (d)**, bo test chodzi ręcznie z laptopa.
+   **24.09 notatka projektowa** `notatki/plany/Notatka-2026-09-24-droga-na-ec2.md`, **25.09
+   zatwierdzona w całości**, osiem decyzji w wariancie (a):
+   - wpięcie do `control.py`, jedna lista problemów i jedno zgłoszenie do stróża (osobna
+     linia `cron` z tym samym stróżem kasowałaby awarię późniejszym `OK`);
+   - problem z danymi = awaria u stróża;
+   - błąd Atheny → problem na liście (wewnętrzny `try`);
+   - wspólna `pobierz_dane()` w `path.py`;
+   - jedna `KONTROLA_DATA`;
+   - czwarte sprawdzenie „spółka z `ticker` bez ani jednego wiersza”, zawsze (luka: pusta
+     tabela w weekend dawała `[]`);
+   - linia `Kontrola: Dane N wierszy`;
+   - ostrzeżenie `pandas` zostaje.
+
+   Instrukcja przed kodem: `notatki/plany/Notatka-2026-09-25-jak-wpiac-droge-do-kontroli.md`.
+   **25.09 kod Gracjana:** `path.py` z czwartym sprawdzeniem i `pobierz_dane()`,
+   `test_path.py` z 7. testem (`test_brak_spolki_w_sobote`), `control.py` z importem obu
+   funkcji, `dzis = date.fromisoformat(KONTROLA_DATA)` przed wewnętrznym `try` (linie 43–49:
+   `pobierz_dane()`, `print(f"Kontrola: Dane {len(dane)} wierszy")`, `blad = blad +
+   sprawdz_daty(...)`, `except` → `Athena: Błąd - {e}`). Wyniki:
+   - `7 passed`;
+   - `python kod/path.py` → `2340`, `Dane: OK`;
+   - `18 passed in 0.61s` na obu plikach;
+   - bieg na bloku z 18.09 → `Kontrola: Dane 2340 wierszy` + `AWARIA` z 3 × wpis z przyszłości,
+     co do słowa;
+   - zmyślone klucze AWS → jeden problem `Athena: Błąd - An error occurred
+     (UnrecognizedClientException) … token … invalid.`, bez linii `Dane`.
+
+   **Nieprzewidziane:** `pyathena` przy błędzie wypisuje na stderr `Failed to execute query.`
+   i pełny `Traceback` (ok. 40 linii na 3.14, na 3.9 mniej, nie sprawdzone). Na EC2 trafi to
+   do `errors.txt`. **Decyzja Gracjana: zostawić.** Koszt: ręczny bieg `control.py` tego
+   samego dnia po powrocie Atheny dalej da `AWARIA` (w bloku jest `Traceback`), a stróż wróci
+   na `Up` przy następnym biegu. Commit `8b8f585` (`5 files changed, 752 insertions(+),
+   5 deletions(-)`, zgodnie z przewidywaniem), wypchnięty.
+   **Zostało:** etap B na EC2 (`git pull` poza oknem 17:55–18:35, ręczne biegi E1–E4 z notatki
+   z 24.09, Część 7) i etap C (pierwszy bieg z `cron`: blok **32** linie w dzień giełdowy,
+   **30** w weekend, przedostatnia `Kontrola: Dane N wierszy`). Po wdrożeniu poprawić liczby
+   w „Codziennej kontroli” (29/27 → 32/30).
 8. **Sygnał awarii** — ✅ **21.09, z zastrzeżeniami**, wzięty przed 6 i 7 decyzją Gracjana
    18.09. Notatka zatwierdzona, `control.py` i 11 testów, 19.09 kod na EC2 i testy 2–3
    z prawdziwym stróżem, 21.09 linia `30 18` w `crontab` (16:53 polskiego), test ciszy
@@ -525,8 +585,9 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
 - Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
   o 17:45 brak świecy, o 18:00 jest).
 - Testy sprawdzają rzeczy obok potoku — **od 23.09 jest test prawdziwej drogi**
-  (`kod/path.py`), ale uruchamiany ręcznie z laptopa, bez sygnału (kolejność napraw,
-  punkt 7). `test_plikow.py` dalej czyta lokalne pliki.
+  (`kod/path.py`), od 25.09 wpięty w `control.py`, ale **tylko na laptopie**. Na EC2
+  (`6af7b48`) skrypt kontrolny dalej sprawdza sam log (kolejność napraw, punkt 7).
+  `test_plikow.py` dalej czyta lokalne pliki.
 - Nikt nie dowie się o awarii — **zamknięte 21.09 w zakresie sygnału** (patrz „Sygnał awarii"). Log
   podwójny naprawiony w kodzie 19.09: Producent pisze błędy na stderr do
   `errors.txt`, `errors.log` przestał rosnąć (laptop: 6519 bajtów przed
@@ -688,6 +749,17 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   i część z Atheną. Nie zdążyliśmy. Zastąpiony udawanym dniem przez `DROGA_DATA`.
 - **23.09:** pierwsze przykłady testów z `* 3` i nazwami wpisanymi na sztywno, a
   `len(...)`, `[0]` i `[1:]` dopiero później, więc Gracjan przepisywał tabele.
+- **24.09:** sesja zakończona bez wpisu w dzienniku. To ta sama sytuacja co przed 21.09.
+  Dopisany 25.09 z transkryptu.
+- **25.09:** komendy wpisane w tekst kroków zamiast w osobne okienka. Gracjan poprosił
+  o powrót do okienek (zasada 4).
+- **25.09:** `ranking.csv` „ok. 360 B” bez wyliczenia, wyszło 338.
+- **25.09:** „`pytest` poniżej sekundy” po zmianie pliku, wyszło 1,62 s. Dowodem braku
+  połączenia z Atheną jest brak `warnings summary`, a nie czas.
+- **25.09:** bieg ze zmyślonymi kluczami: tekst przewidziany jako `Execution failed on sql …`,
+  a przyszedł sam komunikat `botocore`. Nieprzewidziany `Traceback` od `pyathena` na stderr.
+- **25.09:** pułapka `in` na kolumnie pandas dopisana do tabeli błędów dopiero po pytaniu
+  Gracjana o warunek. Pierwsza wersja warunku Gracjana brzmiała `t not in spolki`.
 
 ### Priorytet Gracjana (08.09)
 
@@ -697,14 +769,25 @@ dopiero potem.
 
 ### Na następną sesję
 
-Punkt 7 ma od 23.09 kod i testy na laptopie, sprawdzone na Athenie (`6 passed`, `2334`,
-`Dane: OK`, alarm na udawanym dniu). Kolejność do ustalenia na starcie sesji. **Przed
-każdym kawałkiem kodu: pełna notatka-instrukcja (zasada 3).**
+Punkt 7: etap A (laptop) zamknięty 25.09, commit `8b8f585` na GitHubie. Kolejność do
+ustalenia na starcie sesji. **Przed każdym kawałkiem kodu: pełna notatka-instrukcja
+(zasada 3).**
 
-1. **Wpięcie testu prawdziwej drogi do `control.py` na EC2** (warunki (c) i (d) punktu 7).
-   Najpierw notatka projektowa: czy problemy z danymi idą do stróża, co gdy Athena nie
-   odpowie, jak wymusić awarię do testu. Szacunek: 1,5–2 godz., raczej dwie sesje.
-   **Nie w tym samym czasie co zmiana Pythona na EC2.**
+1. **Etap B na EC2** (warunki (c) i (d) punktu 7), według notatki z 24.09, Część 7:
+   - `git pull` **poza oknem 17:55–18:35**, z `6af7b48` do najnowszego commitu (`25f252b`,
+     `8b8f585` i commit dokumentacji z 25.09). Potem `git status --short` pusty;
+   - ręczne biegi w oknie SSH, bez `STROZ_URL`: E1 OK (`KONTROLA_DATA` = ostatni dzień
+     giełdowy, jeśli przed 18:00; sprawdza też uprawnienia roli do `gold/` i to, że import
+     `path` działa na Pythonie 3.9 w `venv` — importy stoją **poza** zewnętrznym `try`, więc
+     ich błąd dałby `Traceback` bez zgłoszenia i mail „cisza” o 19:00), E2 alarm danych
+     (następny dzień roboczy → 4 problemy), E3 zmyślone klucze → 1 problem `Athena: Błąd`
+     (i `Traceback` od `pyathena` w oknie), E4 opcjonalnie ze `STROZ_URL` wpisanym w oknie
+     (`Failure` i mail `DOWN`, potem `OK` i `UP`);
+   - bez zmiany `crontab`.
+
+   Potem **etap C**: pierwszy bieg z `cron` o 18:30, czyli codzienna kontrola z nowymi
+   liczbami (blok 32/30 linii). Szacunek na B: ok. 45 min. **Nie w tym samym czasie co
+   zmiana Pythona na EC2.**
 2. **Python 3.10/3.11 na EC2.** Przełożone z 22.09 (za blisko biegu o 18:00). Wymaga
    sprawdzenia wersji systemu EC2 (`cat /etc/os-release`, robi Gracjan) i osobnej notatki
    projektowej przed zmianą środowiska produkcyjnego (zasada 10) — dopiero potem kod.
@@ -719,8 +802,10 @@ każdym kawałkiem kodu: pełna notatka-instrukcja (zasada 3).**
    będzie poprawne, a u stróża pierwszy prawdziwy sprawdzian strefy.
 
 **EC2 jest na `6af7b48` od 21.09 ok. 19:03** (dziewięć plików, zgodnie z przewidywaniem;
-`git status --short` pusty). 23.09 w `kod/` doszły `path.py` i `test_path.py`. Na EC2 nie są
-potrzebne, dopóki test nie trafi do `control.py`, a `git pull` ich nie uruchomi. Sprawdzian 22.09
+`git status --short` pusty). 23.09 w `kod/` doszły `path.py` i `test_path.py`, a 25.09
+`control.py` zaczął importować z `path.py`. **Po `git pull` na EC2 skrypt kontrolny o 18:30
+od razu zacznie pytać Athenę**, więc `pull` to już wdrożenie, a nie samo pobranie plików.
+Sprawdzian 22.09
 potwierdził, że `git status --short` zostaje pusty także po pierwszym pełnym biegu `cron`
 na odtworzonych folderach.
 
@@ -759,7 +844,12 @@ prawdziwego bloku logu `kod/dane_testowe/blok_2026-09-18.txt`. Testy
 uruchamiane z folderu projektu: `pytest kod/test_control.py -v`. Test prawdziwej
 drogi (od 23.09): `kod/path.py`, testy `kod/test_path.py` (`pytest kod/test_path.py -v`),
 bieg na Athenie z laptopa `python kod/path.py`, udawany dzień
-`$env:DROGA_DATA = "RRRR-MM-DD"` (potem `Remove-Item Env:DROGA_DATA`). Nauka
+`$env:DROGA_DATA = "RRRR-MM-DD"` (potem `Remove-Item Env:DROGA_DATA`). Od 25.09
+`control.py` importuje z `path.py` `sprawdz_daty` i `pobierz_dane`, więc testy obu plików
+uruchamiać razem: `pytest kod/test_path.py kod/test_control.py -v` (18 testów). Ręczny bieg
+`control.py` na laptopie: `KONTROLA_LOG` = `kod\dane_testowe\blok_2026-09-18.txt`,
+`KONTROLA_DATA` = `2026-09-18`; awaria Atheny wymuszana zmyślonymi `AWS_ACCESS_KEY_ID`
+i `AWS_SECRET_ACCESS_KEY` w oknie (po teście usunąć i sprawdzić `Get-ChildItem Env:`). Nauka
 Pythona (osobny projekt): `DE/Python_l/`.
 
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`

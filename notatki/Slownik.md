@@ -953,6 +953,19 @@ Usługa AWS do pomiarów i alarmów. Umie alarmować także przy **braku**
 danych, więc razem z SNS dałaby stróża w AWS. Szczegółów nie sprawdzaliśmy
 (18.09) — wybraliśmy prostszą drogę z jedną usługą zewnętrzną.
 
+### Łańcuch poświadczeń `boto3` (skąd biorą się klucze AWS)
+`boto3` (a przez nie też `pyathena`) szuka kluczy w ustalonej kolejności i bierze
+**pierwsze**, które znajdzie:
+1. zmienne środowiskowe `AWS_ACCESS_KEY_ID` i `AWS_SECRET_ACCESS_KEY`;
+2. plik `~/.aws/credentials` (laptop);
+3. rola maszyny (EC2, `gpw_tracker_ec2_role`).
+
+Zmyślone wartości w zmiennych wymuszają więc awarię bez zmiany kodu i pliku z kluczami.
+*25.09 na laptopie: `$env:AWS_ACCESS_KEY_ID = "AKIAFALSZYWYKLUCZ00"` i zmyślony sekret →
+`UnrecognizedClientException … The security token included in the request is invalid.`
+Po teście: `Remove-Item Env:AWS_ACCESS_KEY_ID, Env:AWS_SECRET_ACCESS_KEY` i sprawdzenie, że
+zniknęły. Zostawione w oknie psują każdy następny bieg z AWS.*
+
 ---
 
 ## Powłoka i cron (Linux)
@@ -1613,6 +1626,36 @@ Dlatego funkcja sprawdzająca nie może mieć `test_` w nazwie, a test musi.
 
 ### `pytest -s`
 Pokazuje na ekranie to, co wypisuje `print` w testach. Bez `-s` pytest to chowa.
+
+### Wydzielenie kodu do funkcji (funkcja bez parametrów)
+Kilka linii przeniesionych pod `def nazwa():` i zakończonych `return wynik`. Puste
+nawiasy znaczą, że funkcja nic nie bierze z zewnątrz. Kod w środku `def` wykonuje się
+dopiero przy wywołaniu `nazwa()`, a **nie** przy `import`. Bez `return` funkcja oddaje `None`.
+*Lodziarnia: `def pobierz_zeszyt(): … return zeszyt` → `len(pobierz_zeszyt())` = `6`, a sam
+`import lodziarnia` nic nie czyta. Bez `return`: `object of type 'NoneType' has no len()`.*
+**W tym projekcie:** `pobierz_dane()` w `kod/path.py` (25.09) ma połączenie z Atheną
+i `SELECT`. Używają jej `path.py` i `control.py`. Testy importują `path.py` i dalej nie
+łączą się z AWS.
+
+### `try` w środku `try`
+Wewnętrzny `try` łapie błąd tylko ze swojego kawałka i zamienia go na zwykły problem.
+Program idzie wtedy dalej. Zewnętrzny `try` zostaje na całą resztę. Rzeczy, których
+pomyłka ma dać uczciwy komunikat, robi się **przed** wewnętrznym `try`.
+*Lodziarnia (25.09): brak pliku zeszytu → `Kontrola: AWARIA - Zeszyt: błąd - [Errno 2] …`,
+a wysyłka idzie dalej. Zła data zamieniona przed `try` → `Błąd skryptu - Invalid isoformat
+string`. Napis zamiast daty w środku → `Zeszyt: błąd - 'str' object has no attribute
+'weekday'` (przebrany za awarię zeszytu).*
+**W tym projekcie:** `control.py`: wewnętrzny `try` wokół `pobierz_dane()` i `sprawdz_daty`,
+a błąd Atheny staje się problemem `Athena: Błąd - …` na tej samej liście co problemy z logu.
+
+### Komunikaty biblioteki na stderr bez ustawionego `logging`
+Biblioteka może pisać przez `logging` (np. `_logger.exception(...)`), nawet gdy nasz kod
+wyjątek złapie. Jeśli program nie ustawia `logging`, Python i tak wypisuje komunikaty
+od poziomu `WARNING` wzwyż na stderr, łącznie z `Traceback`.
+**W tym projekcie:** `pyathena` przy odrzuconym zapytaniu wypisuje `Failed to execute query.`
+i pełny `Traceback` (25.09, zmyślone klucze). Na EC2 stderr z `cron` idzie do `errors.txt`.
+Decyzja 25.09: zostawić, choć ręczny bieg `control.py` tego samego dnia zobaczy ten
+`Traceback` w bloku i powie `AWARIA`.
 
 ---
 
