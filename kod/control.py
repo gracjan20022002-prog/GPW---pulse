@@ -3,6 +3,7 @@ import os
 import sys
 import requests
 from datetime import date
+from path import sprawdz_daty, pobierz_dane
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def sprawdz_blok(blok, spolki, dzis):
     bledy = []
@@ -39,6 +40,13 @@ if __name__ == "__main__":
             raport = plik.read()
         blok = wytnij_blok(raport)
         blad = sprawdz_blok(blok, ticker, KONTROLA_DATA)
+        dzis = date.fromisoformat(KONTROLA_DATA)
+        try:
+            dane = pobierz_dane()
+            print(f"Kontrola: Dane {len(dane)} wierszy")
+            blad = blad + sprawdz_daty(dane, ticker, dzis)
+        except Exception as e:
+            blad.append(f"Athena: Błąd - {e}")
         if blad:
             tekst = "Kontrola: AWARIA - " + "; ".join(blad)
         else:

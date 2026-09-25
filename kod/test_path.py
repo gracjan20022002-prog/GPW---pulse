@@ -47,3 +47,12 @@ def test_komplet_poniedzialek():
     })
     wynik = sprawdz_daty(df, ticker, date(2026, 9, 21))
     assert wynik == []
+
+def test_brak_spolki_w_sobote():
+    df = pd.DataFrame({
+        "spolka": ticker[1:] * 2,
+        "data": ["2026-09-24 17:00:00"] * (len(ticker)-1) + ["2026-09-25 17:00:00"] * (len(ticker)-1)
+    })
+    wynik = sprawdz_daty(df, ticker, date(2026, 9, 26))
+    assert len(wynik) == 1
+    assert ticker[0] in wynik[0]

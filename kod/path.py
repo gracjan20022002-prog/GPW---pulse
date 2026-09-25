@@ -18,14 +18,21 @@ def sprawdz_daty(df, spolki, dzis):
     ile = df.groupby("spolka")["dzien"].nunique()
     if ile.nunique() > 1:
         problemy.append(f"Różna liczba dni między spółkami: {ile.to_dict()}")
+    obecne = df["spolka"].tolist()    
+    for t in spolki:
+        if t not in obecne:
+            problemy.append(f"{t}: Brak w tabeli")
     return problemy
-if __name__ == "__main__":
+def pobierz_dane():
     con = connect(
-    s3_staging_dir=WYNIKI_ATHENY,
-    region_name=REGION,
-    schema_name=BAZA
+        s3_staging_dir=WYNIKI_ATHENY,
+        region_name=REGION,
+        schema_name=BAZA
     )
     df = pd.read_sql("SELECT spolka, data FROM gold_dane_dzienne", con)
+    return df
+if __name__ == "__main__":
+    df = pobierz_dane()
     print(len(df))
     wynik = sprawdz_daty(df, ticker, date.fromisoformat(os.environ.get("DROGA_DATA", str(date.today()))))
     if wynik:
