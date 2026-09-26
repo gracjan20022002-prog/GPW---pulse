@@ -1065,6 +1065,13 @@ dlatego `sort` musi iść **przed** nim.
 *`cut -c1-10 errors.log | sort | uniq -c` → `8 2026-08-31`, czyli cały
 plik to osiem wpisów z jednego dnia.*
 
+### `cut -d= -f2-` (cięcie po znaku)
+`-d=` każe ciąć linię w miejscach znaku `=` (*delimiter*, czyli separator). `-f2-` zostawia
+kawałki od drugiego do końca. Myślnik na końcu ma znaczenie: gdyby w wartości też był `=`,
+`-f2` uciąłby ją w połowie, a `-f2-` zostawi całą.
+*`echo "KOLOR=niebieski" | cut -d= -f2-` → `niebieski`; `echo "WZOR=a=b" | cut -d= -f2` →
+`a`, a z `-f2-` → `a=b`. 26.09 tak wyjmowaliśmy adres stróża z `crontab -l`.*
+
 ### `grep -a` i `grep -c`
 `-a` każe traktować plik binarny jak zwykły tekst (normalnie `grep`
 odmawia go czytać). `-c` zlicza pasujące linie zamiast je wypisywać.
@@ -1101,6 +1108,14 @@ pliku. Powłoka tworzy plik tymczasowy w locie.
 *`diff <(sort plik.txt) <(pip freeze | sort)` porównuje plik z żywym
 stanem maszyny, bez zapisywania niczego na dysk. Działa w `bash`, nie
 w PowerShellu — tam ten sam efekt daje `Compare-Object`.*
+
+### Podstawienie komendy `$( )`
+Powłoka najpierw uruchamia komendę w nawiasie, a potem wstawia jej **wynik** w to miejsce,
+jakby był wpisany ręcznie. Różnica z `<( )` wyżej: `<( )` udaje plik, `$( )` wkleja tekst.
+*`export K=$(grep '^KOLOR=' lody.txt | cut -d= -f2-)`, potem `echo $K` → `niebieski`.
+26.09: `export STROZ_URL=$(crontab -l | grep '^STROZ_URL=' | cut -d= -f2-)` — adres stróża
+trafił do zmiennej bez pokazania go na ekranie. W historii komend zostaje sama komenda,
+nie adres. Kontrola: `echo ${#STROZ_URL}` → `56`.*
 
 ### `sed 's/stare/nowe/'`, `-e` i `^`
 `sed` czyta plik linia po linii i wypisuje go ze zmianami; samego pliku nie
@@ -1656,6 +1671,24 @@ od poziomu `WARNING` wzwyż na stderr, łącznie z `Traceback`.
 i pełny `Traceback` (25.09, zmyślone klucze). Na EC2 stderr z `cron` idzie do `errors.txt`.
 Decyzja 25.09: zostawić, choć ręczny bieg `control.py` tego samego dnia zobaczy ten
 `Traceback` w bloku i powie `AWARIA`.
+26.09 na EC2 (Python 3.9): `Failed to execute query.` i `Traceback` to razem **25 linii**.
+
+### Biblioteka opakowuje wyjątek; `rollback`
+Biblioteka może złapać cudzy błąd i rzucić **własny**, z innym tekstem. Ta sama pomyłka
+wygląda wtedy inaczej zależnie od wersji biblioteki. **`rollback`** to cofnięcie
+niezatwierdzonych zmian w bazie. Pandas próbuje go po nieudanym zapytaniu. Athena go nie
+obsługuje (w Athenie nie ma czego cofać), więc próba też się nie udaje.
+*Ten sam bieg ze zmyślonymi kluczami AWS:*
+
+| Maszyna | pandas | Problem na liście |
+|---|---|---|
+| laptop | 3.0.5 (opakowuje tylko błędy `sqlite3`) | `Athena: Błąd - An error occurred (UnrecognizedClientException) …` — 1 linia |
+| EC2 | 2.3.3 (opakowuje każdy błąd) | `Athena: Błąd - Execution failed on sql: SELECT …`, pod spodem `An error occurred (…) …` i `unable to rollback` — **3 linie** |
+
+**W tym projekcie (26.09):** w dniu prawdziwej awarii Atheny wynik skryptu kontrolnego zajmie
+w `errors.txt` 3 linie, z czego dwie nie zaczynają się od `Kontrola:`. Nie zawierają słów,
+których szuka kontrola logu, więc na wynik nie wpływają. Przy zmianie wersji pandas na EC2
+(np. razem z Pythonem 3.10) tekst znów się zmieni.
 
 ---
 

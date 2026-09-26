@@ -1,5 +1,9 @@
 # Notatka 24.09 — test prawdziwej drogi na EC2 (wpięcie do skryptu kontrolnego)
 
+**Stan 26.09 wieczorem: wszystkie trzy etapy zamknięte — A (laptop) 25.09, B (EC2) i C
+(pierwszy bieg z `cron`) 26.09. Wyniki pod Częścią 7. Zostaje obserwacja kilku dni, przede
+wszystkim pierwszy dzień giełdowy 28.09.**
+
 **Stan: zatwierdzona 25.09 w całości — wszystkie osiem decyzji w wariancie (a).** Instrukcja
 do kodu: [[Notatka-2026-09-25-jak-wpiac-droge-do-kontroli]]. To dalszy ciąg siódmej naprawy z kolejki z przeglądu z 08.09
 („test prawdziwej drogi”). 23.09 powstały `kod/path.py` i `kod/test_path.py`. Działają, ale
@@ -274,6 +278,46 @@ gałąź „sobota”.
 
 **Wycofanie, gdyby coś poszło źle:** cofnąć commit na laptopie (`git revert`, nowy commit),
 `push`, `pull` na EC2. `crontab` i stróż są nietknięte, więc nic więcej nie trzeba.
+
+### Wyniki etapu B (26.09, sobota)
+
+Wszystkie przewidywania zapisane w rozmowie **przed** komendami. Ręczne biegi bez `>>`, więc
+nic nie trafiło do `errors.txt` (807 linii przed i po).
+
+| Krok | Przewidziane | Wyszło |
+|---|---|---|
+| `date` przed `pull` | sobota, UTC, przed 15:55 | `Sat Sep 26 13:55:17 UTC 2026` |
+| `git status --short` przed / po | pusty / pusty | zgodne |
+| `git pull` | `6af7b48..fc6e262`, `Fast-forward`, `13 files changed, 3258 insertions(+), 178 deletions(-)` | zgodne co do liczby |
+| E1, `KONTROLA_DATA=2026-09-25` | 2 linie ostrzeżenia `pandas`, `Kontrola: Dane 2340 wierszy`, `Kontrola: OK`, `Kontrola: brak adresu stróża` | zgodne co do słowa |
+| E2, `KONTROLA_DATA=2026-09-28` | `AWARIA` z 4 problemami (1 z logu + 3 × `brak wpisu z: 2026-09-28`, kolejność CBF, XTB, SNT) | zgodne co do słowa |
+| E3, zmyślone klucze AWS | `Failed to execute query.` + `Traceback`, potem **3 linie** wyniku: `Athena: Błąd - Execution failed on sql: …`, `An error occurred (UnrecognizedClientException) …`, `unable to rollback`; bez linii `Dane` | zgodne, wariant 3-liniowy |
+| E4, adres z `crontab -l` przez `$( )` | `${#STROZ_URL}` = 56 | 56 |
+| E4a (dane E2 + stróż) | 4 linie, bez `brak adresu`, bez `bramka … odpowiedziała` | zgodne; u stróża **#8 `Failure`**, `POST`, 16:04, **2450 B**, `up → down` |
+| E4b (dane E1 + stróż) | `Kontrola: OK` | zgodne; **#9 `OK`**, `GET`, 16:04, `down → up` |
+| po `unset` | `${#STROZ_URL}` = 0, `wc -l` 807 | zgodne |
+
+- **Rozmiar treści #8:** 2450 = 154 (linia `AWARIA`, policzona) + 2 (pusta linia) + 2294 (blok
+  z 25.09 bez linii `Kontrola:`). Tyle samo bajtów miał blok z 18.09 przy teście 19.09, bo oba
+  bloki mają ten sam kształt.
+- **Część 9 domknięta w trzech punktach:** rola EC2 czyta `gold_dane_dzienne` przez Athenę (E1);
+  ostrzeżenia w `control.py` na EC2 to 2 linie od `pandas`, bez `boto3` (E1); dokładny tekst
+  błędu przy zmyślonych kluczach (E3). **Otwarte:** czas biegów i to, czy `pyathena` ponawia
+  zapytanie przed poddaniem się — nie mierzone.
+- **Nieprzewidziane w tej notatce, przewidziane w rozmowie przed E3:** pandas 2.3.3 na EC2
+  opakowuje błąd zapytania we własny komunikat ze znakami nowej linii, więc przy awarii Atheny
+  wynik ma 3 linie, a nie 1 jak na laptopie (pandas 3.0.5). `Traceback` od `pyathena` na
+  Pythonie 3.9: 25 linii razem z `Failed to execute query.`. W dniu prawdziwej awarii Atheny
+  do bloku dojdzie więc ok. 30 linii zamiast 4. Nic to nie psuje w kontroli logu.
+- **Maile `DOWN` i `UP` z 16:04:** oba przyszły na Interię o 16:19, 15 minut po zmianie stanu
+  (hipoteza z 19.09 potwierdzona). Warunek (c) „awaria jest głośna” spełniony dla problemu
+  z danymi.
+- **Etap C, 26.09 wieczorem (`date` na EC2 17:00:43 UTC):** pierwszy bieg z `cron` o 18:30
+  zgodny co do linii. Start w linii 808 (`16:00:02` UTC), `wc -l` 837, blok 30 linii zakończony
+  2 liniami ostrzeżenia z `kod/path.py:32`, `Kontrola: Dane 2340 wierszy` i `Kontrola: OK`.
+  Zero `Traceback|Error|ERROR|nietknięte`, pliki 780 × 3, zakładka `2369 2369 0`, S3 156615 B
+  i 338 B, `git status --short` pusty. Stróż według Gracjana OK (zrzutu nie było). Gałąź
+  „brakuje dzisiejszej świecy” (pon–pt) pierwszy raz 28.09.
 
 ---
 
