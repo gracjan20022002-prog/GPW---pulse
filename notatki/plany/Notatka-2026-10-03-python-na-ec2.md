@@ -112,3 +112,28 @@ Skutki i jak je łagodzimy:
 - dzisiejszy bieg jest pierwszym i na nowym `bronze` (kompakcja rano), i na nowym Pythonie.
   Żeby rozdzielić przyczyny: **przed** przepięciem ręczny Silver na starym `venv` czyta już nowy
   `bronze` — `(2355, 3)` tam to dowód kompakcji niezależny od Pythona.
+
+## Wyniki 03.10 (wszystko przewidziane przed komendami)
+
+- **Laptop:** `requirements-ec2.txt` z 5 paczek przez `-c requirements-lokalny.txt` — 18 linii,
+  bez `pytz` i bez `pyarrow`; commit `4aca12d` (`128/14` zamiast przewidzianych `127/13` —
+  edytor dopisał brakujący koniec ostatniej linii `.gitignore`), wypchnięty.
+- **EC2, instalacja (09:2x–09:35 UTC):** `pull` `fc6e262..4aca12d` (7 plików, 376/76);
+  `dnf install python3.14` (4 paczki, 47 MB); `python3.14` 3.14.6, `python3` dalej 3.9.25;
+  `venv314` z 18 gotowymi paczkami (`manylinux`, bez kompilacji), `diff` z `pip freeze` pusty,
+  import `3.0.5 1.43.75`, `git status` pusty, `venv314` 205 MB (przewidziane 250–450 — pudło),
+  wolne 2,5 GB. `dnf` ostrzega o nowszym Amazon Linux (2023.12.20260930) — osobna sprawa.
+- **Porównanie:** Silver na starym `venv` `(2355, 3)` — dowód kompakcji niezależny od Pythona;
+  Gold w obu `117` / `111`; **3 × `diff -q` puste — pliki z 3.9/pandas 2.3.3 i 3.14/pandas 3.0.5
+  identyczne co do bajtu.** Pomyłka: przewidziane 2 linie `boto3` w ręcznym Goldzie — ostrzeżenie
+  wychodzi przy tworzeniu klienta S3 (`GOLD_DO_S3=1`), nie przy imporcie.
+- **Ręczne biegi na `venv314`:** `control.py` (02.10) → `Dane 2355`, `OK`; Producent 3 × `nowych
+  dni: 0 … zapisane`; Konsument `Odebrano 0`; zakładka `2384 2384 0`; log 1027 nietknięty.
+- **`crontab`:** kopia `~/crontab-kopia-1003.txt`, nowy `~/crontab-nowy-1003.txt` (oba `chmod 600`,
+  7 linii), `diff` `5,7c5,7`, stary Python 0 razy, wgrany, `RELOAD` **09:45:01 UTC** (11:45 polskiego).
+  Powrót: `crontab ~/crontab-kopia-1003.txt`.
+
+**Jeszcze nie „zrobione”:** (b)/(d) pierwszy bieg `cron` dziś wieczorem (start 1028, blok 28,
+`wc -l` 1055, `Dane 2355`, stróż #17) i **pierwszy dzień giełdowy pon. 05.10** (start 1056,
+`wc -l` 1083, `Odebrano 3`, `Dane 2358`) — dopiero on sprawdzi wysyłkę przez Kafkę i zapis
+Konsumenta do S3 na 3.14. Stary `venv` do skasowania najwcześniej ok. 17.10.
