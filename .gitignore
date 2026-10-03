@@ -10,6 +10,7 @@ bronze/
 companies/*.txt
 kod/pipeline.txt
 venv/
+venv314/
 silver/*
 !silver/.gitkeep
 gold/*
