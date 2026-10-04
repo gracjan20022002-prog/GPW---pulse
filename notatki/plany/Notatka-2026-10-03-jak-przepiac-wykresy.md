@@ -229,3 +229,26 @@ W commicie: `kod/wykresy.py`, `kod/ranking.py`, usunięty `kod/test_plikow.py`, 
 w `wykresy/`, dwie notatki z 03.10 o wykresach i dopisane wyniki w notatce o Pythonie. Liczby do
 przewidzenia podam przed komendą, po `git status --short`. README (opis `test_plikow.py`,
 Power BI z danymi do 20.09) — w poniedziałek, razem z punktem 10.
+
+---
+
+## Wyniki 03.10 (wszystko przewidziane przed uruchomieniem)
+
+- `wykresy.py` (27 linii, `git diff` 12/3): `Wiersze: 2355, stan na: 2026-10-02`, 1 ostrzeżenie,
+  gładkie linie, tytuł z datą. Gracjan wybrał `stan na:` z dwukropkiem i nawias w obu tytułach.
+- `ranking.py` (25 linii, `git diff` 14/2): pierwsza wersja z `max` jako nazwą zmiennej — stąd
+  zasada 13; po poprawce na `maks`: tabela SNT 382.485864, XTB 265.208230, CBF 165.873021,
+  `stan na: 2026-10-02`, słupki malejąco. Pomyłka w instrukcji: „24 linie” dla `wykresy.py`
+  (jest 27, liczba nie zgadzała się z numerami kroków).
+- `test_plikow.py` usunięty (`git rm`), `pytest kod/ -v` → `18 passed in 0.63s` (pierwsza próba
+  w oknie bez `(.venv)` → `ModuleNotFoundError: pyathena`, pierwszy wiersz tabeli błędów).
+- Commit `96f191b`: `8 files changed, 373 insertions(+), 41 deletions(-)` — co do liczby.
+- **Awaria (warunek (c)):** zmyślone klucze → 1 ostrzeżenie, `Failed to execute query.`,
+  `Traceback` od `pyathena`, potem ten sam błąd jeszcze raz jako błąd całego programu, ostatnia
+  linia `pyathena.error.DatabaseError: … (UnrecognizedClientException) …`; okna nie było;
+  `ranking.png` dalej 12:22:03; zmienne usunięte (`Get-ChildItem Env:AWS*` pusty).
+
+Stan definicji „zrobione”: (a) ✅ czyta koniec drogi danych, (b) ✅ liczby przewidziane i trafione,
+(c) ✅ awaria głośna, obrazek nienadpisany, (d) ✅ działa tam, gdzie ma działać (laptop — EC2 nie
+rysuje), (e) README do poprawy w poniedziałek (opis `test_plikow.py`, Power BI z danymi do 20.09).
+Power BI świadomie odłożony (decyzja 4).

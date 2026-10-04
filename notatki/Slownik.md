@@ -151,6 +151,51 @@ mówi.
 Python 3.14) i `requirements-ec2.txt` (19 paczek, Python 3.9). Jeden
 wspólny plik zainstalowałby na EC2 zestaw, którego ten Python nie
 przyjmie.*
+*03.10: od zmiany Pythona na EC2 `requirements-ec2.txt` ma 18 paczek w tych samych
+wersjach co laptop (Python 3.14 na obu maszynach). Dwa pliki zostają, bo laptop ma
+jeszcze `matplotlib`, `pytest` i `pyarrow`, których EC2 nie potrzebuje.*
+
+### Plik ograniczeń w `pip` (`-c plik`)
+`pip install -c plik paczka1 paczka2` instaluje **tylko** wymienione paczki (i to, czego one
+potrzebują), ale w wersjach zapisanych w pliku. Plik nie mówi „zainstaluj mnie całego”, tylko
+„jeśli coś z tej listy wejdzie, to w tej wersji”. Różnica z `-r plik`: `-r` instaluje wszystko
+z pliku.
+*Lodziarnia: cennik hurtowni ma 30 smaków z cenami (`-c cennik.txt`), a ja zamawiam tylko
+wanilię i czekoladę. Wejście: `pip install -c cennik.txt wanilia czekolada`. Wyjście: dwa
+smaki (plus ich dodatki, np. wafelki) po cenach z cennika, pozostałych 28 nie ma.
+03.10: `pip install -c requirements-lokalny.txt` z pięcioma paczkami (bez `matplotlib`
+i `pytest`) dał w tymczasowym `venv` 18 paczek w wersjach z laptopa. `pip freeze` z tego
+`venv` stał się nowym `requirements-ec2.txt`, bez `pytz` i `pyarrow`.*
+
+### `--only-binary=:all:` (tylko gotowe paczki, *wheel*)
+Paczki Pythona przychodzą w dwóch postaciach: **gotowej** do rozpakowania (plik `.whl`,
+*wheel*, czyli „koło”) albo jako **źródła** do skompilowania na miejscu. Kompilacja zjada
+pamięć i czas, a na małej maszynie może paść. `--only-binary=:all:` każe brać wyłącznie
+gotowe paczki; jeśli jakiejś gotowej nie ma, `pip` przerywa zamiast kompilować.
+`manylinux` w nazwie pliku znaczy „gotowa paczka dla większości Linuksów”.
+*03.10 na EC2 (ok. 360 MB wolnej pamięci): 18 paczek, wszystkie gotowe, np.
+`pandas-3.0.5-cp314-cp314-manylinux_2_24_x86_64…whl` — `cp314` to Python 3.14, `x86_64`
+to procesor. Nic się nie kompilowało.*
+
+### `Out-File -Encoding ascii` (PowerShell)
+Zapisuje wynik komendy do pliku w wybranym kodowaniu. Zwykłe `>` w PowerShellu dokłada
+na początku pliku niewidoczne bajty (znacznik BOM) albo zapisuje każdą literę na dwóch
+bajtach (UTF-16) — zależnie od wersji i ustawień. Linuksowe `diff` i `pip` widzą wtedy
+plik inny niż spis z `pip freeze`. `-Encoding ascii` zapisuje same zwykłe litery.
+*Sprawdzone 04.10 w oknie PowerShella 5.1 na laptopie Claude'a: `"lody==1.0" > a.txt` dał
+14 bajtów (3 bajty BOM + 9 liter + koniec linii), `"lody==1.0" | Out-File -Encoding ascii
+b.txt` dał 11. W Twoim oknie `>` może dać więcej (UTF-16) — nie sprawdzone.
+03.10: `… -m pip freeze | Out-File -Encoding ascii requirements-ec2.txt`.*
+
+### Drugi Python obok systemowego (`python3.14`) i drugi `venv`
+Na Linuksie systemowy `python3` jest używany przez sam system (np. `dnf`), więc się go nie
+podmienia. Nowy Python instaluje się obok, pod nazwą z numerem (`python3.14`), a projekt
+dostaje nowe środowisko: `python3.14 -m venv venv314`. Stare `venv` zostaje nietknięte jako
+droga powrotu. Które środowisko pracuje, decyduje **pełna ścieżka** w `crontab`.
+*Cukiernia: nowy piekarnik B stoi obok A, ten sam sernik w obu, porównanie, dopiero potem
+zmiana kartki na drzwiach. 03.10 na EC2: `python3.14 --version` → `Python 3.14.6`,
+`python3 --version` → `Python 3.9.25`; `crontab` przepięty z `…/venv/bin/python` na
+`…/venv314/bin/python`.*
 
 ### `Compare-Object` (PowerShell)
 Porównuje dwie listy i pokazuje **tylko różnice**. Strzałka `<=` znaczy
@@ -445,6 +490,17 @@ Po `pd.to_datetime(...)` odcina godzinę i zostawia sam dzień. Bez tego
 `"2026-09-22 17:00:00"` nie równa się `date(2026, 9, 22)`.
 *`pd.to_datetime(df["data"]).dt.date` → `2026-09-22`. W `kod/path.py` tak powstaje
 kolumna `dzien` (23.09).*
+
+### `.max()` na kolumnie tekstu, `["kolumna"][0]` i `[:10]`
+`.max()` na kolumnie z tekstem daje napis „największy alfabetycznie”. Daty w formacie
+RRRR-MM-DD sortują się alfabetycznie tak samo jak w kalendarzu, więc to najpóźniejsza data.
+`[:10]` bierze pierwsze 10 znaków (samą datę). `tabela["kolumna"][0]` to jedna komórka:
+kolumna, potem pierwszy wiersz. `[:10]` działa tylko na tekście — po `pd.to_datetime`
+daje `TypeError: 'Timestamp' object is not subscriptable`.
+*Uruchomione 03.10 (pomiary temperatury): `pomiary["data"].max()` → `2026-10-02 12:00:00`,
+`pomiary["data"].max()[:10]` → `2026-10-02`. `maks = pd.DataFrame({"ostatni":
+["2026-10-02 12:00:00"]})`, `maks["ostatni"][0][:10]` → `2026-10-02`. Tak `wykresy.py`
+i `ranking.py` liczą datę do tytułu.*
 
 ### `pd.DataFrame({...})` — tabela ze słownika
 Słownik: nazwa kolumny → lista wartości. Listy muszą mieć tę samą długość, inaczej
@@ -936,6 +992,30 @@ GROUP BY miasto` → `Gdańsk 30 30`, `Kraków 31 30` — Kraków ma jedną powt
 dnia. 20.09: `gold_dane_dzienne` dała `775 775` dla każdej spółki, więc żaden
 dzień się nie powtarza.*
 
+### `UNION` a `UNION ALL`
+Oba sklejają wyniki dwóch zapytań w jedną tabelę. `UNION` po drodze **usuwa powtórzone
+wiersze**, `UNION ALL` zostawia wszystko, jak przyszło.
+*Uruchomione 04.10 (SQLite, ta sama zasada co w Athenie). Tabela `rano`: (wanilia, 01.10),
+(czekolada, 02.10); tabela `wieczor`: (wanilia, 01.10), (truskawka, 02.10). `UNION` → 3
+wiersze (wanilia raz), `UNION ALL` → 4 (wanilia dwa razy). `silver.py` używa `UNION`, bo
+chce odsiać powtórki. 03.10 przy kompakcji `UNION ALL` + `COUNT(DISTINCT …)`: powtórki
+zostają w środku, a liczenie różnych dni i tak każdy dzień liczy raz.*
+
+### `substr(tekst, od, ile)` w SQL
+Wycina kawałek tekstu: od którego znaku i ile znaków. **W SQL liczy się od 1**, nie od 0 jak
+w Pythonie.
+*`substr('2026-10-02 18:30:00', 1, 10)` → `2026-10-02` (uruchomione 04.10) — to samo, co
+w Pythonie `[:10]`. 03.10: `COUNT(DISTINCT substr(data, 1, 10))` liczyło dni bez godziny.*
+
+### Tabela z bazy nie ma kolejności
+Athena (i każda baza) oddaje wiersze w kolejności, jaka jej wygodna, **bez obietnicy**.
+Plik CSV był posortowany, tabela nie jest. Gdy kolejność ma znaczenie, trzeba ją ustawić:
+w pandas `sort_values`, w SQL `ORDER BY`. `ascending=False` sortuje malejąco.
+*Pomiary temperatury prosto z bazy, dni w Gdańsku w kolejności wierszy: `[2, 30, 1]`; po
+`sort_values(["miasto", "data"])`: `[30, 1, 2]`. `plt.plot` łączy punkty w kolejności
+wierszy, więc bez sortowania linia skacze 2.10 → 30.09 → 1.10 i rysuje „trójkąty”
+(03.10, instrukcja do wykresów).*
+
 ### `Data scanned`
 Liczba, którą konsola Atheny pokazuje przy każdym zapytaniu: ile bajtów
 naprawdę przeczytała. Athena liczy po niej opłatę, ale przydaje się też jako
@@ -1225,6 +1305,47 @@ doinstalować jedną komendą, czy trzeba go budować ze źródeł.
 *Amazon Linux 2023 ma `dnf install python3.11` gotowe od ręki; Amazon Linux 2 nie
 ma nowszego Pythona w swoich repozytoriach wcale — 22.09 nie sprawdzone, którą
 wersję ma nasz EC2.*
+*03.10 sprawdzone: nasz EC2 to Amazon Linux 2023, do wzięcia `python3.11`–`python3.14`
+(3.10 nie ma). `sudo dnf install -y python3.14` zainstalował 4 paczki (47 MB). `-y` znaczy
+„tak” na pytanie o zgodę. Przy okazji `dnf` napisał, że jest nowsza wersja całego systemu
+(`A newer release of "Amazon Linux" is available`) — to osobna sprawa.*
+
+### `?` i `*` we wzorcu nazwy
+We wzorcu (np. w `ls`, `dnf list`) `?` znaczy **dokładnie jeden dowolny znak**, a `*`
+**dowolnie wiele znaków, także zero**.
+*Pliki `lody1.txt`, `lody2.txt`, `lody10.txt`. `ls lody?.txt` → `lody1.txt lody2.txt`
+(w `lody10` po `lody` są dwa znaki). `ls lody*.txt` → wszystkie trzy. Uruchomione 04.10.
+03.10: `python3.1?` złapał `python3.11`…`python3.14` — także 3.14, bo `4` to też jeden znak.*
+
+### `cat /etc/os-release`
+Plik tekstowy, w którym Linux trzyma swoją nazwę i wersję. `cat` wypisuje go na ekran.
+*03.10 na EC2: Amazon Linux 2023, wydanie `2023.12.20260817` — stąd wiadomo było, że nowy
+Python da się wziąć z `dnf`, bez kompilowania.*
+
+### `df -h`, `du -sh`, `free -h`
+Trzy komendy do sprawdzania miejsca. `df -h /` — ile jest wolnego **dysku**. `du -sh folder`
+— ile zajmuje **jeden folder** (`-s` suma, bez wypisywania podfolderów). `free -h` — ile jest
+wolnej **pamięci** (RAM) i `swap` (pamięć udawana na dysku). `-h` (*human*) pokazuje
+jednostki `M`, `G` zamiast bajtów.
+*03.10 na EC2: `du -sh venv314` → `205M venv314`; `df -h /` → `8.0G 5.5G 2.5G 69% /` (rozmiar,
+zajęte, wolne, procent); `free -h` przed instalacją: pamięci 913 MB, wolne ok. 360 MB, `swap`
+2 GB, zajęte 417 MB.*
+
+### `diff -q`
+`-q` (*quiet*, „cicho”): `diff` nie wypisuje różnic linia po linii, tylko mówi, **czy** pliki
+się różnią. Zgodne pliki → brak wyniku i kod wyjścia 0; różne → jedna linia `Files … differ`
+i kod 1. Porównuje bajty, więc pusty wynik znaczy „identyczne co do bajtu”.
+*Uruchomione 04.10: `x.txt` i `y.txt` z `a`, `b` → nic, kod 0; `x.txt` i `z.txt` (`a`, `c`) →
+`Files x.txt and z.txt differ`, kod 1. 03.10 na EC2: trzy `diff -q` plików Silver/Gold ze
+starego i nowego `venv` — wszystkie puste.*
+
+### Separator w `sed` i flaga `g` (`s#stare#nowe#g`)
+Znak po `s` to **separator**. Nie musi być `/` — może być dowolny, np. `#`. Przydaje się,
+gdy w tekście są ukośniki (ścieżki). `g` na końcu znaczy „zamień **każde** wystąpienie
+w linii”, bez `g` zamienia się tylko pierwsze.
+*Uruchomione 04.10, wejście `sklep/mleko i sklep/chleb`: `sed 's#sklep/#market/#g'` →
+`market/mleko i market/chleb`; bez `g` → `market/mleko i sklep/chleb`. 03.10:
+`sed 's#/venv/bin/python#/venv314/bin/python#g'` — linia `0 18` ma Pythona dwa razy.*
 
 ---
 
@@ -1391,6 +1512,17 @@ jest przetestowane. Program się nie zatrzymuje.
 *Trzy takie stoją w naszym logu przy każdym biegu. Najpoważniejsze mówi,
 że `boto3` przestał wspierać Pythona 3.9 od 29 kwietnia 2026 — czyli
 termin już minął, a EC2 dalej ma 3.9.*
+*03.10: ostrzeżenie zależy od tego, co program **robi**, nie od tego, co importuje.
+`PythonDeprecationWarning` z `boto3` wychodzi przy **tworzeniu klienta S3**, więc ręczny
+Gold bez `GOLD_DO_S3` nie pokazał go nawet na 3.9. Od 03.10 EC2 ma Pythona 3.14 i tego
+ostrzeżenia nie ma wcale — jego brak w bloku z 03.10 dowiódł, że `cron` szedł nowym `venv`.*
+
+### Nazwa zmiennej jak funkcja wbudowana (`max = …`)
+Python ma funkcje wbudowane (`max`, `min`, `sum`, `len`, `list`). Zmienna o tej samej
+nazwie je **przesłania**: od tej linii w pliku `max` znaczy zmienną, a nie funkcję. Działa,
+dopóki nikt dalej nie zawoła `max(...)` — błąd wychodzi później i w innym miejscu.
+*Uruchomione 03.10: `print(max([3, 9, 4]))` → `9`; po `max = pd.DataFrame(...)` to samo →
+`TypeError: 'DataFrame' object is not callable`. W `ranking.py` zmienna nazywa się `maks`.*
 
 ### `[3 rows x 6 columns]` — tabela ucięta
 Pandas, gdy tabela nie mieści się w szerokości, chowa środkowe kolumny

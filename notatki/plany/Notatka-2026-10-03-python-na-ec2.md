@@ -133,7 +133,16 @@ Skutki i jak je łagodzimy:
   7 linii), `diff` `5,7c5,7`, stary Python 0 razy, wgrany, `RELOAD` **09:45:01 UTC** (11:45 polskiego).
   Powrót: `crontab ~/crontab-kopia-1003.txt`.
 
-**Jeszcze nie „zrobione”:** (b)/(d) pierwszy bieg `cron` dziś wieczorem (start 1028, blok 28,
-`wc -l` 1055, `Dane 2355`, stróż #17) i **pierwszy dzień giełdowy pon. 05.10** (start 1056,
-`wc -l` 1083, `Odebrano 3`, `Dane 2358`) — dopiero on sprawdzi wysyłkę przez Kafkę i zapis
-Konsumenta do S3 na 3.14. Stary `venv` do skasowania najwcześniej ok. 17.10.
+**Pierwszy bieg `cron` (sobota 03.10), odczyt 04.10 o 13:20 UTC — zgodny w całości:** start
+w linii 1028 (`16:00:03` UTC), `wc -l` 1055, blok **28 linii** bez ani jednej linii
+`PythonDeprecationWarning` (dowód, że `cron` szedł na `venv314`), 3 × `nowych dni: 0 …
+zapisane`, `Odebrano 0`, 2 × `(2355, 3)`, `117` / `111`, 2 × `S3: wysłano`, `Kontrola: Dane 2355
+wierszy`, `Kontrola: OK`, zero `Traceback|Error|ERROR|nietknięte`, pliki 785 × 3, `errors.log` 8,
+zakładka `2384 2384 0`, S3 157673 B / 350 B z 16:10:07 UTC, stróż `Up`, bez maili.
+
+**Jeszcze nie „zrobione”:** **pierwszy dzień giełdowy pon. 05.10** — dopiero on sprawdzi wysyłkę
+przez Kafkę i zapis Konsumenta do S3 na 3.14: start **1084**, `wc -l` **1111**, blok 28,
+`Odebrano 3`, 2 × `(2358, 3)`, `Dane 2358`. *Sprostowanie 04.10:* wcześniej stało tu „start 1056,
+`wc -l` 1083” — to liczby niedzieli 04.10, bo pominąłem niedzielny bieg. Niesprawdzone też
+zgłoszenie `/fail` do stróża z `urllib3` 2.7.0 na EC2. Stary `venv` do skasowania najwcześniej
+ok. 17.10.
