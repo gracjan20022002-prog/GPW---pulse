@@ -2,6 +2,26 @@
 
 Data utworzenia: 2026-09-01
 
+> **Status (04.10.2026): dokument historyczny.** 08.09 zastąpiła go kolejność napraw
+> z [[Przeglad-2026-09-08-co-nie-gra]] (Część 5). Co stało się z wątkami:
+>
+> | Wątek | Dziś |
+> |---|---|
+> | 1 — domknięcie Etapu 4 (README, wnioski, porządki) | README przepisany 04.10, lekcje w README zamiast `Wnioski.md`; zbędne `print` usunięte 11.09 |
+> | 2 — nazewnictwo i porządki | ✅ 01.09 |
+> | 3 — dokąd trafiają Silver i Gold | ✅ wynik Golda w S3 i Athenie (17.09), `silver/`/`gold/` poza gitem (21.09) |
+> | 4 — strona internetowa | nie zaczęta; przed nią trzy naprawy z decyzji 04.10 |
+> | 5 — Power BI → Athena | odłożony (03.10), raport ma dane do 20.09 |
+> | 6 — dalsza mapa (więcej spółek, ESPI, AI) | bez zmian, „na później” |
+> | 7 — strefy czasu w `companies/*.txt` | ✅ 03.09, do tego `CRON_TZ` 13.09 |
+> | 8 — `live` → `bronze` | ✅ skrypt 07.09, pierwszy bieg z kasowaniem 03.10 (`Usunięto 66 plików`) |
+> | 9 — pliki Producenta w gicie | ✅ 07.09 |
+> | 10 — `errors.txt` na EC2 | ✅ linia startu z datą (w logu na EC2 od 12.09), sygnał awarii z kontrolą o 18:30 (21.09) |
+>
+> Odsyłacze `[[project-…]]` prowadziły do prywatnych notatek Claude'a spoza repozytorium —
+> 04.10 zamienione na zwykły tekst. Aktualnie: [`README.md`](../../README.md),
+> [`CLAUDE.md`](../../CLAUDE.md).
+
 ---
 
 ## Skąd ten plan
@@ -57,7 +77,7 @@ Pełny opis w [[Plan-04-pokazanie-wyniku]], sekcja „Część D". Trzy sesje,
 `Data ingestion.py` usunięty, nie przemianowany (kolizja nazw ze
 `data_ingestion.py`). `pipeline.bat` i `crontab` na EC2 zaktualizowane.
 Po drodze znaleziony i naprawiony konflikt `git pull` na EC2 — szczegóły
-w dzienniku 01.09 i [[project-etap5-part-f-plan]].
+w dzienniku 01.09 i w notatce Claude'a o Części F (poza repozytorium).
 
 Opis poniżej zostawiony jako zapis stanu sprzed zmiany:
 
@@ -316,7 +336,7 @@ Dopóki żaden commit nie dotyka tych plików, `git pull` na EC2 przechodzi
 gładko — ostatni commit ruszający `companies/` to 76301fa z 03.09.
 Ale commit, który je ruszy, cofnie pamięć Producenta do 01.09 i wyśle
 kilka dni do Kafki po raz drugi. To ta sama mina co 01.09
-([[project-producer-timezone-key-trap]]), tylko mniejsza — poprawka
+(notatka Claude'a o pułapce z kluczem daty, poza repozytorium; opis także w wątku 7 wyżej), tylko mniejsza — poprawka
 klucza z 03.09 ogranicza szkodę do kilku dni zamiast trzech lat.
 
 ### Rozbrojone 07.09

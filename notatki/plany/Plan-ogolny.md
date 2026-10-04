@@ -2,6 +2,13 @@
 
 Data utworzenia: 2026-07-21
 
+> **Status (04.10.2026): dokument historyczny** — pierwszy plan z 21.07, nie opisuje dzisiejszego
+> projektu. Zakres urósł o AWS (Kafka, S3, Athena, EC2) i kontrolę ze stróżem. Aktualnie:
+> [`README.md`](../../README.md), [`CLAUDE.md`](../../CLAUDE.md) („Stan projektu”, „Na następną
+> sesję”), wady i kolejność napraw: [[Przeglad-2026-09-08-co-nie-gra]]. Z tego planu dalej
+> aktualna jest tylko mapa pomysłów „na później” (więcej spółek, raporty ESPI, AI) — przed nią
+> strona internetowa, a przed stroną trzy naprawy z decyzji 04.10.
+
 ---
 
 ## O czym jest ten projekt

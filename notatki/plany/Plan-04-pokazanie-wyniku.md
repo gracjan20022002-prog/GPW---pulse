@@ -2,6 +2,19 @@
 
 Data utworzenia: 2026-08-10
 
+> **Status (04.10.2026): dokument historyczny** — sekcje przekreślone i „nieaktualne od…” to
+> zapis zmian z tamtych dni. Co stało się z częściami:
+>
+> | Część | Dziś |
+> |---|---|
+> | A — wykresy w Pythonie | `wykresy.py` i `ranking.py` czytają Athenę, data ostatniej świecy w tytule (03.10) |
+> | B — Power BI | odłożony (decyzja 03.10); raport czyta stare lokalne pliki, dane do 20.09 |
+> | C — automatyzacja (Harmonogram, `pipeline.bat`) | zadanie Harmonogramu wyłączone 21.09, liczy tylko EC2 (`cron`); `pipeline.bat` zostaje w gicie |
+> | D — README, wnioski, porządki | README przepisany 04.10; `notatki/Wnioski.md` nie powstał — lekcje są w README („Co się zepsuło…”) |
+>
+> Aktualnie: [`README.md`](../../README.md), [`CLAUDE.md`](../../CLAUDE.md),
+> [[Przeglad-2026-09-08-co-nie-gra]].
+
 ---
 
 ## Uwaga na start: ten plan jest większy niż zapowiadał `Plan-ogolny.md`

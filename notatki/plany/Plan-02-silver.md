@@ -2,6 +2,10 @@
 
 Data utworzenia: 2026-07-27
 
+> **Status (04.10.2026): dokument historyczny** — plan nauki pandas z lipca, etap zrobiony.
+> Dziś `kod/silver.py` czyta Athenę (`bronze UNION live`, od 25.08) i chodzi na EC2 z `cron`
+> o 18:10 (od 03.09). Aktualnie: [`README.md`](../../README.md) i [`CLAUDE.md`](../../CLAUDE.md).
+
 ---
 
 ## Najpierw: co to znaczy „silver"

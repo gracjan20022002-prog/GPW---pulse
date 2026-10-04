@@ -2,6 +2,11 @@
 
 Data utworzenia: 2026-07-21
 
+> **Status (04.10.2026): dokument historyczny** — plan nauki z lipca, etap zrobiony. Źródło
+> danych zmieniło się ze stooq.pl na Yahoo Finance, a pobieranie robi dziś
+> `kod/data_ingestion.py` na EC2 (Yahoo → Kafka, pamięć zapisywana po potwierdzeniu brokera).
+> Aktualnie: [`README.md`](../../README.md) i [`CLAUDE.md`](../../CLAUDE.md).
+
 ---
 
 ## Najpierw: co to znaczy „bronze"

@@ -2,6 +2,15 @@
 
 Data utworzenia: 2026-08-19
 
+> **Status (04.10.2026): dokument historyczny, ale przydatny.** Ogólny kształt architektury
+> (Producent → Kafka na EC2 → Konsument → S3 → Glue/Athena → Silver/Gold) jest aktualny,
+> a opis stawiania brokera przydaje się do dziś (odsyła do niego README). Nieaktualne
+> szczegóły: harmonogram (od 13.09 `CRON_TZ`, biegi 18:00/18:10/18:30), lokalny Harmonogram
+> Windows (wyłączony 21.09), Python 3.9 na EC2 (od 03.10 Python 3.14 w `venv314`), Power BI
+> (odłożony). Odsyłacze `[[project-…]]` prowadziły do prywatnych notatek Claude'a spoza
+> repozytorium — 04.10 zamienione na zwykły tekst. Aktualnie: [`README.md`](../../README.md),
+> [`CLAUDE.md`](../../CLAUDE.md) („Gdzie co jest → EC2”).
+
 ---
 
 ## Skąd ten kierunek
@@ -174,7 +183,7 @@ ręcznej interwencji, za oba razy.
 Dziś broker startuje się ręcznie: SSH na EC2, `export KAFKA_HEAP_OPTS=...`,
 potem `bin/kafka-server-start.sh config/server.properties` — i to za
 każdym razem od nowa, bo zmienna środowiskowa nie przeżywa nowej sesji SSH
-([[project-etap5-ec2-networking]]).
+(notatka Claude'a o sieci EC2, poza repozytorium).
 
 `systemd` to mechanizm Linuksa do zarządzania usługami działającymi
 w tle — start, stop, restart, i (to najważniejsze tutaj) automatyczny
@@ -218,7 +227,7 @@ na przyszłość:
   Kafki + oba skrypty Pythona naraz na małej instancji (913 MB RAM) to
   sporo jak na tak mało pamięci — a swap dodany 19.08 nigdy nie przetrwał
   restartu (nie był w `/etc/fstab`), więc zniknął i SSH przestało
-  odpowiadać. Naprawione trwale — pełny opis w [[project-etap5-ec2-networking]].
+  odpowiadać. Naprawione trwale — pełny opis w notatce Claude'a o sieci EC2 (poza repozytorium).
 
 Oba skrypty (`Data ingestion 2.py`, `kafka_consumer.py`) muszą fizycznie
 znaleźć się na EC2:
@@ -265,7 +274,7 @@ nie potrzebują lokalnego Producenta).
    jest przez to nieaktualna.
 2. **Skąd Producent na EC2 będzie wiedział, które daty już wysłał?** Dziś
    porównuje z lokalnym plikiem `companies/{tick}.txt`
-   ([[project-etap5-pipeline-gap]] ma więcej o tym, jak te pliki są dziś
+   (notatka Claude'a o luce w potoku, poza repozytorium, ma więcej o tym, jak te pliki są dziś
    używane). Na EC2 najprościej zrobić to samo — osobna, własna kopia na
    EC2, niezależna od Twojej na Windowsie. Prostsze na start, można
    zmienić później.

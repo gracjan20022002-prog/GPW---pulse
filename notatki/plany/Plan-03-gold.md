@@ -2,6 +2,11 @@
 
 Data utworzenia: 2026-08-01
 
+> **Status (04.10.2026): dokument historyczny** — plan z sierpnia, etap zrobiony. Od tamtej pory
+> `kod/gold.py` liczy najbardziej zmienny **pełny** miesiąc (od 12.09), chodzi na EC2 z `cron`
+> i wysyła oba pliki do S3, skąd czyta je Athena (od 17.09). Aktualnie:
+> [`README.md`](../../README.md) i [`CLAUDE.md`](../../CLAUDE.md).
+
 ---
 
 ## Najpierw: co to znaczy „gold"

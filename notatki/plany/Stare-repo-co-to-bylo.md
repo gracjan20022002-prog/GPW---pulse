@@ -2,6 +2,9 @@
 
 Data utworzenia: 2026-07-21
 
+> **Status (04.10.2026): dokument historyczny** — dotyczy starego repozytorium `gpw-pulse`,
+> w którym nie pracujemy od 21.07. Bez wpływu na dzisiejszy projekt.
+
 To repozytorium **zostaje jako podgląd**. Nie pracujemy w nim.
 Ta notatka tłumaczy, co tam jest — żebyś wiedział, na co patrzysz,
 i żeby te nazwy przestały być straszne.

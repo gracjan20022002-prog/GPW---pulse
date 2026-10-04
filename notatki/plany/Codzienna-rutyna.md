@@ -2,6 +2,12 @@
 
 Data utworzenia: 2026-07-21
 
+> **Status (04.10.2026): dokument historyczny** — instrukcja z pierwszego dnia, dla folderu
+> `gpw-pulse-v2`. Dziś folder projektu to `GPW - pulse`, środowisko `.venv` (Python 3.14,
+> `requirements-lokalny.txt`). Włączanie `venv` z części A dalej działa. Zasady podawania komend
+> (etykieta maszyny i stanu okna, krok PRZEŁĄCZENIE) są w [`CLAUDE.md`](../../CLAUDE.md),
+> zasada 4.
+
 Zakładam, że **nigdy tego nie robiłeś**. Nic nie pomijam.
 
 ---

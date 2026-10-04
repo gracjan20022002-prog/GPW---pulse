@@ -669,10 +669,18 @@ Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
    wieczorem".
 9. **Pełne miesiące w rankingu** — ✅ 12.09 lokalnie, 14.09 na EC2, wzięte
    poza kolejnością.
-10. **Dokumentacja** — ⬜ w tle: README od nowa, dziesięć wpisów dziennika
-    bez „Czego się nauczyłem", plany do posprzątania. **Ostatni otwarty punkt listy.**
-    03.10 przesunięty na pon. 05.10 (po pierwszym dniu giełdowym na 3.14); 04.10 Gracjan
-    wybrał: najpierw decyzja o znanych wadach (co zostaje jako ograniczenie), potem README.
+10. **Dokumentacja** — ✅ **04.10.** (1) README od nowa (`aaf39b4`): opis potoku z diagramem
+    Mermaid, jak projekt pilnuje sam siebie, stan uczciwie z ograniczeniami z decyzji 04.10,
+    lekcje z błędów; stary README w `notatki/plany/Historia-projektu.md`. Gracjan: „póki co
+    jest ok”, poprawi go przed zakończeniem projektu. (2) Dziesięć wpisów dziennika (21.07,
+    10.08, 12.08, 13.08, 17.08, 19.08, 20.08, 21.08, 24.08, 25.08) z „Czego się nauczyłem”
+    napisanym z treści wpisów, z dopiskiem, że uzupełnione 04.10 przez Claude'a (dziennik poza
+    gitem). Wpisy 22.07–06.08 mają własne sekcje „Nauczone”/„Napotkane błędy i nauka” — bez
+    zmian. (3) Plany: w `Plan-ogolny`, `Plan-01`…`Plan-06`, `Codzienna-rutyna`,
+    `Stare-repo-co-to-bylo` blok „Status (04.10.2026): dokument historyczny” z tym, co dziś
+    obowiązuje (w Plan-04 tabela części A–D, w Plan-06 tabela wątków 1–10); pięć odsyłaczy
+    `[[project-…]]` do prywatnych notatek Claude'a (Plan-05, Plan-06) zamienione na tekst.
+    Treści planów nie przepisywano — to historia. **Lista napraw z 08.09 zamknięta.**
 
 **Poza listą, zrobione 03.10** (szczegóły w „Stan 03.10”):
 - **Kompakcja** z prawdziwym kasowaniem — ✅ `Usunięto 66 plików`, Athena 785 × 3 przed i po.
@@ -764,9 +772,11 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
 **Decyzja Gracjana 04.10 o znanych wadach — wszystko zgodnie z rekomendacją Claude'a:**
 - **Naprawić przed stroną (N):** warunek w Producencie przeciw cenie z trwającej sesji
   (czerwona wada, groźna przy ręcznych biegach w dzień roboczy przed 17:00 — notatka, kod,
-  wdrożenie na EC2); komentarz „niedobór pamięci” w `compaction.py`; odpięcie `IAMFullAccess`
-  od użytkownika `gpw-tracker-admin` (konsola IAM, robi Gracjan, najpierw sprawdzenie, że nic
-  z niej nie korzysta). Kolejność trzech napraw — do ustalenia po README.
+  wdrożenie na EC2); odpięcie `IAMFullAccess` od użytkownika `gpw-tracker-admin` (konsola IAM,
+  robi Gracjan, najpierw sprawdzenie, że nic z niej nie korzysta). ~~Komentarz „niedobór
+  pamięci” w `compaction.py`~~ — **sprawdzone 04.10 po decyzji: nic do naprawy**, w `kod/` nie
+  ma takiego słowa, a linia 1 `compaction.py` od 11.09 (`4b535d8`) podaje prawdziwy powód
+  (brak `pyarrow` na EC2). Pozycja na liście „do decyzji” była nieaktualna od 11.09.
 - **Zostają jako ograniczenia opisane w README (O):** kwadrans zapasu u Yahoo (od 26.09 głośny
   i sam się naprawia); korekty Yahoo wstecz (razem z nimi uśpiony przypadkowy wybór ceny
   w Silverze — naprawiać kiedyś razem); `close()` bez `finally`; ostrzeżenia SQLAlchemy
@@ -829,8 +839,8 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
     czeka na pierwszy dzień giełdowy 05.10;
   - `pd.read_sql` przez SQLAlchemy;
   - ostrzeżenie `value_deserializer`;
-  - słowa „niedobór pamięci" w komentarzu `compaction.py` (prawdziwy powód
-    to brak biblioteki);
+  - ~~słowa „niedobór pamięci" w komentarzu `compaction.py`~~ — nieaktualne od 11.09
+    (sprawdzone 04.10: komentarz w linii 1 podaje brak `pyarrow`);
   - plan B dla źródła danych;
   - **(15.09) kompakcja, wykresy (`wykresy.py`, `ranking.py`) i Power BI nie
     mają miejsca w kolejności napraw.** Propozycja Claude'a: kompakcja na EC2
@@ -990,6 +1000,15 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   **Wniosek: przewidywania na kolejne dni zawsze jako tabela z wierszem na każdy dzień
   kalendarza** (jak „Przewidywania od 04.10”), nigdy jedną liczbą na „następny dzień
   giełdowy”.
+- **04.10:**
+  - w tabeli znanych wad zarekomendowałem „naprawić” komentarz „niedobór pamięci”
+    w `compaction.py`, biorąc pozycję z listy w CLAUDE.md bez zajrzenia do kodu. Komentarz był
+    poprawny od 11.09. Gracjan przyjął rekomendację, więc decyzja stała na nieaktualnej
+    przesłance. **Wniosek: przed rekomendacją naprawy otworzyć plik, którego dotyczy;**
+  - napisałem, że `Codzienna-rutyna` nie istnieje — istnieje (`notatki/plany/`), nie
+    sprawdziłem przed wiadomością;
+  - przy liczeniu zmian do commita użyłem `git add -N` (zmiana indeksu) i cofnąłem —
+    Claude czyta stan gita, ale go nie zmienia (zasada 5).
 
 ### Priorytet Gracjana (08.09)
 
@@ -999,11 +1018,13 @@ dopiero potem.
 
 ### Na następną sesję
 
-Stan 04.10 (niedziela, po dokumentacji za 03.10). **Z listy napraw z 08.09 został tylko punkt
-10 (dokumentacja).** 04.10 Gracjan wybrał kolejność: dokumentacja za 03.10 → decyzja o znanych
-wadach (co naprawić przed budową, co zostaje jako ograniczenie) → README od nowa. Wyniki
-tych dwóch kroków dopisać tu po sesji 04.10. **Przed każdym kawałkiem kodu: pełna
-notatka-instrukcja (zasada 3).**
+Stan 04.10 (niedziela, ok. 16:00). **Lista napraw z 08.09 zamknięta 04.10** (punkt 10:
+README, dziennik, plany). Przed stroną zostały dwie naprawy z decyzji 04.10: warunek
+w Producencie (cena z trwającej sesji) i odpięcie `IAMFullAccess`. Kolejność — wybór Gracjana
+po dokumentacji 04.10. **Przed każdym kawałkiem kodu: notatka projektowa (zasada 10)
+i pełna notatka-instrukcja (zasada 3).** Zmiana Producenta na EC2 **nie w poniedziałek
+05.10** (pierwszy dzień giełdowy na Pythonie 3.14 — przy rozjeździe nie byłoby wiadomo,
+co go spowodowało).
 
 0. **Na starcie:** czy od 03.10 przyszedł jakiś mail `DOWN` (maile przychodzą 15 minut po
    zmianie stanu u stróża; stróż pisze tylko przy zmianie stanu).
