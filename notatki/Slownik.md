@@ -788,6 +788,24 @@ sprawdzić obie.
 *15.09 dla `gpw_tracker_ec2_role`: podpięte `AmazonS3FullAccess`
 i `AmazonAthenaFullAccess`, wpisane wprost `[]`.*
 
+### Polityki użytkownika (`list-attached-user-policies`) i „Last Accessed”
+To samo co przy roli, tylko dla **użytkownika** IAM: `aws iam list-attached-user-policies
+--user-name nazwa` wypisuje podpięte gotowe polityki. W konsoli przy użytkowniku zakładka
+**Last Accessed** pokazuje każdą usługę, do której ma prawo, **które polityki** to prawo dają
+i kiedy ostatnio z niego skorzystał. Jedna polityka może dawać kawałek innej usługi — np.
+`AWSGlueConsoleFullAccess` daje też odczyt ról w IAM.
+*Portier pamięta, kiedy ostatnio użyłeś klucza do piwnicy: 15.09 → klucz można oddać. 04.10:
+IAM „19 days ago” (15.09), przy IAM „AWSGlueConsoleFullAccess and 1 more”; po odpięciu
+`IAMFullAccess` zostało samo `AWSGlueConsoleFullAccess`, usług 20 → 19.*
+
+### `AccessDenied` jako dowód
+Odmowa dostępu po zabraniu uprawnienia to **sukces** sprawdzenia, a nie awaria: dowodzi, że
+uprawnienia naprawdę już nie ma. Zmiany w IAM rozchodzą się po AWS z kilkusekundowym–
+kilkuminutowym opóźnieniem, więc pierwsza próba może jeszcze przejść.
+*04.10 z laptopa: `aws iam list-attached-user-policies …` → `AccessDenied … no identity-based
+policy allows the iam:ListAttachedUserPolicies action`, a jednocześnie `aws s3 ls` i `python
+kod/path.py` działały jak przedtem.*
+
 ### Polityka bucketa (`get-bucket-policy`)
 Sam bucket S3 może mieć politykę, która zabrania zapisu niezależnie od
 uprawnień roli. `aws s3api get-bucket-policy --bucket nazwa` ją wypisuje.
@@ -1756,6 +1774,25 @@ Zamienia tekst w formacie `RRRR-MM-DD` na datę. Inny format daje `ValueError`.
 `date.fromisoformat("24.09.2026")` → `ValueError: Invalid isoformat string`. W `kod/path.py`
 razem z `os.environ.get("DROGA_DATA", str(date.today()))`: udawany dzień ze zmiennej albo
 dziś (23.09).*
+
+### `ZoneInfo("Europe/Warsaw")` i godzina ze strefą (`tzinfo=`)
+`ZoneInfo` (moduł `zoneinfo`, wbudowany) to strefa czasowa po nazwie, razem z regułami zmiany
+czasu: Warszawa latem UTC+2, od 25.10 UTC+1. `datetime(…, tzinfo=strefa)` to konkretna chwila
+na świecie; `datetime(…)` bez `tzinfo` to godzina „goła” (*naive*) — nie wiadomo, w jakiej
+strefie. Gołej i strefowej nie da się porównać.
+*`datetime(2026,10,6,15,0) < datetime(2026,10,6,15,0,tzinfo=ZoneInfo("UTC"))` →
+`TypeError: can't compare offset-naive and offset-aware datetimes`. Literówka w nazwie:
+`ZoneInfo("Europe/Warszawa")` → `ZoneInfoNotFoundError`. Uruchomione 04.10.*
+
+### `.astimezone(strefa)`, `.time()`, `time(17, 55)`
+`.astimezone(strefa)` pokazuje tę samą chwilę w innej strefie. `.time()` daje z niej samą
+godzinę, `.date()` samą datę. `time(godzina, minuta)` (z `from datetime import time`, nie
+`import time`) to sama godzina — godziny porównuje się `<`.
+*`datetime(2026,10,6,15,0,tzinfo=UTC).astimezone(ZoneInfo("Europe/Warsaw"))` →
+`2026-10-06 17:00:00+02:00`; to samo 26.10 → `16:00:00+01:00`. `time(17,14) < time(17,15)` →
+`True`, `time(17,15) < time(17,15)` → `False`. 23:30 UTC 06.10 to w Warszawie już 07.10.
+Tak ma liczyć godzinę warunek „dziś za wcześnie” Producenta (`kod/sesja.py`, zatwierdzony
+04.10), bo EC2 chodzi w UTC.*
 
 ### Mnożenie i sklejanie list (`*`, `+`)
 `lista * 3` powtarza listę 3 razy, a `lista1 + lista2` skleja dwie listy. Doklejać można

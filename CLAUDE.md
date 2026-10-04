@@ -155,7 +155,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (03.10, bieg z 03.10 sprawdzony 04.10)
+## Stan projektu — uczciwie (04.10 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -772,8 +772,16 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
 **Decyzja Gracjana 04.10 o znanych wadach — wszystko zgodnie z rekomendacją Claude'a:**
 - **Naprawić przed stroną (N):** warunek w Producencie przeciw cenie z trwającej sesji
   (czerwona wada, groźna przy ręcznych biegach w dzień roboczy przed 17:00 — notatka, kod,
-  wdrożenie na EC2); odpięcie `IAMFullAccess` od użytkownika `gpw-tracker-admin` (konsola IAM,
-  robi Gracjan, najpierw sprawdzenie, że nic z niej nie korzysta). ~~Komentarz „niedobór
+  wdrożenie na EC2); odpięcie `IAMFullAccess` od użytkownika `gpw-tracker-admin` — **✅ 04.10
+  ok. 16:20** (Gracjan, konsola jako root): przed — „Last Accessed” dla IAM „19 days ago” (15.09,
+  sprawdzanie roli EC2), polityki przy IAM „AWSGlueConsoleFullAccess and 1 more”; po — przy IAM
+  samo `AWSGlueConsoleFullAccess` (ta polityka daje część IAM: odczyt ról, przekazanie roli
+  Glue), usług 20 → 19; z laptopa `get-caller-identity` bez zmian, `aws s3 ls` 157673/350 B,
+  `python kod/path.py` → `2355`, `Dane: OK`, `aws iam list-attached-user-policies` →
+  `AccessDenied` („no identity-based policy allows”). Zrzutu zakładki Permissions (3 polityki)
+  nie było. EC2 bez wpływu (rola `gpw_tracker_ec2_role`) — potwierdzi bieg 04.10. Powrót:
+  Permissions → Add permissions → Attach policies directly → `IAMFullAccess`. Możliwe dalsze
+  zawężenie (czy `AWSGlueConsoleFullAccess` jest potrzebne) — osobna decyzja, później. ~~Komentarz „niedobór
   pamięci” w `compaction.py`~~ — **sprawdzone 04.10 po decyzji: nic do naprawy**, w `kod/` nie
   ma takiego słowa, a linia 1 `compaction.py` od 11.09 (`4b535d8`) podaje prawdziwy powód
   (brak `pyarrow` na EC2). Pozycja na liście „do decyzji” była nieaktualna od 11.09.
@@ -1008,7 +1016,10 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   - napisałem, że `Codzienna-rutyna` nie istnieje — istnieje (`notatki/plany/`), nie
     sprawdziłem przed wiadomością;
   - przy liczeniu zmian do commita użyłem `git add -N` (zmiana indeksu) i cofnąłem —
-    Claude czyta stan gita, ale go nie zmienia (zasada 5).
+    Claude czyta stan gita, ale go nie zmienia (zasada 5);
+  - README zapowiedziany na 150–200 linii, wyszło 254;
+  - przy IAM nie przewidziałem, że `AWSGlueConsoleFullAccess` sama daje część IAM (wiersz IAM
+    po odpięciu `IAMFullAccess` został, z jedną polityką).
 
 ### Priorytet Gracjana (08.09)
 
@@ -1018,35 +1029,69 @@ dopiero potem.
 
 ### Na następną sesję
 
-Stan 04.10 (niedziela, ok. 16:00). **Lista napraw z 08.09 zamknięta 04.10** (punkt 10:
-README, dziennik, plany). Przed stroną zostały dwie naprawy z decyzji 04.10: warunek
-w Producencie (cena z trwającej sesji) i odpięcie `IAMFullAccess`. Kolejność — wybór Gracjana
-po dokumentacji 04.10. **Przed każdym kawałkiem kodu: notatka projektowa (zasada 10)
+Stan 04.10 (niedziela, koniec sesji ok. 16:45). **Lista napraw z 08.09 zamknięta 04.10**
+(punkt 10: README, dziennik, plany). Z napraw przed stroną (decyzja 04.10) `IAMFullAccess`
+odpięte 04.10; **została jedna: warunek w Producencie** (cena z trwającej sesji) — notatka
+projektowa i instrukcja zatwierdzone. **Przed każdym kawałkiem kodu: notatka projektowa (zasada 10)
 i pełna notatka-instrukcja (zasada 3).** Zmiana Producenta na EC2 **nie w poniedziałek
 05.10** (pierwszy dzień giełdowy na Pythonie 3.14 — przy rozjeździe nie byłoby wiadomo,
 co go spowodowało).
 
+**Plan Gracjana z 04.10:** poniedziałek 05.10 — kod i testy warunku w Producencie;
+wtorek 06.10 — wdrożenie na EC2. Instrukcja (jedyne odniesienie przy ocenie kodu):
+`notatki/plany/Notatka-2026-10-04-jak-napisac-warunek-sesji.md`; notatka projektowa
+(zatwierdzona, pięć decyzji (a)): `Notatka-2026-10-04-producent-przed-zamknieciem.md`.
+
 0. **Na starcie:** czy od 03.10 przyszedł jakiś mail `DOWN` (maile przychodzą 15 minut po
    zmianie stanu u stróża; stróż pisze tylko przy zmianie stanu).
-1. **Kontrola pierwszego dnia giełdowego na Pythonie 3.14 — pon. 05.10** (i niedzieli 04.10
-   przy okazji): tabela „Przewidywania od 04.10” w „Stan 03.10”. Pon.: start **1084**, `wc -l`
-   **1111**, blok 28 (bez żadnej linii `PythonDeprecationWarning`), `Odebrano 3`, 2 × `(2358,
-   3)`, `Dane 2358`, zakładka 2387, pliki 786 × 3, S3 ok. 157850–157950 B. Zgodność domyka
-   warunki (a)/(d) dla Pythona 3.14 (Kafka → S3 na nowym Pythonie). Przy rozjeździe powrót:
-   `crontab ~/crontab-kopia-1003.txt` (tylko po rozmowie, nie odruchowo).
-2. **Stary `venv` na EC2** — do skasowania najwcześniej ok. 17.10, osobna decyzja po dwóch
+1. **Pon. 05.10 — kod i testy** (porcje 1 i 2 instrukcji; porcja 1 była już rozpisana 04.10
+   krok po kroku — podać ją od nowa, nie odsyłać):
+   - `kod/sesja.py` (9 linii: importy, `STREFA`, `PROG = time(17, 55)`,
+     `dzien_do_pominiecia(teraz)`), `kod/test_sesja.py` (24 linie, 10 testów z tabeli
+     w Części 4) → `pytest kod/test_sesja.py -v` → `10 passed`;
+   - pięć zmian w `kod/data_ingestion.py` (import; `pomin` przed pętlą; `pominiete = False`
+     przy `dane = {}`; `if data == pomin` z `continue` przed `dane[str(data)] = c`; dopisek po
+     `wynik[-1] = …`) — plik z 84 na 92 linie → `pytest kod/ -v` → `28 passed`;
+   - bieg Producenta na laptopie z martwym brokerem (`$env:KAFKA_BOOTSTRAP = "localhost:9999"`,
+     sprawdzić `echo` **przed** biegiem): **w trakcie sesji (9:00–16:50)** → 4 linie `ERROR` po
+     ok. 30 s, 3 × `nowych dni: 23, wysłane: 0, stan: nietknięte, dziś pominięte (przed 17:55)`,
+     `companies\CBF.WA.txt` z godziną zapisu 03.09 19:17:54. Po 17:00 dopisku może nie być
+     (Yahoo bez świecy) — wtedy `nowych dni: 23` bez dopisku i to nie błąd;
+   - commit + `git push` (EC2 bez `pull` do wtorku).
+2. **Pon. 05.10 wieczorem albo wt. 06.10 rano — kontrola biegów 04 i 05.10** (tabela
+   „Przewidywania od 04.10” w „Stan 03.10”): niedziela start **1056**, `wc -l` 1083;
+   poniedziałek start **1084**, `wc -l` **1111**, blok 28 (bez żadnej linii
+   `PythonDeprecationWarning`), `Odebrano 3`, 2 × `(2358, 3)`, `Dane 2358`, zakładka 2387,
+   pliki 786 × 3, S3 ok. 157850–157950 B, stróż #18 i #19 `OK`. Zgodność domyka warunki
+   (a)/(d) dla Pythona 3.14 (Kafka → S3 na nowym Pythonie) i potwierdza, że odpięcie
+   `IAMFullAccess` nie ruszyło EC2. Przy rozjeździe powrót: `crontab ~/crontab-kopia-1003.txt`
+   (tylko po rozmowie, nie odruchowo).
+3. **Wt. 06.10 — wdrożenie** (Część 8 instrukcji, przed 17:55, każdy krok z przewidywaniem):
+   laptop z martwym brokerem w trakcie sesji (jeśli nie było w poniedziałek) → `git pull` na
+   EC2 (`4aca12d..` nowy commit) → ręczny Producent bez `>>` przed 17:55 (3 × `nowych dni: 0,
+   wysłane: 0, stan: zapisane, dziś pominięte (przed 17:55)`, zakładka 2387 bez zmian) → bieg
+   `cron` 18:00 i kontrola po 18:32 (blok 28, 3 × `nowych dni: 1`, `Odebrano 3`, `Dane 2361`,
+   zakładka 2390, start **1112**, `wc -l` **1139**). Pierwszy dzień giełdowy po zmianie czasu
+   (26.10) — sprawdzić, że dopisku w bloku nie ma.
+4. **Stary `venv` na EC2** — do skasowania najwcześniej ok. 17.10, osobna decyzja po dwóch
    tygodniach spokoju (decyzja 6 z notatki o Pythonie). Razem z nim `~/porownanie-1003/`.
-3. **Power BI na Athenę** — odłożony 03.10 (sterownik ODBC na laptopie, osobna notatka).
+5. **Power BI na Athenę** — odłożony 03.10 (sterownik ODBC na laptopie, osobna notatka).
    Do tego czasu README mówi, że raport pokazuje dane do 20.09.
-4. **Aktualizacja Amazon Linux** (ostrzeżenie `dnf` 03.10) — osobna decyzja; nie w tygodniu
+6. **Aktualizacja Amazon Linux** (ostrzeżenie `dnf` 03.10) — osobna decyzja; nie w tygodniu
    zmiany Pythona ani w tygodniu 25.10.
-5. **Terminy:**
+7. **Po warunku w Producencie:** wszystkie naprawy sprzed strony zrobione — strona internetowa
+   (Plan-06, wątek 4: otwarte pytania o „prywatność”, stos, wykresy) jako nowy etap, od notatki
+   projektowej. Ewentualne zawężenie `AWSGlueConsoleFullAccess` — osobna decyzja.
+8. **Terminy:**
    - **25.10** (niedziela) pierwszy bieg po zmianie czasu — `17:00:0X` w linii startu i to
      będzie poprawne, a u stróża pierwszy prawdziwy sprawdzian strefy;
    - **01.11** Gold zmieni linię `Pełna liczba …` z `117`/`111` (doliczyć nowy miesiąc
      i październik jako pełny — przeliczyć przed biegiem, nie z pamięci);
    - **początek listopada** kompakcja za październik (z laptopa, nie między 17:55 a 18:35);
-   - **11.11** (środa) pierwszy fałszywy alarm kontroli w święto (mail `DOWN`, 12.11 `UP`).
+   - **11.11** (środa) pierwszy fałszywy alarm kontroli w święto (mail `DOWN`, 12.11 `UP`);
+   - **19.02.2027** koniec darmowego planu AWS (albo wcześniej, gdy skończy się kredyt: 04.10
+     zostało **83,44 USD** ze 100, „140 days remaining”; EC2 chodzi 24/7). Przed tą datą
+     decyzja: płatny plan, wyłączenie albo zmiana architektury.
 
 **EC2 jest na `4aca12d` od 03.10 ok. 09:2x UTC** (`pull` `fc6e262..4aca12d`, 7 plików;
 `git status --short` pusty 04.10). Commitu `96f191b` (wykresy, usunięty `test_plikow.py`)
