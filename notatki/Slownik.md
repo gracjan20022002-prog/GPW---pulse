@@ -572,6 +572,22 @@ przeciąganiem myszką, bez pisania kodu. Dane wczytuje się z pliku
 *To, co w Pythonie robisz linijką `plt.plot(...)`, w Power BI robisz
 przeciągnięciem nazwy kolumny na wykres.*
 
+### Mermaid (diagram pisany tekstem)
+Język do rysowania diagramów zwykłym tekstem. GitHub zamienia go w obrazek sam, gdy w pliku
+`.md` stoi okienko kodu oznaczone słowem `mermaid`. `flowchart LR` to schemat od lewej do
+prawej (`TD` — z góry na dół). `A[tekst]` to prostokąt, `A[(tekst)]` walec (baza, kolejka),
+`-->` strzałka, `-->|napis|` strzałka z napisem, `-.->` strzałka przerywana, `<br/>` nowa
+linia w napisie.
+*Wejście:*
+```
+flowchart LR
+    M[Mleczarnia] -->|rano| L[Lodziarnia]
+    L --> K[Klient]
+```
+*Wyjście na GitHubie: trzy prostokąty w rzędzie — Mleczarnia → (nad strzałką „rano”) →
+Lodziarnia → Klient. W zwykłym edytorze bez dodatku widać sam tekst. 04.10: schemat
+„Jak płyną dane” w `README.md`.*
+
 ### Dashboard
 Jedna strona z kilkoma wykresami naraz, które można razem oglądać
 i (czasem) razem filtrować.

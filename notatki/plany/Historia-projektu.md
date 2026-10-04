@@ -1,0 +1,349 @@
+# Historia projektu — dawny README (do 14.09.2026)
+
+Ten plik to **cała treść README sprzed przepisania 04.10.2026**, przeniesiona bez zmian
+(decyzja Gracjana 04.10: historia ma zostać w repozytorium, bo dziennik jest poza gitem).
+
+**Uwaga przy czytaniu:** to zapis z tamtych dni, nie opis dzisiejszego stanu. Część stwierdzeń
+okazała się później nieprawdziwa albo nieaktualna — m.in. słowa „ukończony” i „w pełni
+zautomatyzowane” przed spełnieniem definicji „zrobione”, `test_plikow.py` (usunięty 03.10),
+Harmonogram Windows jako zapas (wyłączony 21.09), `silver/` i `gold/` w gicie (poza gitem od
+21.09), Python 3.9 na EC2 (od 03.10 Python 3.14), kompakcja „1 października” (zrobiona 03.10)
+oraz zdanie, że dziennik prowadził wcześniej Gracjan (dziennik zawsze pisał Claude).
+Aktualny stan: [`README.md`](../../README.md), [`CLAUDE.md`](../../CLAUDE.md) i
+[[Przeglad-2026-09-08-co-nie-gra]].
+
+---
+
+# GPW Pulse
+
+Projekt nauki data engineeringu — pobieranie i przetwarzanie danych giełdowych
+(GPW) dla wybranych spółek.
+
+**Etap BRONZE (surowe dane):** ukończony. Program pobiera dzienne notowania
+trzech spółek GPW (CBF, XTB, SNT) z Yahoo Finance (okno 3 lat od API), doklejane
+do istniejącej historii w pliku zamiast ją nadpisywać — dzięki temu ruchome
+okno 3 lat nie kasuje starszych dat przy kolejnych odświeżeniach. Program sam
+sprawdza, czy zapisane dane są poprawne.
+
+**Etap SILVER (czyszczenie danych, `pandas`):** ukończony. Trzy osobne pliki
+spółek są wczytywane, naprawiane (typy danych), sprawdzane pod kątem braków
+i duplikatów, łączone w jedną tabelę, sortowane i zapisywane jako jeden
+czysty plik: `silver/clean_data.csv`.
+
+**Etap GOLD (liczenie wskaźników, `pandas`):** ukończony. Z czystej tabeli
+liczona jest dzienna zmiana procentowa ceny (osobno dla każdej spółki),
+całkowita zmiana procentowa za cały okres i miesiąc z największymi wahaniami
+cen. Wynik to dwa pliki: `gold/dane_dzienne.csv` (pełne dane dzienne ze
+wskaźnikami) i `gold/ranking.csv` (podsumowanie — jeden wiersz na spółkę).
+
+**Etap 4 (pokazanie wyniku):** w toku. Część A (wykresy w Pythonie,
+`matplotlib`) ukończona — patrz `wykresy/` niżej. Część B (dashboard
+w Power BI — wykres liniowy, wykres słupkowy, filtr) zbudowana, plik
+`wykresy/PowerBi_do_dopracowania.pbix`; stylizacja i eksport/publikacja
+odłożone na później. Część C (automatyzacja) ukończona: `kod/pipeline.bat`
+łączy Silver i Gold (`silver.py` → `gold.py`) w jedno zadanie Harmonogramu
+Windows — pobieranie danych przejęło w pełni EC2 (patrz Etap 5), więc
+lokalnie zostały tylko te dwa kroki. Naprawiony dawno błąd utraty historii
+sprzed 3 lat (skrypt scala świeże dane z istniejącym plikiem zamiast go
+nadpisywać) — patrz opis Bronze wyżej.
+Dalej: Część D — rozbudowa projektu pod portfolio.
+Plan: [`notatki/plany/Plan-04-pokazanie-wyniku.md`](notatki/plany/Plan-04-pokazanie-wyniku.md).
+
+**Etap 5 (migracja do AWS):** architektura w pełni ukończona
+i zautomatyzowana (01.09). EC2 (Kafka z KRaft, jako usługa `systemd`) →
+S3 → Glue → Athena → Silver/Gold. EC2 ma stały adres (Elastic IP) i zostaje
+włączone 24/7 (decyzja 31.08). Producent (`kod/data_ingestion.py`)
+i Konsument (`kod/kafka_consumer.py`) działają **same, codziennie, przez
+`cron` na EC2** (od 01.09) — niezależnie od tego, czy komputer Gracjana
+jest włączony; adres brokera przez zmienną `KAFKA_BOOTSTRAP`
+(`localhost:9094` wewnątrz EC2), zapis do S3 przez rolę IAM, bez kluczy na
+dysku. Historia cen (`bronze/`) wgrana do S3 raz, zamrożona — bieżące dane
+niesie już tylko Kafka, do `live/` (obie tabele partycjonowane po spółce,
+Glue Crawler + Athena). **Część E:** `silver.py` czyta dane z Athena przez
+`pyathena` (zapytanie SQL łączące `bronze` i `live`) zamiast lokalnych
+plików spółek. Zostaje jeszcze podłączenie Power BI, odłożone na osobną
+sesję. **Część F ukończona:** broker (`systemd`), Producent+Konsument
+(`cron` na EC2) i lokalny `pipeline.bat` (od 01.09 tylko `silver.py`
++ `gold.py`, bez lokalnego Producenta — EC2 przejął to zadanie w całości).
+
+**02.09:** harmonogram przesunięty na **po zamknięciu GPW** — `cron` na
+EC2 zbiera o 18:00/18:02 polskiego, lokalny Harmonogram (nowy task,
+poprzedni się popsuł) o 18:10; wcześniej oba działały o 9:00, w momencie
+otwarcia giełdy, ale Yahoo nie miało jeszcze wtedy danych za dany dzień.
+Tego samego dnia znaleziony i naprawiony błąd: `live` w Athenie przez
+pomyłkę zebrało całą 3-letnią historię zamiast tylko świeżych dni (opisane
+w dzienniku 02.09) — posprzątane w S3, `silver.py` dedupuje teraz po dniu
+i spółce (nie po pełnym znaczniku czasu), dopisany test regresyjny
+w `test_plikow.py`.
+Plan: [`notatki/plany/Plan-05-aws-migracja.md`](notatki/plany/Plan-05-aws-migracja.md).
+
+**03.09 — Silver i Gold działają na EC2.** `pandas` i `pyathena`
+doinstalowane w `venv` na instancji, rola IAM (`gpw_tracker_ec2_role`)
+rozszerzona o `AmazonAthenaFullAccess` — bez tego `silver.py` nie mógł
+odpytać Atheny. Oba skrypty dopisane do `cron` jako jedna linijka
+o 16:10 UTC (18:10 polskiego): `silver.py && gold.py`, czyli Gold rusza
+tylko wtedy, gdy Silver się udał (Gold czyta plik, który tworzy Silver —
+bez `&&` policzyłby wczorajsze dane i zapisał jako dzisiejsze). Cały
+łańcuch — zbieranie, Silver, Gold — chodzi teraz sam na EC2. Lokalny
+Harmonogram zostaje włączony jako wersja zapasowa, do czasu potwierdzenia,
+że `cron` działa stabilnie. Tego samego dnia odzyskane 9 wierszy (26.08,
+27.08, 31.08 × 3 spółki), które przepadły przy wczorajszym sprzątaniu
+w S3 — istniały tam tylko wewnątrz skasowanego zrzutu historii; dane
+odtworzone z lokalnych `companies/*.txt` przez Producenta. Tego samego
+dnia **ujednolicona godzina w całych danych na `17:00:00`** (fixing na
+zamknięcie GPW): `bronze` wgrany na nowo, `live` przebudowany, wcześniej
+stały tam trzy różne godziny naraz. Szczegóły w dzienniku 03.09.
+
+**04.09 — `bronze` przeszedł na Parquet.** Nowy skrypt
+`kod/compaction.py` buduje warstwę zamrożoną od nowa: pyta Athenę
+o wszystko sprzed pierwszego dnia bieżącego miesiąca (`bronze UNION
+live`), dedupuje po dniu i spółce, zapisuje po jednym pliku `.parquet` na
+spółkę i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`.
+Zamiast tekstu z przecinkami warstwa trzyma teraz format, który **pamięta
+typy kolumn** (nie trzeba ich zgadywać przy odczycie) i zajmuje prawie
+trzy razy mniej miejsca — a Athena rozlicza się za przeskanowane bajty.
+Typy w tabeli zostały te same (`data` jako `string`, `cena` jako
+`double`), więc `silver.py` nie wymagał ani jednej poprawki. Zostaje
+jeszcze kasowanie z `live` plików w całości pokrytych przez `bronze` —
+następna sesja. Szczegóły w dzienniku 04.09.
+
+**07.09 — kompakcja domknięta.** `compaction.py` kasuje teraz z `live`
+pliki, których **wszystkie** wiersze trafiły już do `bronze`. Kandydatów
+wskazuje jedno zapytanie: `GROUP BY "$path" HAVING MAX(data) < granica`
+— jeśli najpóźniejsza data w pliku jest sprzed granicy, to wszystkie
+pozostałe też. Rozróżnienie `WHERE`/`HAVING` jest tu istotne: `WHERE`
+filtruje pojedyncze wiersze i przepuściłby plik, w którym dziewięć dni
+jest starych, a jeden świeży — czyli skasowałby żywe dane. Plik stojący
+okrakiem na granicy przeżywa do następnego razu i sam się zakwalifikuje
+miesiąc później. Pierwszy bieg skasował **zero plików** i tak miało
+być — wszystkie sześć plików w `live` zawiera dzień 01.09 lub późniejszy.
+Prawdziwe kasowanie wypadnie 1 października, ręcznie i **wyłącznie
+z laptopa** — na EC2 nie ma `pyarrow`, a bez niego nie da się zapisać
+Parquetu. Przy okazji spis bibliotek przepisany wtedy od nowa: brakowało
+w nim `pyathena`, `boto3`, `kafka-python` i `pyarrow`.
+
+Od 11.09 spisy są dwa, po jednym na maszynę: `requirements-lokalny.txt`
+(32 paczki, Python 3.14) i `requirements-ec2.txt` (19 paczek, Python 3.9).
+Jeden wspólny plik byłby pułapką, bo maszyny mają różne wersje tych samych
+bibliotek, w tym pandas 3.0.5 wobec 2.3.3. Brak `pyarrow`, `pytest`
+i `matplotlib` na EC2 jest zamierzony: wykresy, testy i zapis Parquetu
+należą do laptopa, a `silver.py` nie otwiera plików z S3, tylko pyta
+Atenę, która Parquet czyta po swojej stronie.
+
+Tego samego dnia **`companies/*.txt` wyszły poza gita** (`.gitignore`
++ `git rm --cached`). Te pliki są pamięcią Producenta („co już
+wysłałem"), a nie kodem — a ponieważ były śledzone, każda operacja gita
+podmieniająca je na EC2 kasowała tę pamięć i kazała wysłać całą historię
+do Kafki od nowa (tak stało się 01.09). Teraz każda maszyna trzyma własną
+kopię na własnym dysku i git jej nie dotyka. Wyniki `silver/` i `gold/`
+zostają w repozytorium świadomie — ich utrata nic nie kosztuje (`cron`
+odtwarza je co wieczór z danych w S3), a repozytorium jest jednocześnie
+portfolio. Szczegóły w dzienniku 07.09.
+
+**08.09 — przegląd całego projektu i pierwsze naprawy.** Na żądanie
+Gracjana cały projekt (kod, wszystkie notatki, historia gita) został
+przeczytany od nowa i opisany bez upiększeń w
+[`notatki/plany/Przeglad-2026-09-08-co-nie-gra.md`](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md)
+— **od tego dnia to ten plik, nie ten README, mówi prawdę o stanie
+projektu**. Wyszło z niego, że większość „nowych" błędów z ostatnich dwóch
+tygodni to skutki mechanizmów nazwanych ukończonymi po teście ręcznym,
+zanim zadziałały tam, gdzie miały: bez nadzoru, na EC2, przy awarii.
+Tego samego dnia zamknięte trzy pierwsze pozycje z listy: Producent
+zapisuje pamięć „co już wysłałem" **dopiero po potwierdzeniu** każdej
+wiadomości przez brokera (wcześniej zapisywał zawsze — tak przepadły
+26, 27 i 31.08); kompakcja przed nadpisaniem `bronze` pobiera jego obecną
+kopię z S3 i **przerywa**, gdy liczba wierszy którejkolwiek spółki
+zmalała; Konsument przy utracie pozycji grupy czyta zachowane wiadomości
+zamiast je pomijać (`'earliest'`). Każda naprawa sprawdzona z policzonym
+wcześniej wynikiem — Producent także prawdziwym biegiem `cron`
+(767 wierszy, Silver 2301). Zasady pracy, w tym pięciopunktowa definicja
+„zrobione" i notatka projektowa przed każdym nowym mechanizmem — w
+[`CLAUDE.md`](CLAUDE.md). Szczegóły w dzienniku 08.09.
+
+**09.09 — sprawdzenie zamiast wyprowadzania.** Odczyt offsetów i plików
+segmentów na dysku brokera pokazał, że zalew z 01.09 wciąż leży w topicu
+(`earliest` 22, `latest` 2330): Kafka kasuje całymi segmentami, więc
+wiadomość żyje 7–14 dni, nie 7. Wczorajszy wniosek „retencja skasowała"
+był błędny — test Konsumenta bez zapisanej pozycji przełożony na po
+14.09, bo dziś wlałby zalew ponownie. Zwykła ścieżka Konsumenta
+z `'earliest'` przeszła przez `cron` z liczbami przewidzianymi przed
+biegiem. Producent i Konsument połączone w jedną linię `crontab`
+rozdzieloną `;` (Konsument rusza zawsze, bo zależy od tego, co leży
+w Kafce, nie od wyniku Producenta), z kopią sprzed edycji i `diff`-em
+przed wgraniem; pierwszy bieg nowej linii 10.09 — do tego dnia ten krok
+jest wdrożony, nie zrobiony. Szczegóły w dzienniku 09.09.
+
+**13–14.09 — strefa czasowa, ranking z pełnych miesięcy i test zgubionej
+zakładki.** `crontab` na EC2 ma od 13.09 `CRON_TZ=Europe/Warsaw`
+i godziny 18:00/18:10, więc bieg zostaje o 18:00 polskiego także po
+zmianie czasu 25.10. Sprawdzone biegami 13.09 i 14.09. Log i narzędzia na
+EC2 zostają w UTC: latem pokazują `16:00`, zimą `17:00`. Ranking
+„najbardziej zmiennego miesiąca" bierze od 14.09 na EC2 tylko pełne
+miesiące i przestał migać z dnia na dzień. Test Konsumenta bez zapisanej
+pozycji: grupa skasowana, `Odebrano 15 wiadomości` od najstarszej
+zachowanej, powtórki w S3 identyczne co do bajta z oryginałami, Silver bez
+zmian. Żadna z tych rzeczy nie ma jeszcze sygnału o awarii. Szczegóły
+w dziennikach 13.09 i 14.09.
+
+**Dalsze kroki:** kolejność napraw — Część 5 przeglądu (zatwierdzona).
+Wcześniejsza lista wątków w
+[`notatki/plany/Plan-06-domkniecie-i-strona.md`](notatki/plany/Plan-06-domkniecie-i-strona.md)
+zostaje jako historia; strona internetowa, Power BI i README pod
+pracodawcę — dopiero po domknięciu łańcucha danych.
+
+---
+
+## Struktura folderu
+
+| Folder | Co w nim jest |
+|---|---|
+| **kod/** | skrypty Pythona projektu (patrz tabela niżej) |
+| **companies/** | pamięć Producenta „co już wysłałem" (pliki `.txt`, jeden na spółkę) + logi. **Poza gitem od 07.09** (`.gitignore`) — to stan maszyny, nie kod; każda maszyna ma własną kopię, a git jej nie podmienia |
+| **bronze/** | pliki `.parquet` przygotowane przez `compaction.py` przed wysyłką do S3 — poza gitem (`.gitignore`), to dane, nie kod |
+| **silver/** | wynik etapu Silver — jedna czysta tabela ze wszystkich spółek (`clean_data.csv`) |
+| **gold/** | wynik etapu Gold — dzienne dane ze wskaźnikami (`dane_dzienne.csv`) i ranking spółek (`ranking.csv`) |
+| **wykresy/** | wykresy z Etapu 4, Część A (Python/`matplotlib`) — pliki `.png`; Część B — dashboard Power BI (`PowerBi_do_dopracowania.pbix`) |
+| **notatki/** | notatki do nauki i projektu (patrz niżej) |
+| **aws/** | klucz SSH do EC2 i notatki połączenia — poza gitem (`.gitignore`), zawiera dane dostępowe |
+| **CLAUDE.md** | zasady pracy z asystentem nad tym projektem |
+
+### Skrypty w `kod/`
+
+| Plik | Co robi |
+|---|---|
+| `data_ingestion.py` | Główny skrypt — pobiera dane trzech spółek z Yahoo Finance (`requests`), scala je ze starą historią w pliku (żeby ruchome okno 3y nie kasowało starszych dat), pomija ceny, których Yahoo nie zwróciło (`null` — dzień jeszcze nierozliczony, zdarza się wszystkim spółkom naraz), zamiast zapisywać je jako błędny tekst, zapisuje do `companies/{TICKER}.txt`, błędy loguje do `companies/errors.log` (`try/except` + `logging`). Wysyła nowe ceny przez Kafkę (`kafka-python`) na topic `gpw_tracker`, **każdą z potwierdzeniem** (`send(...).get(timeout=10)`, od 08.09) — plik pamięci spółki jest zapisywany tylko wtedy, gdy wszystkie jej nowe daty zostały potwierdzone przez brokera; gdy broker nie odpowiada, plik zostaje nietknięty i te dni lecą przy następnym biegu (wcześniej zapis był bezwarunkowy i dni znikały po cichu — tak przepadły 26, 27 i 31.08). Od 01.09 uruchamiany codziennie przez `cron` na EC2 (nazwa do 01.09: `Data ingestion 2.py`). Znana wada, do naprawy: uruchomiony przed 17:00 zapisuje cenę z trwającej sesji z etykietą zamknięcia |
+| `kafka_consumer.py` | Konsument Kafki: odbiera nowe ceny z topicu `gpw_tracker` (kończy nasłuch po 5s ciszy, nie działa w nieskończoność), grupuje po spółce, zapisuje do S3 partiami (`s3.put_object`, format JSON Lines) pod ścieżką partycjonowaną `live/spolka={TICKER}/...`. `auto_offset_reset='earliest'` (od 08.09): gdy grupa `gpw_consumer` straci zapisaną pozycję, czyta od najstarszej zachowanej wiadomości zamiast pomijać wszystko sprzed startu; powtórki odsiewa `silver.py` (sprawdzone 14.09 testem ze skasowaną grupą: `Odebrano 15 wiadomości`, powtórki w S3 identyczne co do bajta, Silver bez zmian). Od 01.09 uruchamiany codziennie przez `cron` na EC2; od 09.09 w tej samej linii `crontab` co `data_ingestion.py`, zaraz po nim, rozdzielone `;` (rusza zawsze, także gdy Producent padł — bo zależy od tego, co leży w Kafce, nie od wyniku Producenta; do 08.09 osobna linia dwie minuty później, co przy wolnym Yahoo dawało „Odebrano 0") |
+| `test_plikow.py` | Dwa testy: `test_dzialania` sprawdza pobrane pliki `companies/*.txt` (istnieją, poprawny format wiersza, wystarczająco dużo danych); `test_powtorek` (02.09) sprawdza `silver/clean_data.csv` pod kątem duplikatów — czy nie ma dwóch wierszy z tym samym dniem i tą samą spółką |
+| `config.py` | Jedno miejsce na listę spółek (`["CBF.WA", "XTB.WA", "SNT.WA"]`) — importowana przez pozostałe skrypty zamiast powielania w kilku plikach |
+| `silver.py` | Etap Silver — czyta dane z Athena przez `pyathena` (SQL łączące `bronze` i `live`), naprawia typy (`to_datetime`, `to_numeric`), sprawdza braki, usuwa duplikaty po dniu+spółce, nie po pełnym znaczniku czasu (`bronze` i `live` potrafią zapisać ten sam dzień z inną godziną — błąd znaleziony i naprawiony 02.09, patrz dziennik), sortuje po spółce i dacie, zapisuje do `silver/clean_data.csv` (nazwa do 01.09: `silver 1.py`). Od 03.09 uruchamiany codziennie przez `cron` na EC2 (od 13.09 o 18:10 czasu polskiego dzięki `CRON_TZ`), w jednej linijce z `gold.py` (`&&`); do odpytania Atheny potrzebuje polityki `AmazonAthenaFullAccess` na roli instancji |
+| `gold.py` | Etap Gold — wczytuje `silver/clean_data.csv`, liczy dzienną zmianę procentową (`groupby`+`pct_change`), całkowitą zmianę i najbardziej zmienny **pełny** miesiąc na spółkę (`groupby`+`agg(["std", "count"])`; od 12.09 bez pierwszego i ostatniego miesiąca historii spółki i bez miesięcy poniżej 15 dni notowań, na EC2 od 14.09), łączy w tabelę rankingu (`merge`), zapisuje `gold/dane_dzienne.csv` i `gold/ranking.csv` (nazwa do 01.09: `gold 1.py`). Od 03.09 uruchamiany przez `cron` na EC2 zaraz po `silver.py` — i **tylko wtedy, gdy tamten się udał** (`&&`), bo czyta plik, który Silver dopiero tworzy |
+| `compaction.py` | Kompakcja `live` → `bronze` (04.09) — przepisuje warstwę zamrożoną: liczy granicę jako pierwszy dzień bieżącego miesiąca (`date.today().replace(day=1)`), pyta Athenę o wszystko sprzed niej z obu tabel naraz (`bronze UNION live`), usuwa duplikaty po dniu i spółce (dzień odcinany z tekstu przez `.str[:10]`, bez konwersji na typ daty — kolumna `data` musi zostać tekstem, inaczej rozjeżdża się `UNION` w `silver.py`), zapisuje po jednym pliku `.parquet` na spółkę do lokalnego `bronze/` i wysyła je do `s3://gpw-tracker-bucket/bronze/spolka={TICKER}/`. Na koniec (07.09) kasuje z `live` pliki, których **wszystkie** wiersze są już w `bronze` — kandydatów wskazuje `GROUP BY "$path" HAVING MAX(data) < granica` (ukryta kolumna `"$path"` mówi, z którego pliku pochodzi wiersz), adres `s3://bucket/klucz` zamieniany na sam klucz przez `split("/", 3)[3]`, kasowanie przez `s3.delete_object` z licznikiem — bo S3 nie zgłasza błędu przy kasowaniu nieistniejącego pliku, więc bez licznika nie da się odróżnić „skasowałem" od „nie było czego". **Od 08.09 strażnik:** przed jakimkolwiek zapisem pobiera obecne pliki `bronze` z S3 do `bronze/poprzedni/` (kopia zapasowa i punkt odniesienia) i dla każdej spółki sprawdza `assert`-em, że nowa liczba wierszy nie jest mniejsza niż poprzednia — inaczej przerywa, bo Athena potrafi oddać niepełną tabelę bez błędu (04.09: 405 zamiast 2283). Sprawdzone: granica przestawiona na sierpień → `AssertionError … 761 … 740`, nic nie zapisane. Uruchamiany ręcznie, docelowo raz w miesiącu |
+| `wykresy.py` | Etap 4, Część A — wczytuje `gold/dane_dzienne.csv`, rysuje cenę wszystkich trzech spółek w czasie (`matplotlib`, `plt.plot` w pętli po spółkach, legenda), zapisuje `wykresy/wykres3spolek.png` |
+| `ranking.py` | Etap 4, Część A — wczytuje `gold/ranking.csv`, rysuje wykres słupkowy całkowitej zmiany procentowej spółek (oś Y sformatowana jako „%"), zapisuje `wykresy/ranking.png` |
+| `pipeline.py` | Etap 4, Część C — testowy skrypt do sprawdzenia Harmonogramu zadań Windows: dopisuje datę/godzinę uruchomienia do `kod/pipeline.txt` |
+| `pipeline.bat` | Łączy kroki Silver i Gold (`silver.py`, `gold.py`) w jedno zadanie Harmonogramu; dwie niezależne linie bez `&&` (łączenie przez `&&`/`^` powodowało, że `silver 1.py` cicho nie zapisywał danych mimo że `gold 1.py` i tak się uruchamiał — porzucone na rzecz pewności działania). Do 01.09 uruchamiał jako pierwszy krok też pobieranie danych — od Etapu 5 Części F to zadanie przejęło EC2. Od 03.09 **wersja zapasowa**: to samo liczy się już na EC2 przez `cron`, a lokalny Harmonogram zostaje włączony do czasu potwierdzenia, że tamto działa stabilnie |
+| `pyathena_silver_test.py` | Szkic/materiał referencyjny z Etapu 5, Części E — pierwsza wersja zapytania SQL do Athena przez `pyathena`, zanim trafiła do `silver.py`. Zachowany jako własna notatka, nie wpięty w `pipeline.bat` |
+
+### Dane w `companies/`
+
+Jeden plik `.txt` na spółkę, jeden wiersz na dzień notowania:
+```
+2023-07-24 09:00:00, 12.34
+```
+`errors.log` zbiera błędy pobierania (np. nieistniejący ticker) — nie trafia
+na GitHub (patrz `.gitignore`).
+
+Godzina w znaczniku to **`17:00:00` — fixing na zamknięcie GPW**, czyli
+moment, w którym ustala się kurs zamknięcia (a właśnie ten kurs zapisujemy).
+Ujednolicone 03.09 w całych danych, razem z `bronze` i `live` w S3.
+
+**Naprawiony błąd (03.09):** te pliki służą Producentowi za pamięć „co już
+wysłałem", a porównywał on wcześniej **pełny tekst daty z godziną**.
+Godzina brała się z `datetime.fromtimestamp()`, czyli ze strefy czasowej
+maszyny: Windows w Polsce zapisywał `09:00`, EC2 stojące w UTC — `07:00`
+dla tej samej chwili. Ponieważ pliki są jednocześnie trzymane w gicie,
+każda operacja gita podmieniająca ten plik na EC2 sprawiała, że Producent
+nie rozpoznawał żadnej daty i wysyłał całą trzyletnią historię do Kafki
+od nowa (tak stało się 01.09). Od 03.09 klucz porównawczy liczony jest
+z **samej daty**, a godzina doklejana dopiero przy zapisie i wysyłce —
+dzięki temu strefa czasowa maszyny nie ma już znaczenia.
+
+### Dane w `silver/`
+
+Jedna tabela, wszystkie trzy spółki razem, z nagłówkiem:
+```
+data,cena,spolka
+2023-07-24 09:00:00,78.800003,CBF.WA
+```
+
+### Dane w `gold/`
+
+Dwa pliki, wynik etapu Gold.
+
+`dane_dzienne.csv` — pełna tabela dzienna, ta sama co
+w `silver/`, plus dzienna zmiana procentowa i miesiąc (pierwszy dzień każdej
+spółki ma pusty `zmiana_proc` — nie ma dnia wcześniej, z czym porównać):
+```
+data,cena,spolka,zmiana_proc,max_zmienny_miesiac
+2023-07-24 09:00:00,78.800003,CBF.WA,,2023-07
+```
+
+`ranking.csv` — podsumowanie, jeden wiersz na spółkę: pierwsza i ostatnia
+cena, zmiana za cały okres, najbardziej zmienny miesiąc i jego odchylenie
+standardowe:
+```
+spolka,max_zmienny_miesiac,zmiana_proc,pierwsza_cena,ostatnia_cena,zmiana_caly_okres
+SNT.WA,2025-06,4.086839,70.800003,360.0,408.474554
+```
+
+### Wyniki w `wykresy/`
+
+Dwa wykresy z Części A Etapu 4, wygenerowane przez `kod/wykresy.py` i
+`kod/ranking.py`:
+
+- `wykres3spolek.png` — cena wszystkich trzech spółek w czasie, jedna linia
+  na spółkę, z legendą.
+- `ranking.png` — wykres słupkowy: całkowita zmiana procentowa każdej
+  spółki za cały okres (24.07.2023–24.07.2026).
+
+---
+
+## Notatki (`notatki/`)
+
+| Folder/plik | Co w nim jest |
+|---|---|
+| **plany/** | plany projektu i codzienna rutyna |
+| **lekcje/** | notatki z tego, czego się uczysz |
+| **dziennik/** | co zrobiłeś każdego dnia, jeden plik na sesję — **prywatny, nie trafia na GitHub** (patrz `.gitignore`) |
+| **Slownik.md** | trudne słowa wyjaśnione po ludzku |
+| **Zrodla.md** | linki, materiały, dokumentacja |
+
+### Jak to otworzyć w Obsidianie
+
+1. Otwórz Obsidian
+2. Ikona sejfu w lewym dolnym rogu → **Open another vault** → **Open folder as vault**
+3. Wskaż folder: `GPW - pulse` → `notatki`
+4. Gotowe
+
+---
+
+## Od czego zacząć
+
+1. [[Plan-ogolny]] — zobacz całość projektu
+2. [[Codzienna-rutyna]] — przejdź część A, jednorazową
+3. [[Plan-04-pokazanie-wyniku]] — Etap 4, Część D wciąż w toku
+4. [[Plan-05-aws-migracja]] — Etap 5, architektura ukończona
+5. [[Plan-06-domkniecie-i-strona]] — co dalej: domknięcie, Silver/Gold, strona
+6. [[Slownik]] — zaglądaj, gdy spotkasz nieznane słowo
+
+---
+
+## Zasady prowadzenia notatek
+
+**Dziennik pisze Claude, na koniec każdej sesji, w całości** (od 01.09 —
+wcześniej robił to Gracjan sam) — łącznie z rubryką „czego się
+nauczyłem", pisaną w pierwszej osobie na podstawie tego, co faktycznie
+było nowe w danej sesji. Żadnych pustych placeholderów do uzupełnienia.
+
+**Nowy plik w dzienniku dla każdej sesji.** Nazwa: data, np. `2026-07-22.md`.
+
+**Podwójne kwadratowe nawiasy tworzą link** między notatkami.
+Napisz `[[Slownik]]`, a Obsidian sam zrobi odnośnik.
+
+**Nie znasz słowa? Dopisz je do [[Slownik]]** od razu, gdy je spotkasz.
+
+---
+
+## Powiązane notatki
+
+- [[Plan-ogolny]]
+- [[Plan-01-bronze]]
+- [[Plan-02-silver]]
+- [[Plan-03-gold]]
+- [[Plan-04-pokazanie-wyniku]]
+- [[Plan-05-aws-migracja]]
+- [[Plan-06-domkniecie-i-strona]]
+- [[Codzienna-rutyna]]
+- [[Stare-repo-co-to-bylo]]
+- [[Slownik]]
+- [[Zrodla]]

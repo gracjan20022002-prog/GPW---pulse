@@ -761,6 +761,22 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
 
 ### Wciąż otwarte (najkrócej, pełne opisy w przeglądzie)
 
+**Decyzja Gracjana 04.10 o znanych wadach — wszystko zgodnie z rekomendacją Claude'a:**
+- **Naprawić przed stroną (N):** warunek w Producencie przeciw cenie z trwającej sesji
+  (czerwona wada, groźna przy ręcznych biegach w dzień roboczy przed 17:00 — notatka, kod,
+  wdrożenie na EC2); komentarz „niedobór pamięci” w `compaction.py`; odpięcie `IAMFullAccess`
+  od użytkownika `gpw-tracker-admin` (konsola IAM, robi Gracjan, najpierw sprawdzenie, że nic
+  z niej nie korzysta). Kolejność trzech napraw — do ustalenia po README.
+- **Zostają jako ograniczenia opisane w README (O):** kwadrans zapasu u Yahoo (od 26.09 głośny
+  i sam się naprawia); korekty Yahoo wstecz (razem z nimi uśpiony przypadkowy wybór ceny
+  w Silverze — naprawiać kiedyś razem); `close()` bez `finally`; ostrzeżenia SQLAlchemy
+  i `value_deserializer`; brak planu B dla źródła; nowa spółka (partycja w Athenie + okno
+  `range=3y`) — warunek „przed dodaniem spółki”; rozjazd nazw kolumn w rankingu; granice
+  kontroli (zła cena przy dobrej dacie, ubytek u wszystkich, fałszywy alarm w święta);
+  kompakcja ręczna raz w miesiącu.
+- **Później (P):** aktualizacja Amazon Linux — po 17.10, osobna notatka.
+- Power BI — odłożony decyzją z 03.10 (README: dane do 20.09).
+
 - Producent uruchomiony przed 17:00 zapisuje cenę z trwającej sesji jako
   zamknięcie.
 - Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
