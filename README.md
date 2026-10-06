@@ -105,19 +105,22 @@ sprawdzenie z liczbą policzoną przed biegiem; awaria jest głośna; działa ta
 działać (EC2); opis mówi też, czego nie ma.
 
 **Sprawdzone:**
-- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 03.10).
+- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 06.10).
 - Kontrola o 18:30 chodzi z `cron` od 21.09, a sprawdzenie danych w Athenie od 26.09.
-  Wymuszone awarie (19.09 i 26.09) dały u stróża `Failure` i e-mail.
+  Wymuszone awarie (19.09 i 26.09) dały u stróża `Failure` i e-mail. 06.10 ta sama próba na
+  Pythonie 3.14 dała `Failure` z treścią co do bajtu taką, jak policzona przed wysłaniem.
 - Dane: 785 dni notowań na spółkę, od 14.08.2023 do 02.10.2026 (2355 wierszy), te same daty
   u wszystkich trzech. Kursy z 17, 18 i 21.09 są zgodne z archiwum notowań GPW. Starszych
   nie porównywaliśmy.
 - Od 03.10 EC2 liczy na Pythonie 3.14. Pliki Silvera i Golda z nowego i starego Pythona są
-  identyczne co do bajtu, a pierwszy bieg (sobota) zgadza się co do linii. **Pierwszy dzień
-  giełdowy na nowym Pythonie to 05.10, jeszcze niesprawdzony.**
+  identyczne co do bajtu, a pierwszy bieg (sobota) zgadza się co do linii. Pierwszy dzień
+  giełdowy na nowym Pythonie (05.10) też: Kafka i zapis do S3 działają jak wcześniej.
 
 **Czego nie ma i znane ograniczenia:**
 - **Ręczne uruchomienie Producenta w dzień roboczy przed 17:00 zapisze cenę z trwającej sesji
-  jako kurs zamknięcia.** Godzinę pilnuje tylko `cron`, nie kod. Do naprawy przed stroną.
+  jako kurs zamknięcia.** Godzinę pilnuje tylko `cron`, nie kod. Warunek w kodzie (przed 17:55
+  pomiń dzisiejszą świecę) jest napisany i sprawdzony na laptopie (06.10), na EC2 jeszcze go nie
+  ma.
 - Korekty, które Yahoo wprowadza wstecz, nie docierają do S3. Zostaje cena z pierwszego
   pobrania.
 - Gdy Yahoo spóźni się ze świecą, kontrola o 18:30 zgłosi jej brak, a Producent dociągnie

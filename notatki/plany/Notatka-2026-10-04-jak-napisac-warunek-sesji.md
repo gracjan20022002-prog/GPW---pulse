@@ -9,20 +9,29 @@ Przykład to sklep, który zamyka kasę o 17:00 i ma pewny raport od 17:15 — n
 **Każdy wynik z przykładu pochodzi z uruchomienia 04.10** (Python 3.14.2, laptop). Twoich
 plików nie ruszałem.
 
+**Zmiana 05.10:** Gracjan nazwał plik `kod/session.py`, a testy `kod/test_session.py` (para jak
+`control.py`/`test_control.py`). Wszystkie nazwy w notatce poprawione z `sesja` na `session`.
+W tabeli błędów (Część 5) dopisane wiersze z 05.10. Wynik porcji 1: `10 passed in 0.04s`.
+
+**06.10:** porcja 2 zrobiona — pięć zmian w `kod/data_ingestion.py` (92 linie), `28 passed in
+2.16s`, bieg z martwym brokerem o 16:45:35 z dopiskiem przy trzech spółkach (Część 6). Część 8
+poprawiona: ręczny bieg na EC2 **przed 16:50**, nie „przed 17:55”; wdrożenie przesunięte na 07.10
+(decyzja Gracjana: sesja 06.10 zaczęła się o 16:28).
+
 ---
 
 ## Część 1. Kroki (po jednej linii, szczegóły niżej)
 
 **Porcja 1 — funkcja i testy (dziś):**
-1. Nowy plik `kod/sesja.py`: import `datetime` i `time` z `datetime`, import `ZoneInfo` z `zoneinfo`.
-2. `kod/sesja.py`: dwie stałe — `STREFA` (strefa `Europe/Warsaw`) i `PROG` (godzina 17:55).
-3. `kod/sesja.py`: funkcja `dzien_do_pominiecia(teraz)` — przelicza `teraz` na `STREFA`; przed `PROG` zwraca datę, inaczej `None`.
-4. Nowy plik `kod/test_sesja.py`: importy i `UTC = ZoneInfo("UTC")`.
-5. `kod/test_sesja.py`: 10 testów z tabeli w Części 4.
-6. `pytest kod/test_sesja.py -v` → `10 passed`.
+1. Nowy plik `kod/session.py`: import `datetime` i `time` z `datetime`, import `ZoneInfo` z `zoneinfo`.
+2. `kod/session.py`: dwie stałe — `STREFA` (strefa `Europe/Warsaw`) i `PROG` (godzina 17:55).
+3. `kod/session.py`: funkcja `dzien_do_pominiecia(teraz)` — przelicza `teraz` na `STREFA`; przed `PROG` zwraca datę, inaczej `None`.
+4. Nowy plik `kod/test_session.py`: importy i `UTC = ZoneInfo("UTC")`.
+5. `kod/test_session.py`: 10 testów z tabeli w Części 4.
+6. `pytest kod/test_session.py -v` → `10 passed`.
 
 **Porcja 2 — wpięcie w Producenta (dziś, po zgodnej porcji 1):**
-7. `kod/data_ingestion.py`: import `dzien_do_pominiecia`, `STREFA`, `PROG` z `sesja`.
+7. `kod/data_ingestion.py`: import `dzien_do_pominiecia`, `STREFA`, `PROG` z `session`.
 8. `kod/data_ingestion.py`: przed pętlą spółek — `pomin` z `datetime.now(STREFA)`.
 9. `kod/data_ingestion.py`: na początku każdej spółki — `pominiete = False`.
 10. `kod/data_ingestion.py`: w pętli po świecach — gdy `data == pomin`: `pominiete = True` i `continue`.
@@ -31,13 +40,13 @@ plików nie ruszałem.
 13. Bieg Producenta na laptopie **z martwym brokerem** (Część 6) → `nowych dni: 23`, `stan: nietknięte`, pamięć nietknięta.
 14. Commit i `git push` (Część 7).
 
-**Porcja 3 — wdrożenie (od wtorku 06.10, Część 8).**
+**Porcja 3 — wdrożenie (środa 07.10, Część 8).**
 
 ---
 
 ## Część 2. Zasady, wszystkie naraz
 
-1. **`sesja.py` to czysta funkcja**: bez sieci, bez plików, bez `print`. Jak `sprawdz_daty`
+1. **`session.py` to czysta funkcja**: bez sieci, bez plików, bez `print`. Jak `sprawdz_daty`
    w `path.py` — dostaje dane, zwraca wynik.
 2. **Funkcja dostaje godzinę jako parametr `teraz`**, nie woła w środku `datetime.now()`.
    Inaczej test nie mógłby podać „wtorku 16:30” — dostałby prawdziwą godzinę.
@@ -46,7 +55,7 @@ plików nie ruszałem.
 4. **Porównanie ostre `<`**: o 17:55 równo dzień jest już brany (`None`). Tak samo w przykładzie
    (17:15 → `None`, przypadek C).
 5. **Funkcja zwraca `date` albo `None`**, nic innego.
-6. **Stałe `STREFA` i `PROG` stoją tylko w `sesja.py`**, a `data_ingestion.py` je importuje.
+6. **Stałe `STREFA` i `PROG` stoją tylko w `session.py`**, a `data_ingestion.py` je importuje.
    Jedno miejsce na próg — tekst dopisku też bierze go z `PROG`, więc zmiana progu nie zostawi
    kłamiącego komunikatu.
 7. **W Producencie `pomin` liczysz raz, przed pętlą spółek**, z `datetime.now(STREFA)`.
@@ -207,15 +216,15 @@ Wynik: `2 passed in 0.02s`.
 
 | Przykład | Projekt |
 |---|---|
-| `sklep.py` | `kod/sesja.py` |
+| `sklep.py` | `kod/session.py` |
 | `RAPORT = time(17, 15)` | `PROG = time(17, 55)` |
 | `dzien_niepewny(teraz)` | `dzien_do_pominiecia(teraz)` |
-| `test_sklep.py` | `kod/test_sesja.py` |
+| `test_sklep.py` | `kod/test_session.py` |
 | pętla po `utargi`, `zeszyt` | pętla `for t, c in con:` w `data_ingestion.py`, słownik `dane` |
 | `dzien` | `data` (z `datetime.fromtimestamp(t).date()`) |
 | `linia += …` | `wynik[-1] += …` |
 
-**Dziesięć testów do `kod/test_sesja.py`** (wyniki sprawdzone 04.10 na tej samej logice z progiem
+**Dziesięć testów do `kod/test_session.py`** (wyniki sprawdzone 04.10 na tej samej logice z progiem
 17:55; nazwy do wyboru, te są propozycją):
 
 | # | Nazwa | `teraz` | Ma zwrócić |
@@ -240,15 +249,21 @@ Testy 5–8 to sedno: udają EC2 (UTC) latem i zimą.
 | Co widzisz | Co to znaczy |
 |---|---|
 | `ModuleNotFoundError: No module named 'pyathena'` przy `pytest kod/` | `(.venv)` nie jest włączone |
-| `ModuleNotFoundError: No module named 'sesja'` | plik nie leży w `kod/` albo ma inną nazwę |
-| `ImportError: cannot import name 'PROG' from 'sesja'` | literówka w nazwie stałej albo jej brak w `sesja.py` |
+| `ModuleNotFoundError: No module named 'session'` | plik nie leży w `kod/` albo ma inną nazwę |
+| `ImportError: cannot import name 'PROG' from 'session'` | literówka w nazwie stałej albo jej brak w `session.py` |
 | `ZoneInfoNotFoundError: 'No time zone found with key …'` | literówka w nazwie strefy — ma być `Europe/Warsaw` (przypadek N) |
 | `TypeError: time.time() takes no arguments` | `import time` zamiast `from datetime import time` (przypadek O) |
 | `NameError: name 'time' is not defined` | brak `time` w imporcie z `datetime` |
+| `TypeError: 'str' object cannot be interpreted as an integer`, a w `pytest` `ERROR collecting …` i `Interrupted: 1 error during collection` (dopisane 05.10) | godzina podana jako tekst w cudzysłowie, np. `time("17, 55")`. `time` przyjmuje dwie liczby: `time(17, 55)`. Błąd wybucha już przy imporcie pliku, więc nie rusza żaden test (uruchomione 05.10 na przykładzie sklepu) |
+| `SyntaxError: leading zeros in decimal integer literals are not permitted` (dopisane 05.10) | liczba z zerem z przodu, np. `datetime(2026, 10, 6, 9, 05)`. Minuty i godziny pisz bez zera: `5`, `9`. Wyjątek: samo `00` Python przyjmuje jako `0` (uruchomione 05.10) |
 | test 3 (`test_dokladnie_prog`) nie przechodzi | `<=` zamiast `<` (zasada 4) |
 | testy 5–8 nie przechodzą, 1–4 tak | brak `.astimezone(STREFA)` w funkcji |
+| nie przechodzą testy 6, 8 i 9, a 5 i 7 przechodzą (dopisane 05.10) | w testach 5–9 `tzinfo=STREFA` zamiast `tzinfo=UTC` — test udaje laptop zamiast EC2; 5 i 7 przechodzą przypadkiem i niczego nie sprawdzają |
 | test przechodzi na laptopie, choć data w teście bez `tzinfo=` | przypadek: „goła” godzina liczy się jako czas tej maszyny — na EC2 dałaby inny wynik; dopisz `tzinfo=` (zasada 12) |
 | `IndentationError` | wcięcia w nowych liniach `data_ingestion.py` — liczby spacji są w krokach |
+| `NameError: name 'pomin' is not defined` (dopisane 05.10) | brak linii `pomin = …` albo stoi ona pod pętlą spółek, a nie nad nią |
+| `NameError: name 'pominiete' is not defined` (dopisane 05.10) | brak `pominiete = False` przy `dane = {}` — w biegu, w którym nic nie pominięto, `if pominiete:` nie ma czego sprawdzić |
+| `pytest kod/ -v` → `28 passed`, a Producent i tak wybucha (dopisane 05.10) | żaden test nie importuje `data_ingestion.py`, więc błędy w nim widać dopiero przy biegu — dlatego bieg z martwym brokerem jest obowiązkowy |
 | bieg na laptopie w dzień roboczy przed 17:55: brak dopisku, `nowych dni` o 1 większe | warunek nie działa: `str(data) == pomin` (przypadek M) albo `continue` za `dane[str(data)] = c` |
 | bieg na laptopie: `wysłane:` większe od 0 albo `stan: zapisane` | **Producent połączył się z prawdziwym brokerem** — `KAFKA_BOOTSTRAP` nieustawione. Zatrzymaj się i napisz mi, nic więcej nie uruchamiaj |
 
@@ -256,7 +271,7 @@ Testy 5–8 to sedno: udają EC2 (UTC) latem i zimą.
 
 ## Część 6. Uruchomienie na laptopie i co ma wyjść
 
-**Testy:** `pytest kod/test_sesja.py -v` → 10 × `PASSED`, `10 passed`. Potem `pytest kod/ -v` →
+**Testy:** `pytest kod/test_session.py -v` → 10 × `PASSED`, `10 passed`. Potem `pytest kod/ -v` →
 `28 passed` (18 dotychczasowych + 10).
 
 **Bieg Producenta z martwym brokerem (krok 13)** — wzór z 11.09. Adres `localhost:9999` to port,
@@ -280,22 +295,34 @@ sesji, 9:00–16:50 (Część 8, krok 2): wtedy `nowych dni: 23` z dopiskiem `, 
 
 **Kod i testy przełożone przez Gracjana na poniedziałek 05.10**, wdrożenie wtorek 06.10.
 
+**Przeliczone 05.10** (pamięć laptopa sprawdzona: 3 × 762 wiersze, ostatni 2026-09-01, zapis
+2026-09-03 19:17:54):
+- **pon. 05.10 wieczorem (po 17:55):** 3 × `nowych dni: 24, wysłane: 0, stan: nietknięte`, **bez
+  dopisku** (23 dni do 02.10 + 05.10; po progu nic się nie pomija). Sprawdza tylko, że plik się
+  uruchamia i liczy jak przedtem;
+- **wt. 06.10 w trakcie sesji (9:00–16:50):** 3 × `nowych dni: 24, wysłane: 0, stan: nietknięte,
+  dziś pominięte (przed 17:55)` — bez warunku byłoby 25.
+
+**Wynik 06.10:** `pytest kod/ -v` → `28 passed in 2.16s`; bieg o 16:45:35, po 30 s cztery linie
+`ERROR`, potem 3 × `nowych dni: 24, wysłane: 0, stan: nietknięte, dziś pominięte (przed 17:55)`;
+`companies\CBF.WA.txt` dalej z zapisem `2026-09-03 19:17:54`. Zgodne co do słowa.
+
 ---
 
 ## Część 7. Commit
 
-W commicie: `kod/sesja.py`, `kod/test_sesja.py`, `kod/data_ingestion.py`, obie notatki z 04.10
+W commicie: `kod/session.py`, `kod/test_session.py`, `kod/data_ingestion.py`, obie notatki z 04.10
 o Producencie i dokumentacja z dzisiejszej sesji. Liczby podam przed komendą, po
-`git status --short`. Na EC2 nic nie zmieniamy do wtorku.
+`git status --short`. Na EC2 nic nie zmieniamy do środy 07.10.
 
 ---
 
-## Część 8. Wdrożenie (od wtorku 06.10, w dzień giełdowy, przed 17:55)
+## Część 8. Wdrożenie (środa 07.10, w dzień giełdowy; część ręczna przed 16:50)
 
 Kolejność, każdy krok z przewidywaniem podanym przed komendą:
 
 1. **Kontrola biegów z 04 i 05.10** (tabela „Przewidywania od 04.10” w CLAUDE.md) — musi być
-   zgodna, zanim cokolwiek zmienimy.
+   zgodna, zanim cokolwiek zmienimy. ✅ 05.10 (bieg 06.10 też zgodny).
 2. **Laptop, martwy broker, w trakcie sesji (9:00–16:50):** `nowych dni: N` z dopiskiem
    `, dziś pominięte (przed 17:55)` przy trzech spółkach (N = dni od 02.09 do wczoraj). To
    pierwszy dowód, że warunek działa na prawdziwych danych z Yahoo — bez ryzyka, bo nic nie
@@ -303,13 +330,19 @@ Kolejność, każdy krok z przewidywaniem podanym przed komendą:
    pewno ma dzisiejszą świecę (08.09 o 16:43 była), a między 17:00 a 18:00 może jej nie być
    (11.09 o 17:45 nie było) — wtedy dopisek się nie pojawi i nie będzie to błąd, tylko brak
    czego pomijać. Ten sam bieg można zrobić już w poniedziałek 05.10 (EC2 go nie dotyka).
-3. **EC2, przed 17:55:** `git pull` (z `4aca12d` do nowego commita), `git status --short` pusty,
-   plik `kod/sesja.py` jest.
-4. **EC2, ręczny bieg Producenta bez `>>`**, z `KAFKA_BOOTSTRAP=localhost:9094`: 3 × `nowych dni:
-   0, wysłane: 0, stan: zapisane, dziś pominięte (przed 17:55)`; zakładka bez zmian; w pamięci
-   spółek dalej ostatni dzień = wczoraj.
-5. **EC2, wieczorem po 18:32:** blok z `cron` 28 linii, 3 × `nowych dni: 1, wysłane: 1, stan:
-   zapisane` (bez dopisku, bo 18:00 > 17:55), `Odebrano 3`, `Kontrola: OK`. To dowód na
+   ✅ **06.10 o 16:45:35:** 3 × `nowych dni: 24, wysłane: 0, stan: nietknięte, dziś pominięte
+   (przed 17:55)`, pamięć nietknięta.
+3. **EC2, przed 16:50** (poprawione 06.10, było „przed 17:55”): `git pull` (z `4aca12d` do
+   commita z 06.10), `git status --short` pusty przed i po, plik `kod/session.py` jest.
+4. **EC2, ręczny bieg Producenta bez `>>`, w trakcie sesji (9:00–16:50)**, z
+   `KAFKA_BOOTSTRAP=localhost:9094`: 3 × `nowych dni: 0, wysłane: 0, stan: zapisane, dziś
+   pominięte (przed 17:55)`; `LOG-END-OFFSET` dalej 2390 (nic nie poszło do Kafki); w pamięci
+   spółek dalej 787 wierszy, ostatni `2026-10-06`. **Dlaczego przed 16:50 (dopisane 06.10):** jak
+   w kroku 2 — po 17:00 Yahoo może nie mieć świecy, wtedy dopisku nie będzie. To nie błąd, ale
+   bieg nie dowiedzie pominięcia. `nowych dni: 1, wysłane: 1` znaczy, że warunek nie działa — stop.
+5. **EC2, wieczorem po 18:32 (07.10):** blok z `cron` 28 linii, start 1140, `wc -l` 1167, 3 ×
+   `nowych dni: 1, wysłane: 1, stan: zapisane` (bez dopisku, bo 18:00 > 17:55), `Odebrano 3`,
+   `Kontrola: Dane 2364 wierszy`, `Kontrola: OK`, zakładka 2393, pliki 788 × 3. To dowód na
    prawdziwej drodze: dzień pominięty po południu przyszedł o 18:00.
 6. **26.10 (pierwszy dzień giełdowy po zmianie czasu):** blok bez dopisku, `nowych dni: 1` — strefa
    liczy się dobrze także zimą.

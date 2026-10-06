@@ -1229,7 +1229,9 @@ jakby był wpisany ręcznie. Różnica z `<( )` wyżej: `<( )` udaje plik, `$( )
 *`export K=$(grep '^KOLOR=' lody.txt | cut -d= -f2-)`, potem `echo $K` → `niebieski`.
 26.09: `export STROZ_URL=$(crontab -l | grep '^STROZ_URL=' | cut -d= -f2-)` — adres stróża
 trafił do zmiennej bez pokazania go na ekranie. W historii komend zostaje sama komenda,
-nie adres. Kontrola: `echo ${#STROZ_URL}` → `56`.*
+nie adres. Kontrola: `echo ${#STROZ_URL}` → `56`. 06.10 to samo przed testem `/fail` na
+Pythonie 3.14. Bez `export` Python adresu by nie zobaczył: `SMAK=truskawka; bash -c 'echo
+"[$SMAK]"'` → `[]`, po `export SMAK` → `[truskawka]` (uruchomione 06.10).*
 
 ### `sed 's/stare/nowe/'`, `-e` i `^`
 `sed` czyta plik linia po linii i wypisuje go ze zmianami; samego pliku nie
@@ -1266,6 +1268,9 @@ komendy (w PowerShellu tego skrótu nie ma). `date "+…"` wypisuje czas
 w podanym formacie: `%H` — godzina, `%M` — minuty, `%Z` — skrót strefy.
 *`date "+%H:%M %Z"` → `13:03 UTC`; `TZ=Europe/Warsaw date "+%H:%M %Z"` →
 `15:03 CEST`.*
+*06.10: `POGODA=deszcz bash -c 'echo "[$POGODA]"'` → `[deszcz]`, a zaraz potem
+`echo "[$POGODA]"` → `[]`. Na EC2 `KONTROLA_DATA=2026-10-07 venv314/bin/python kod/control.py` —
+udawana data tylko dla tego jednego biegu.*
 
 ### CEST i CET
 Polski czas letni (CEST) jest dwie godziny przed UTC, zimowy (CET) —
@@ -1380,6 +1385,32 @@ w linii”, bez `g` zamienia się tylko pierwsze.
 *Uruchomione 04.10, wejście `sklep/mleko i sklep/chleb`: `sed 's#sklep/#market/#g'` →
 `market/mleko i market/chleb`; bez `g` → `market/mleko i sklep/chleb`. 03.10:
 `sed 's#/venv/bin/python#/venv314/bin/python#g'` — linia `0 18` ma Pythona dwa razy.*
+
+### Rura `|`
+Łączy dwie komendy: to, co wypisała komenda po lewej, trafia na wejście komendy po prawej.
+Rur może być kilka w jednej linii — czyta się od lewej do prawej.
+*`printf "lody: 5\nKontrola: OK\npogoda: 18\n" | grep -v '^Kontrola:' | wc -c` → `19`: najpierw
+trzy linie, potem zostają dwie, na końcu liczba ich bajtów (uruchomione 06.10). 06.10 na EC2:
+`tail -n 28 companies/errors.txt | grep -v '^Kontrola:' | wc -c` → `1681`.*
+
+### `grep -v` (odwrócone wyszukiwanie)
+`-v` odwraca `grep`: wypisuje linie, które **nie** pasują do wzorca.
+*`printf "lody truskawkowe\nKontrola: OK\npogoda: 18 st.\n" | grep -v '^Kontrola:'` →
+`lody truskawkowe` i `pogoda: 18 st.` (uruchomione 06.10). W `control.py` to samo robi
+`wytnij_blok` (linia 32, `if not linia.startswith("Kontrola:")`).*
+
+### `pwd`
+*print working directory* — wypisuje folder, w którym stoi okno. Sprawdzenie przed komendami,
+w których ścieżki liczą się od tego folderu (`companies/…`, `kod/…`).
+*06.10 na EC2: `pwd` → `/home/ec2-user/GPW---pulse`.*
+
+### Znak nowej linii na końcu: `wc -c` a `"\n".join(...)`
+W pliku każda linia kończy się znakiem nowej linii, także ostatnia, i `wc -c` liczy je wszystkie.
+`"\n".join(linie)` w Pythonie stawia ten znak tylko **między** liniami, więc wynik jest o 1 bajt
+krótszy.
+*`"\n".join(["lody", "sok"])` → `lody\nsok`, 8 bajtów; plik z tymi dwiema liniami ma 9. 06.10:
+blok na EC2 `wc -c` 1681, w treści zgłoszenia 1680; razem z linią `AWARIA` (154) i pustą linią
+(2) stróż dostał 1836 B — co do bajtu jak przewidziane przed biegiem.*
 
 ---
 
@@ -1516,6 +1547,10 @@ odróżnienia od tego, że skrypt się nie uruchomił.*
 Przerywa bieżący obrót pętli i przechodzi do następnego. Reszta ciała
 pętli w tym obrocie się nie wykona.
 *Różnica wobec `break`, który wychodzi z pętli w ogóle.*
+*06.10 w Producencie (`kod/data_ingestion.py`, linie 59–61): świeca z dziś przed 17:55 →
+`pominiete = True` i `continue`, więc `dane[str(data)] = c` się nie wykonuje i ceny nie ma ani
+w Kafce, ani w pamięci. `pominiete` to **flaga** — zmienna `True`/`False`, która zapamiętuje, że
+coś się zdarzyło; ustawiana na `False` na początku każdej spółki, żeby nie przeszła na następną.*
 
 ### `+=`
 Skrót od „zwiększ o". `x += 1` znaczy `x = x + 1`.
@@ -1791,8 +1826,8 @@ godzinę, `.date()` samą datę. `time(godzina, minuta)` (z `from datetime impor
 *`datetime(2026,10,6,15,0,tzinfo=UTC).astimezone(ZoneInfo("Europe/Warsaw"))` →
 `2026-10-06 17:00:00+02:00`; to samo 26.10 → `16:00:00+01:00`. `time(17,14) < time(17,15)` →
 `True`, `time(17,15) < time(17,15)` → `False`. 23:30 UTC 06.10 to w Warszawie już 07.10.
-Tak ma liczyć godzinę warunek „dziś za wcześnie” Producenta (`kod/sesja.py`, zatwierdzony
-04.10), bo EC2 chodzi w UTC.*
+Tak liczy godzinę warunek „dziś za wcześnie” Producenta (`kod/session.py`, od 05.10), bo EC2
+chodzi w UTC.*
 
 ### Mnożenie i sklejanie list (`*`, `+`)
 `lista * 3` powtarza listę 3 razy, a `lista1 + lista2` skleja dwie listy. Doklejać można
@@ -1874,6 +1909,80 @@ obsługuje (w Athenie nie ma czego cofać), więc próba też się nie udaje.
 w `errors.txt` 3 linie, z czego dwie nie zaczynają się od `Kontrola:`. Nie zawierają słów,
 których szuka kontrola logu, więc na wynik nie wpływają. Przy zmianie wersji pandas na EC2
 (np. razem z Pythonem 3.10) tekst znów się zmieni.
+
+### Kropka i podkreślnik w nazwach
+**Kropka** znaczy „z czego biorę”: po lewej właściciel (moduł z importu albo zmienna), po prawej
+rzecz, która do niego należy. **Podkreślnik** to spacja wewnątrz jednej nazwy, bo nazwa nie może
+mieć spacji. Sprawdzenie: zakryj wszystko od kropki w prawo — to, co zostało, musi istnieć w kodzie.
+*`pd.read_json(...)` — z modułu `pd` funkcja `read_json`; `odp.json()` — metoda zmiennej `odp`.
+Pomyłki, uruchomione 06.10: `pd.normalize_json` → `AttributeError: module 'pandas' has no
+attribute 'normalize_json'`; `pd.read.json` → `AttributeError: … has no attribute 'read'`;
+samo `read_json(...)` → `NameError: name 'read_json' is not defined`; `df.json_normalize` →
+`AttributeError: 'DataFrame' object has no attribute 'json_normalize'`. `AttributeError` = coś nie
+tak po kropce, `NameError` = przed kropką. Po `from json import dumps` pisze się samo
+`dumps(...)` — właściciel jest już w imporcie (linia 8 `data_ingestion.py`).*
+
+### Metoda
+Funkcja, która należy do konkretnej zmiennej (obiektu) i działa na niej. Wywołuje się ją po
+kropce, z nawiasem. Funkcja z modułu dostaje dane w nawiasie.
+*`odp.json()` zamienia treść tej odpowiedzi na słownik; `df.to_json()` zapisuje tę tabelę jako
+JSON; `teraz.astimezone(STREFA)` przelicza tę godzinę. Dla porównania funkcja z modułu:
+`json.loads(tekst)`.*
+
+### `dir(...)`
+Wypisuje wszystkie nazwy w środku modułu albo zmiennej. Z list comprehension działa jak
+wyszukiwarka.
+*Uruchomione 06.10: `[n for n in dir(pd) if "json" in n]` → `['json_normalize', 'read_json']`;
+to samo dla tabeli `df` → `['to_json']`; dla odpowiedzi z `requests.get` → `['json']`.
+W edytorze to samo daje lista podpowiedzi po wpisaniu kropki.*
+
+### `pd.read_json`, `pd.json_normalize`, `df.to_json`
+`pd.read_json(plik)` wczytuje JSON do tabeli; zagnieżdżony słownik zostaje w jednej kolumnie.
+`pd.json_normalize(lista)` rozkłada zagnieżdżenie na osobne kolumny, z nazwami połączonymi
+kropką — to kropka w **tekście** nazwy, sięga się po nią `df["budka.miasto"]`. `df.to_json()`
+zapisuje tabelę jako JSON. Wzór pandas: `pd.read_…` tworzy tabelę, `df.to_…` zapisuje istniejącą;
+`json_normalize` jest wyjątkiem.
+*Lody, uruchomione 06.10: `read_json` → kolumny `smak`, `cena`, `budka` (w niej
+`{'miasto': 'Kraków', 'numer': 3}`); `json_normalize` → `smak`, `cena`, `budka.miasto`,
+`budka.numer`.*
+
+---
+
+## Strona internetowa
+
+### HTML i strona statyczna
+**HTML** to język, w którym zapisana jest strona: tekst ze znacznikami, które mówią przeglądarce,
+co jest nagłówkiem, akapitem, tabelą. **Strona statyczna** to gotowy plik HTML, który serwer
+tylko oddaje — przy wejściu niczego nie liczy. Przeciwieństwo: aplikacja, która przy każdym
+wejściu uruchamia kod.
+*`<h1>Lody</h1><p>Truskawka 6,50 zł</p>` — przeglądarka pokazuje duży nagłówek „Lody”, a pod nim
+zwykły tekst. Decyzja 06.10: strona projektu będzie statyczna, plik HTML złoży skrypt w Pythonie.*
+
+### Hosting i GitHub Pages
+**Hosting** to miejsce w sieci, z którego strona jest podawana przeglądarkom. **GitHub Pages** to
+darmowy hosting plików z repozytorium GitHuba, pod adresem `nazwa.github.io/…`, z szyfrowanym
+połączeniem (`https`). Strona jest publiczna.
+*Decyzja 06.10: najpierw plik na laptopie, potem GitHub Pages — strona zostanie także po
+wyłączeniu AWS (19.02.2027).*
+
+### GitHub Actions
+Automat po stronie GitHuba, który uruchamia skrypt o ustalonej porze albo po każdym `git push`.
+To jeden z rodzajów CI/CD (automatycznego sprawdzania i wdrażania). Działa na maszynie GitHuba,
+nie na EC2 ani na laptopie.
+*Pomysł z 06.10 do notatki projektowej: codziennie po biegu skrypt czyta wynik Golda z S3
+osobnym kluczem AWS tylko do odczytu i odświeża stronę na GitHub Pages.*
+
+### Plotly
+Biblioteka Pythona do wykresów **interaktywnych**: po najechaniu myszką widać wartość z danego
+dnia, można przybliżać. Zapisuje wykres do pliku HTML, bez pisania JavaScriptu.
+*Decyzja 06.10: wykresy na stronę w Plotly. Na laptopie jeszcze niezainstalowany — przykład
+z wejściem i wyjściem przyjdzie w instrukcji przed kodem.*
+
+### Streamlit (porównanie, odrzucony)
+Biblioteka do aplikacji internetowych pisanych w samym Pythonie. Aplikacja musi chodzić cały czas
+na serwerze.
+*06.10 odrzucony dla strony: na `t3.micro` chodzi broker Kafki, pamięci jest mało, a aplikacja
+wymagałaby nowego otwartego portu.*
 
 ---
 

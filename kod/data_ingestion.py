@@ -3,6 +3,7 @@ from datetime import datetime
 import logging
 import os
 from config import ticker
+from session import dzien_do_pominiecia, STREFA, PROG
 from kafka import KafkaProducer
 from json import dumps
 from kafka.errors import KafkaError
@@ -23,8 +24,10 @@ except KafkaError:
     producer = None
 
 wynik = []
+pomin = dzien_do_pominiecia(datetime.now(STREFA))
 for tick in ticker:
-    dane = {}         
+    dane = {}
+    pominiete = False         
     wynik.append(f"{tick}: Brak odczytu")               
     try:                              
         with open(os.path.join(BASE_DIR, "companies", f"{tick}.txt"), "r", encoding="utf-8") as plik:
@@ -53,6 +56,9 @@ for tick in ticker:
             for t, c in con:
                 if t and c is not None:
                     data = datetime.fromtimestamp(t).date()
+                    if data == pomin:
+                        pominiete = True
+                        continue
                     dane[str(data)] = c
             posortowane = sorted(dane.keys())
             nowe_daty = set(dane.keys()) - stare_daty
@@ -74,6 +80,8 @@ for tick in ticker:
                         plik.write(f"{data} 17:00:00, {dane[data]}\n")
             stan = "zapisane" if flaga else "nietknięte"
             wynik[-1] = f"{tick}: nowych dni: {len(nowe_daty)}, wysłane: {wyslane}, stan: {stan}"
+            if pominiete:
+                wynik[-1] += f", dziś pominięte (przed {PROG.strftime('%H:%M')})"
         else:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):
