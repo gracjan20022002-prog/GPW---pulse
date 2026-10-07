@@ -334,16 +334,28 @@ Kolejność, każdy krok z przewidywaniem podanym przed komendą:
    (przed 17:55)`, pamięć nietknięta.
 3. **EC2, przed 16:50** (poprawione 06.10, było „przed 17:55”): `git pull` (z `4aca12d` do
    commita z 06.10), `git status --short` pusty przed i po, plik `kod/session.py` jest.
+   ✅ **07.10, ale o 18:57 UTC** (sesji w ciągu dnia nie było): `4aca12d..5676575`, `27 files
+   changed, 2220 insertions(+), 449 deletions(-)`, `git status --short` pusty przed i po, `wc -l`
+   `kod/session.py` 9, `kod/data_ingestion.py` 91 (92 linie, ostatnia bez końca linii).
 4. **EC2, ręczny bieg Producenta bez `>>`, w trakcie sesji (9:00–16:50)**, z
    `KAFKA_BOOTSTRAP=localhost:9094`: 3 × `nowych dni: 0, wysłane: 0, stan: zapisane, dziś
    pominięte (przed 17:55)`; `LOG-END-OFFSET` dalej 2390 (nic nie poszło do Kafki); w pamięci
    spółek dalej 787 wierszy, ostatni `2026-10-06`. **Dlaczego przed 16:50 (dopisane 06.10):** jak
    w kroku 2 — po 17:00 Yahoo może nie mieć świecy, wtedy dopisku nie będzie. To nie błąd, ale
    bieg nie dowiedzie pominięcia. `nowych dni: 1, wysłane: 1` znaczy, że warunek nie działa — stop.
+   🟨 **07.10 tylko część:** bieg o 18:58:04 UTC (po 18:00, decyzja Gracjana) → 3 × `nowych dni: 0,
+   wysłane: 0, stan: zapisane`, bez dopisku i bez `Traceback`; log 1167, pliki 788, zakładka 2393.
+   Dowodzi, że nowy kod i strefa działają na EC2, a nie że świeca jest pomijana. **Pominięcie —
+   w najbliższy dzień giełdowy przed 16:50** (08.10: `LOG-END-OFFSET` 2393, pliki 788, ostatni
+   wiersz `2026-10-07`; 09.10: 2396, 789, `2026-10-08`).
 5. **EC2, wieczorem po 18:32 (07.10):** blok z `cron` 28 linii, start 1140, `wc -l` 1167, 3 ×
    `nowych dni: 1, wysłane: 1, stan: zapisane` (bez dopisku, bo 18:00 > 17:55), `Odebrano 3`,
    `Kontrola: Dane 2364 wierszy`, `Kontrola: OK`, zakładka 2393, pliki 788 × 3. To dowód na
    prawdziwej drodze: dzień pominięty po południu przyszedł o 18:00.
+   **07.10 liczby trafione, ale bieg szedł jeszcze na starym kodzie** (`pull` dopiero o 18:57 UTC).
+   Pierwszy bieg `cron` na nowym kodzie: **08.10** — start 1168, `wc -l` 1195, 3 × `nowych dni: 1`
+   bez dopisku, `Odebrano 3`, `Dane 2367`, zakładka 2396, pliki 789 × 3. Dowodem „pominięty
+   przyszedł o 18:00” będzie tylko w dniu, w którym rano był krok 4.
 6. **26.10 (pierwszy dzień giełdowy po zmianie czasu):** blok bez dopisku, `nowych dni: 1` — strefa
    liczy się dobrze także zimą.
 

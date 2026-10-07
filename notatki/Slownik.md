@@ -356,6 +356,15 @@ przesunąć do przodu, bez łączenia. Najprostszy i najbezpieczniejszy rodzaj `
 *Lokalnie commit A, na GitHubie A→B→C: `pull` przesuwa lokalną gałąź z A do C, wypisuje
 `Fast-forward` i listę zmienionych plików.*
 
+### `create mode` i `delete mode` w wyniku `git pull`
+Pod podsumowaniem `N files changed` git wypisuje osobno pliki, które **powstały**
+(`create mode`) i które **zniknęły** (`delete mode`). Liczba `100644` to rodzaj pliku: zwykły
+plik, nie program do uruchamiania. Zmienione pliki są tylko na liście nad podsumowaniem.
+*Repozytorium z przepisami: `pull` wypisuje `create mode 100644 lody.txt` (nowy przepis) i `delete
+mode 100644 sorbet.txt` (usunięty). 07.10 na EC2: 7 × `create mode` (m.in. `kod/session.py`)
+i 1 × `delete mode` (`kod/test_plikow.py`) — tyle, ile pokazał na laptopie `git diff --name-status
+4aca12d HEAD` (litery `A` i `D`).*
+
 ### Rytuał `git checkout -- silver/ gold/` przed `git pull`
 `git checkout -- ścieżka` odrzuca zmiany w podanych plikach i przywraca je do wersji
 z ostatniego commitu. Przed `pull` na EC2 był potrzebny, bo `cron` co dzień przepisywał
@@ -1203,6 +1212,11 @@ czas lokalny, uniwersalny i ustawioną strefę.
 Liczy linie w pliku. Najtańsze możliwe sprawdzenie „czy coś przybyło".
 *`wc -l companies/errors.txt` → `440`. Policzone **przed** biegiem
 i **po** nim daje dowód, którego nie da się podrobić okiem.*
+Dokładniej: `wc -l` liczy **znaki końca linii**, nie linie widoczne w edytorze. Jeśli ostatnia
+linia nie kończy się znakiem nowej linii, wynik jest o jeden mniejszy.
+*Uruchomione 07.10: `printf 'lody\nsok' | wc -l` → `1`, `printf 'lody\nsok\n' | wc -l` → `2`.
+07.10 na EC2: `kod/data_ingestion.py` ma w edytorze 92 linie, `wc -l` → `91`, bo ostatnia linia
+(`print(wiersz)`) nie ma końca.*
 
 ### Rozmiar w bajtach a liczba wierszy; koniec linii `\r\n` i `\n`
 Rozmiar pliku (`ls -l`, `aws s3 ls`) to liczba **bajtów**, nie wierszy.

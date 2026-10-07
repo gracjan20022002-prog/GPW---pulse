@@ -161,7 +161,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (06.10 wieczorem)
+## Stan projektu — uczciwie (07.10 wieczorem)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 **Źródło prawdy o wadach i kolejności napraw:**
@@ -450,11 +450,12 @@ w październiku brak świąt; Gold `117`/`111` do końca października):
 | sob. 10.10 | 1224 | 1251 | 0 | 2370 | 2399 | 790 | #26 |
 | niedz. 11.10 | 1252 | 1279 | 0 | 2370 | 2399 | 790 | #27 |
 
-Wiersze 04–06.10 trafione w całości (stróż #18–#20). **Numery u stróża od 07.10 poprawione
+Wiersze 04–07.10 trafione w całości (stróż #18–#20 i #23). **Numery u stróża od 07.10 poprawione
 06.10 o +2**, bo ręczny test dał #21 i #22; każdy ręczny `control.py` ze `STROZ_URL` je przesuwa.
-S3 `dane_dzienne.csv`: 158096 B na 2361 wierszy (06.10), ok. +218 B na dzień giełdowy (2358 →
-2361: 157891 → 158096 B); `ranking.csv` 330–370 B. Wdrożenie warunku 07.10 bloku nie zmienia:
-o 18:00 nic się nie pomija, więc dopisku nie ma, blok dalej 28 linii.
+S3 `dane_dzienne.csv`: 158304 B na 2364 wiersze (07.10), ok. +208–218 B na dzień giełdowy (2361 →
+2364: 158096 → 158304 B); `ranking.csv` 330–370 B. Warunek na EC2 od 07.10 (18:57 UTC) bloku nie
+zmienia: o 18:00 nic się nie pomija, więc dopisku nie ma, blok dalej 28 linii. Ręczny Producent
+nie przesuwa numerów u stróża (zgłasza tylko `control.py`).
 
 **Stan 05–06.10** (dzienniki `2026-10-05.md` i `2026-10-06.md`):
 - **05.10 (poniedziałek), pierwszy dzień giełdowy na Pythonie 3.14:** kontrola o 17:01 UTC, wiersze
@@ -474,6 +475,29 @@ o 18:00 nic się nie pomija, więc dopisku nie ma, blok dalej 28 linii.
   1680; blok na EC2 `wc -c` 1681), `up → down`; `KONTROLA_DATA=2026-10-06` → **#22 `OK`**, `down →
   up`. **Nieodczytane w sesji:** maile `DOWN`/`UP` (ok. 19:27) i polskie litery w treści #21.
   Ranking 06.10: CBF 203,00, SNT 343,80, XTB 136,12.
+
+**Stan 07.10** (środa, sesja 20:39–21:10; dziennik `2026-10-07.md`). W ciągu dnia sesji nie było,
+więc okno przed 16:50 minęło. Decyzja Gracjana (zgodnie z rekomendacją): dziś kontrola i wdrożenie
+w wariancie „pull wieczorem + ręczny bieg bez pominięcia”, dowód pominięcia na EC2 później.
+- **Kontrola biegu 07.10 (stary kod), odczyt 18:53:45 UTC — wiersz tabeli trafiony w całości:**
+  1140–1167, blok 28, 3 × `nowych dni: 1 … zapisane`, `Odebrano 3`, 2 × `(2364, 3)`, `Dane 2364`,
+  `OK`, pliki 788 × 3, zakładka `2393 2393 0`, S3 **158304 B** / 350 B z 16:10:07 UTC, stróż **#23**.
+  Maile `DOWN`/`UP` z testu 06.10 przyszły. Treść #21 (polskie litery) dalej nieodczytana.
+  Ranking 07.10: CBF 199,20, SNT 342,20, XTB 135,00.
+- **Wdrożenie warunku:** `date` 18:57:26 UTC, `git pull` `4aca12d..5676575` (`27 files changed, 2220
+  insertions(+), 449 deletions(-)`, 7 × `create mode`, 1 × `delete mode` — przewidziane z `git diff
+  --stat` na laptopie), `git status --short` pusty przed i po, `wc -l` 9 / 91 (92 linie w edytorze,
+  ostatnia bez końca linii). Ręczny Producent bez `>>` o 18:58:04 UTC: 3 × `nowych dni: 0, wysłane: 0,
+  stan: zapisane`, bez dopisku i bez `Traceback`; log 1167, pliki 788, zakładka 2393. Dowód: nowy
+  kod i strefa działają na EC2. **Nie ma jeszcze:** pierwszego biegu `cron` na nowym kodzie (08.10)
+  i dowodu pominięcia na EC2 (ręczny bieg w dzień giełdowy przed 16:50). `crontab` bez zmian.
+- **Kolejność do dużej dokumentacji (ustalona 07.10):** przegląd całości + kontrola 08.10 → ręczny
+  bieg przed 16:50 → decyzja Gracjana o wadach z przeglądu → duża dokumentacja (README, CLAUDE.md,
+  tabela przeglądu, odświeżone obrazki) → strona. Nieaktualne w README, sprawdzone 07.10: „stan na
+  04.10” (linia 9), „sprawdzone do 06.10” (108), „18 testów” (95, 165), brak `session.py`
+  i `test_session.py` w tabeli, warunek jako ograniczenie (120–123) i bez opisu przy Producencie
+  (156), „uprawnienie IAM do odpięcia” (146), liczby i obrazki ze stanem na 02.10. Do decyzji:
+  przeniesienie codziennych sekcji stanu z CLAUDE.md do pliku z historią.
 
 **Kompletność sesji** (lokalny `gold/dane_dzienne.csv`, rozmiar zgodny
 z S3 po odjęciu końców linii): po 775 unikalnych dni na spółkę, te same
@@ -538,13 +562,13 @@ companies/errors.txt | tail -n N`, N = liczba dni) i porównać z tabelą „Prz
     liczbę wierszy daje też linia `Kontrola: Dane N wierszy` w logu; konsola Atheny
     potrzebna tylko do `od`/`do` albo przy rozjeździe.
 13. **[EC2, przez SSH]** `aws s3 ls s3://gpw-tracker-bucket/gold/ --recursive` — dwa pliki
-    z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2). Rozmiar `dane_dzienne.csv`: 158096 B
-    na 2361 wierszy (06.10), rośnie o ok. 73 B na wiersz (ok. +218 B na dzień giełdowy);
+    z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2). Rozmiar `dane_dzienne.csv`: 158304 B
+    na 2364 wiersze (07.10), rośnie o ok. 70 B na wiersz (ok. +208–218 B na dzień giełdowy);
     `ranking.csv` 330–370 B. **Lokalnego pliku do porównania rozmiaru nie ma od 21.09**
     (Harmonogram wyłączony).
 14. **[przeglądarka]** stróż: `Up`, ostatnie zgłoszenie ok. 18:30 (`Europe/Warsaw`), typ `GET`
     z `13.63.105.190`, `python-requests/2.34.2`, liczba zgłoszeń +1 na dzień (21.09: 3; 26.09
-    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
+    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
     `DOWN` (mail przychodzi ok. 15 minut po zmianie stanu).
 15. **[EC2, przez SSH]** (od 22.09, po punkcie 6) `ls -a silver gold` — w każdym
     `.gitkeep` i pliki `.csv`; `git status --short` — pusty.
@@ -802,7 +826,9 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
 - **Naprawić przed stroną (N):** warunek w Producencie przeciw cenie z trwającej sesji
   (czerwona wada, groźna przy ręcznych biegach w dzień roboczy przed 17:00 — notatka, kod,
   wdrożenie na EC2) — **06.10 kod i testy na laptopie zrobione** (`28 passed`, bieg z martwym
-  brokerem o 16:45 z dopiskiem przy trzech spółkach), wdrożenie na EC2 07.10; odpięcie `IAMFullAccess` od użytkownika `gpw-tracker-admin` — **✅ 04.10
+  brokerem o 16:45 z dopiskiem przy trzech spółkach), **07.10 na EC2** (`5676575`, ręczny bieg po
+  18:00 bez pominięcia zgodny); brakuje pierwszego biegu `cron` na nowym kodzie (08.10) i dowodu
+  pominięcia na EC2 (ręczny bieg w dzień giełdowy przed 16:50); odpięcie `IAMFullAccess` od użytkownika `gpw-tracker-admin` — **✅ 04.10
   ok. 16:20** (Gracjan, konsola jako root): przed — „Last Accessed” dla IAM „19 days ago” (15.09,
   sprawdzanie roli EC2), polityki przy IAM „AWSGlueConsoleFullAccess and 1 more”; po — przy IAM
   samo `AWSGlueConsoleFullAccess` (ta polityka daje część IAM: odczyt ról, przekazanie roli
@@ -874,7 +900,7 @@ która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z a
     wstecz — to zaostrza znaną wadę „korekty cen nie docierają do S3".
 - **Poza kolejnością, do decyzji Gracjana:**
   - ~~Python 3.10 na EC2~~ — **03.10 Python 3.14 na EC2** (3.10 w Amazon Linux 2023 nie ma),
-    czeka na pierwszy dzień giełdowy 05.10;
+    potwierdzony 05–06.10 (patrz „Poza listą, zrobione 03.10”);
   - `pd.read_sql` przez SQLAlchemy;
   - ostrzeżenie `value_deserializer`;
   - ~~słowa „niedobór pamięci" w komentarzu `compaction.py`~~ — nieaktualne od 11.09
@@ -1059,6 +1085,12 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   - instrukcja z 04.10 (Część 8, krok 4): ręczny bieg na EC2 „przed 17:55” bez zastrzeżenia,
     że po 17:00 Yahoo może nie mieć świecy (przy kroku 2 zastrzeżenie było). Poprawione na
     „przed 16:50”.
+- **07.10:**
+  - `date` przed wdrożeniem: przewidziane 19:00–19:45 UTC, wyszło 18:57:26 (założone wolniejsze
+    tempo; ten sam błąd co 21.09). **Wniosek: dolną granicę godziny liczyć od ostatniego odczytu
+    `date` + kilka minut, nie od szacunku tempa;**
+  - pytanie Gracjana o „całą dokumentację” najpierw zrozumiane jako dokumentacja dzisiejszej sesji;
+    chodziło o dużą dokumentację po dużych zmianach.
 
 ### Priorytet Gracjana (08.09)
 
@@ -1079,56 +1111,57 @@ Pięć otwartych pytań z Plan-06 (wątek 4) rozstrzygniętych 06.10, wszystkie 
    świecy), wykres trzech spółek, ranking. Zakładki spółek i słownik później.
 
 Następny krok: notatka projektowa (zasada 10), po zatwierdzeniu pełna instrukcja (zasada 3);
-w niej instalacja Plotly w `.venv` i dopisanie do `requirements-lokalny.txt`.
+w niej instalacja Plotly w `.venv` i dopisanie do `requirements-lokalny.txt`. **Od 07.10 strona
+idzie po przeglądzie całości i dużej dokumentacji** (kolejność w „Stan 07.10”).
 
 ### Na następną sesję
 
-Stan 06.10 (wtorek, koniec sesji ok. 19:35). Warunek w Producencie: **kod i testy zrobione na
-laptopie 06.10** (`kod/session.py`, `kod/test_session.py`, pięć zmian w `kod/data_ingestion.py`,
-`28 passed`, bieg z martwym brokerem o 16:45 z dopiskiem przy trzech spółkach). Komendy commita
-podane na koniec sesji 06.10 — na starcie sprawdzić, czy commit jest i czy wypchnięty. Instrukcja
-(jedyne odniesienie): `notatki/plany/Notatka-2026-10-04-jak-napisac-warunek-sesji.md` (Część 8
-poprawiona 06.10). **Przed każdym kawałkiem kodu: notatka projektowa (zasada 10) i pełna
+Stan 07.10 (środa, koniec sesji ok. 21:10). Warunek w Producencie **na EC2 od 07.10**
+(`5676575`, ręczny bieg po 18:00 bez pominięcia zgodny) — szczegóły w „Stan 07.10”. Komendy
+commita z dokumentacją 07.10 podane na koniec sesji — na starcie sprawdzić, czy commit jest i czy
+wypchnięty. Instrukcja warunku: `notatki/plany/Notatka-2026-10-04-jak-napisac-warunek-sesji.md`
+(Część 8 z dopiskami 07.10). **Przed każdym kawałkiem kodu: notatka projektowa (zasada 10) i pełna
 notatka-instrukcja (zasada 3); po każdej zmianie Gracjana — opis każdej nowej linii (zasada 3).**
 
-**Plan Gracjana z 06.10:** śr. 07.10 — wdrożenie na EC2 i przegląd całości; od czw. 08.10 —
-strona, od notatki projektowej.
+**Kolejność ustalona z Gracjanem 07.10:** przegląd całości i kontrola 08.10 → ręczny bieg na EC2
+przed 16:50 → decyzja Gracjana o wadach z przeglądu → duża dokumentacja → strona.
 
-0. **Na starcie:** czy przyszły maile `DOWN` i `UP` z testu 06.10 (u stróża 19:12, na Interii
-   przewidziane ok. 19:27); czy treść #21 u stróża ma polskie litery bez krzaków; `git log -1`
-   i `git status --short` na laptopie (commit z 06.10 jest, drzewo czyste).
-1. **Śr. 07.10 — wdrożenie, ręczna część przed 16:50** (Część 8 instrukcji, każdy krok
-   z przewidywaniem zapisanym przed komendą):
-   - z laptopa przed `pull`: `git diff --stat 4aca12d HEAD` — liczba plików do przewidywania
-     (EC2 nie ściągał też `96f191b`, `aaf39b4`, `93a5731`, `0f3f882`);
-   - EC2: `git status --short` pusty → `git pull` (`4aca12d..` commit z 06.10) → `git status
-     --short` pusty, `kod/session.py` jest;
-   - ręczny Producent bez `>>`, w trakcie sesji (9:00–16:50):
-     `KAFKA_BOOTSTRAP=localhost:9094 venv314/bin/python kod/data_ingestion.py` → 3 × `nowych dni:
-     0, wysłane: 0, stan: zapisane, dziś pominięte (przed 17:55)`; potem `LOG-END-OFFSET` dalej
-     **2390** (nic nie poszło do Kafki), pliki spółek dalej 787, ostatni wiersz `2026-10-06`.
-     Bez dopisku (Yahoo bez świecy) — dowód słabszy, nie błąd. `nowych dni: 1` / `wysłane: 1` —
-     warunek nie działa: stop i rozmowa. **Nie w oknie 17:55–18:35;**
-   - kontrola po 18:32: start **1140**, `wc -l` **1167**, blok 28, 3 × `nowych dni: 1, wysłane:
-     1, stan: zapisane` **bez dopisku** (18:00 > 17:55), `Odebrano 3`, 2 × `(2364, 3)`, `Kontrola:
-     Dane 2364 wierszy`, `OK`, zakładka 2393, pliki 788 × 3, S3 ok. 158260–158360 B, stróż #23.
-     Zgodność = warunek (d): dzień pominięty po południu przyszedł o 18:00;
-   - powrót przy kłopocie: `git revert` na laptopie, `git push`, `git pull` na EC2 — bez ręcznych
-     zmian plików na EC2.
-2. **Śr. 07.10 — przegląd całości** (zasada 16; lista napraw zamknięta 04.10, przeglądu po niej
+0. **Na starcie:** `git log -1` i `git status --short` na laptopie (commit z 07.10 jest, drzewo
+   czyste); `date` — czy to dzień giełdowy przed 16:50 (wtedy punkt 2 da się zrobić od razu).
+1. **Czw. 08.10 — przegląd całości** (zasada 16; lista napraw zamknięta 04.10, przeglądu po niej
    nie było): cały kod + wszystkie notatki od początku, wynik do nowego pliku w `notatki/plany/`.
-   Nowe wady → kolejność napraw ustalona z Gracjanem, przed stroną (zasada 15).
-3. **Od czw. 08.10 — strona:** notatka projektowa według „Strona — decyzje 06.10” wyżej.
-4. **README po zgodnej kontroli 07.10:** ograniczenie „Ręczne uruchomienie Producenta … przed
-   17:00” zamienić na opis warunku; wiersz w tabeli `Przeglad-2026-09-08-co-nie-gra.md`.
-5. **Stary `venv` na EC2** — do skasowania najwcześniej ok. 17.10, osobna decyzja po dwóch
+   Nowe wady → decyzja Gracjana: opisać jako otwarte czy naprawić przed dużą dokumentacją (zasada
+   15: naprawy przed stroną).
+2. **Dowód pominięcia na EC2 — dzień giełdowy, w trakcie sesji (9:00–16:50)**, 08.10 albo 09.10
+   (Część 8 instrukcji, krok 4). Ręczny Producent bez `>>`, z `~/GPW---pulse`:
+   `KAFKA_BOOTSTRAP=localhost:9094 venv314/bin/python kod/data_ingestion.py` → 3 × `nowych dni: 0,
+   wysłane: 0, stan: zapisane, dziś pominięte (przed 17:55)`. Potem `LOG-END-OFFSET` bez zmian
+   (08.10 przed 18:00: **2393**; 09.10 przed 18:00: **2396**), pliki spółek bez zmian (788 / 789),
+   ostatni wiersz = poprzedni dzień giełdowy, `wc -l companies/errors.txt` bez zmian. Bez dopisku
+   (Yahoo bez świecy) — dowód słabszy, nie błąd. `nowych dni: 1` / `wysłane: 1` — warunek nie
+   działa: stop i rozmowa. **Nie w oknie 17:55–18:35.** Powrót przy kłopocie: `git revert` na
+   laptopie, `git push`, `git pull` na EC2 — bez ręcznych zmian plików na EC2.
+3. **Czw. 08.10 po 18:32 — kontrola pierwszego biegu `cron` na nowym kodzie** (wiersz 08.10
+   w tabeli „Przewidywania od 04.10”): start **1168**, `wc -l` **1195**, blok 28, 3 × `nowych dni: 1,
+   wysłane: 1, stan: zapisane` **bez dopisku** (18:00 > 17:55), `Odebrano 3`, 2 × `(2367, 3)`,
+   `Kontrola: Dane 2367 wierszy`, `OK`, zakładka 2396, pliki 789 × 3, S3 ok. 158480–158560 B,
+   stróż #24. Jeśli tego dnia był punkt 2 — zgodność dowodzi też, że dzień pominięty po południu
+   przyszedł o 18:00 (warunek (d)).
+4. **Duża dokumentacja** (po 1–3 i decyzji o wadach): README (lista nieaktualnych miejsc
+   w „Stan 07.10”, w tym ograniczenie „Ręczne uruchomienie Producenta … przed 17:00” zamienione na
+   opis warunku), CLAUDE.md („Wciąż otwarte”; przeniesienie codziennych sekcji stanu do pliku
+   z historią — do decyzji Gracjana), tabela w `Przeglad-2026-09-08-co-nie-gra.md`, odświeżone
+   obrazki (`wykresy.py`, `ranking.py` — bieg Gracjana na laptopie). Przy okazji: treść #21 u
+   stróża (polskie litery), nieodczytana 06–07.10.
+5. **Strona:** notatka projektowa według „Strona — decyzje 06.10” wyżej.
+6. **Stary `venv` na EC2** — do skasowania najwcześniej ok. 17.10, osobna decyzja po dwóch
    tygodniach spokoju (decyzja 6 z notatki o Pythonie). Razem z nim `~/porownanie-1003/`.
-6. **Power BI na Athenę** — odłożony 03.10 (sterownik ODBC na laptopie, osobna notatka); na
+7. **Power BI na Athenę** — odłożony 03.10 (sterownik ODBC na laptopie, osobna notatka); na
    stronę nie idzie (decyzja 06.10). Do tego czasu README mówi, że raport pokazuje dane do 20.09.
-7. **Aktualizacja Amazon Linux** (ostrzeżenie `dnf` 03.10) — osobna decyzja; nie w tygodniu
+8. **Aktualizacja Amazon Linux** (ostrzeżenie `dnf` 03.10) — osobna decyzja; nie w tygodniu
    zmiany Pythona ani w tygodniu 25.10. Ewentualne zawężenie `AWSGlueConsoleFullAccess` — też
    osobna decyzja.
-8. **Terminy:**
+9. **Terminy:**
    - **25.10** (niedziela) pierwszy bieg po zmianie czasu — `17:00:0X` w linii startu i to
      będzie poprawne, a u stróża pierwszy prawdziwy sprawdzian strefy;
    - **26.10** (poniedziałek) pierwszy dzień giełdowy zimą — w bloku `nowych dni: 1` bez
@@ -1141,10 +1174,9 @@ strona, od notatki projektowej.
      zostało **83,44 USD** ze 100, „140 days remaining”; EC2 chodzi 24/7). Przed tą datą
      decyzja: płatny plan, wyłączenie albo zmiana architektury.
 
-**EC2 jest na `4aca12d` od 03.10 ok. 09:2x UTC** (`pull` `fc6e262..4aca12d`, 7 plików;
-`git status --short` pusty 04.10 i 06.10). Commitów od `96f191b` (wykresy, usunięty
-`test_plikow.py`) EC2 nie ściągał — przyjdą z `pull` 07.10. Poprzednio: `fc6e262` od 26.09,
-`6af7b48` od 21.09.
+**EC2 jest na `5676575` od 07.10 18:57 UTC** (`pull` `4aca12d..5676575`, 27 plików, w tym
+`kod/session.py` i usunięty `kod/test_plikow.py`; `git status --short` pusty przed i po).
+Poprzednio: `4aca12d` od 03.10, `fc6e262` od 26.09, `6af7b48` od 21.09.
 
 ### Kopie
 
