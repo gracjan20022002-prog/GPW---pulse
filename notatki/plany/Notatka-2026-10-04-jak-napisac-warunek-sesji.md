@@ -348,6 +348,11 @@ Kolejność, każdy krok z przewidywaniem podanym przed komendą:
    Dowodzi, że nowy kod i strefa działają na EC2, a nie że świeca jest pomijana. **Pominięcie —
    w najbliższy dzień giełdowy przed 16:50** (08.10: `LOG-END-OFFSET` 2393, pliki 788, ostatni
    wiersz `2026-10-07`; 09.10: 2396, 789, `2026-10-08`).
+   ✅ **08.10, `date` 14:32:49 UTC (16:32 polskiego):** 3 × `nowych dni: 0, wysłane: 0, stan:
+   zapisane, dziś pominięte (przed 17:55)` co do słowa; zakładka `2393 2393 0`; pliki 788 × 3; log
+   1167; ostatni wiersz `2026-10-07`. Nieprzewidziane: cena za 07.10 w pamięci zmieniona (CBF 201,0
+   zamiast 199,2) — Yahoo podało za wcześniejsze dni tygodnia piątkowe zamknięcie z 02.10;
+   przegląd [[Przeglad-2026-10-08-calosc]], punkt 1.1.
 5. **EC2, wieczorem po 18:32 (07.10):** blok z `cron` 28 linii, start 1140, `wc -l` 1167, 3 ×
    `nowych dni: 1, wysłane: 1, stan: zapisane` (bez dopisku, bo 18:00 > 17:55), `Odebrano 3`,
    `Kontrola: Dane 2364 wierszy`, `Kontrola: OK`, zakładka 2393, pliki 788 × 3. To dowód na
@@ -356,6 +361,11 @@ Kolejność, każdy krok z przewidywaniem podanym przed komendą:
    Pierwszy bieg `cron` na nowym kodzie: **08.10** — start 1168, `wc -l` 1195, 3 × `nowych dni: 1`
    bez dopisku, `Odebrano 3`, `Dane 2367`, zakładka 2396, pliki 789 × 3. Dowodem „pominięty
    przyszedł o 18:00” będzie tylko w dniu, w którym rano był krok 4.
+   ✅ **08.10, ten sam dzień co krok 4, wszystko trafione:** starty 1140 i 1168 (`16:00:02` UTC),
+   `wc -l` 1195, blok 28, 3 × `nowych dni: 1, wysłane: 1, stan: zapisane` bez dopisku, `Odebrano 3`,
+   2 × `(2367, 3)`, `Kontrola: Dane 2367 wierszy`, `OK`, zakładka 2396, pliki 789 × 3, S3 158499 B /
+   339 B, stróż #24 `OK`. Dzień pominięty o 16:32 przyszedł o 18:00. **Warunek (d) spełniony;**
+   zostaje (e) — opis w README przy dużej dokumentacji.
 6. **26.10 (pierwszy dzień giełdowy po zmianie czasu):** blok bez dopisku, `nowych dni: 1` — strefa
    liczy się dobrze także zimą.
 

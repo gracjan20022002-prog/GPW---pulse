@@ -1960,6 +1960,21 @@ zapisuje tabelę jako JSON. Wzór pandas: `pd.read_…` tworzy tabelę, `df.to_�
 `{'miasto': 'Kraków', 'numer': 3}`); `json_normalize` → `smak`, `cena`, `budka.miasto`,
 `budka.numer`.*
 
+### `python -c "…"`
+Uruchamia kod Pythona wpisany w cudzysłowie, bez pliku. Kilka poleceń w jednej linii oddziela się
+średnikiem `;`. Dobre do jednorazowego podejrzenia czegoś, czego nie chcemy dopisywać do projektu.
+*`python -c "a = 2; print(a + 3)"` → `5`. 08.10 na EC2: `venv314/bin/python -c "import requests;
+r = requests.get(…).json()['chart']['result'][0]; print(r['timestamp'][-4:]); …"` — to samo
+zapytanie do Yahoo co w Producencie, bez dotykania Kafki, pamięci i logu.*
+
+### Znacznik czasu Unix (*timestamp*)
+Chwila zapisana jako liczba sekund od 1 stycznia 1970, godz. 00:00 UTC. Jedna liczba, bez strefy
+czasowej; strefa pojawia się dopiero przy zamianie na datę. `datetime.fromtimestamp(t)` zamienia ją
+na godzinę w strefie **maszyny**, więc ta sama liczba daje inną godzinę na laptopie (czas polski)
+i na EC2 (UTC).
+*08.10: Yahoo dla SNT podało `1791356400` = 07.10.2026, 07:00 UTC = 09:00 polskiego (otwarcie
+sesji). Każdy dzień ma tę samą godzinę, dlatego data wychodzi ta sama na obu maszynach.*
+
 ---
 
 ## Strona internetowa
@@ -2047,6 +2062,18 @@ odniesienia, nie serwisy pośrednie.
 *18.09: BiznesRadar podał w archiwum dla CBF z 17.09 cenę 203,80, a giełda
 204,00 — tyle, ile mamy z Yahoo. Nawet własny nagłówek BiznesRadaru (202,80,
 −1,20) wskazywał 204,00. Przyczyny nie sprawdziliśmy.*
+Adres archiwum dla jednego dnia (wszystkie akcje): `https://www.gpw.pl/archiwum-notowan?
+fetch=0&type=10&instrument=&date=DD-MM-RRRR`. Kurs zamknięcia jest w szóstej kolumnie. Archiwum
+z dzisiejszego dnia pojawia się później niż o 18:48 (08.10 o tej godzinie było puste).
+
+### Chwilowo zła cena ze źródła
+Źródło może przez jakiś czas podawać za dzień już zamknięty cenę, która nie zgadza się z giełdą,
+a potem ją poprawić. Kto pobierze dane w złej chwili, zapisze złą cenę. Daty przy tym się
+zgadzają, więc sprawdzenie dat tego nie wykryje.
+*08.10: Yahoo (`range=3y`) podawało za 05, 06 i 07.10 piątkowe zamknięcie z 02.10 (CBF 201,00, SNT
+341,60, XTB 138,56), a dobrą cenę miał tylko ostatni dzień. 03.09 tego zjawiska nie było. Do S3 idą
+tylko nowe dni, zwykle jeden, czyli ostatni — dlatego ceny w S3 zgadzają się z GPW (66 cen
+sprawdzonych 08.10). Groźny byłby bieg z kilkoma nowymi dniami naraz.*
 
 ### Dzień bez sesji a dziura w danych
 Giełda nie notuje w weekendy i święta, więc tych dni w danych brakuje i to
