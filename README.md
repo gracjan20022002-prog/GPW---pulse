@@ -6,9 +6,9 @@ w AWS pobiera kursy zamknięcia z Yahoo Finance, przepuszcza je przez Kafkę do 
 i pandas liczą z nich zmiany cen i ranking spółek. O 18:30 projekt sprawdza sam siebie
 i przy awarii wysyła e-mail.
 
-Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **04.10.2026**. Pełna lista
-wad i kolejność napraw:
-[`notatki/plany/Przeglad-2026-09-08-co-nie-gra.md`](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md).
+Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **10.10.2026** (dane do sesji
+09.10). Pełna lista wad i kolejność napraw:
+[`notatki/plany/Przeglad-2026-10-08-calosc.md`](notatki/plany/Przeglad-2026-10-08-calosc.md).
 
 ---
 
@@ -18,8 +18,8 @@ wad i kolejność napraw:
 
 ![Ranking: całkowita zmiana ceny](wykresy/ranking.png)
 
-Całkowita zmiana ceny od 14.08.2023 do 02.10.2026: **SNT +382,5%**, **XTB +265,2%**,
-**CBF +165,9%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
+Całkowita zmiana ceny od 14.08.2023 do 09.10.2026: **SNT +385,9%**, **XTB +268,3%**,
+**CBF +164,6%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
 z tabel w Athenie. Data w tytule to dzień ostatniej świecy, więc stary obrazek widać od razu.
 
 ---
@@ -50,7 +50,25 @@ flowchart LR
 
 Dlaczego 18:00: sesja na GPW kończy się ok. 17:00, a Yahoo ma świecę zamknięcia dopiero
 później (11.09 o 17:45 jeszcze jej nie było, o 18:00 była). `crontab` ma
-`CRON_TZ=Europe/Warsaw`, więc bieg zostaje o 18:00 polskiego także po zmianie czasu.
+`CRON_TZ=Europe/Warsaw`, więc bieg zostaje o 18:00 polskiego także po zmianie czasu. Log na
+serwerze pisze godziny w UTC: latem bieg o 18:00 ma w logu `16:00`, od 25.10 `17:00`.
+
+**Dzień biegu, godzina po godzinie** (czas polski):
+
+| Godzina | Co się dzieje |
+|---|---|
+| 9:00–17:00 | sesja na GPW; u Yahoo dzisiejsza świeca ma cenę z trwającej sesji |
+| przed 17:55 | ręcznie uruchomiony Producent pomija dzisiejszą świecę (dopisek `dziś pominięte (przed 17:55)`) |
+| ok. 17:45–18:00 | Yahoo wystawia świecę z kursem zamknięcia — zapas najwyżej kwadrans |
+| 18:00 | Producent i Konsument: nowe dni do Kafki i do S3 `live/` |
+| 18:10 | Silver i Gold: Athena, odsiew powtórek, zmiany i ranking, wynik do S3 `gold/` |
+| 18:30 | kontrola: log i daty w Athenie, zgłoszenie do stróża |
+| ok. 18:45 | e-mail `DOWN`, jeśli kontrola zgłosiła awarię |
+| 19:00 (e-mail ok. 19:15) | alarm stróża, jeśli o 18:30 nie przyszło żadne zgłoszenie (EC2 leży, `cron` nie ruszył) |
+| po 18:48 | archiwum notowań GPW z danego dnia, punkt odniesienia dla cen |
+
+Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak samo: `nowych dni: 0`,
+`Odebrano 0`, kontrola `OK`.
 
 **Gdzie leżą dane** (bucket `gpw-tracker-bucket`, region `eu-north-1`, baza Atheny
 `gpw-tracker_db`):
@@ -73,6 +91,10 @@ później (11.09 o 17:45 jeszcze jej nie było, o 18:00 była). `crontab` ma
 - **Producent nie gubi dni.** Pamięć „co już wysłałem” (`companies/*.txt`) zapisuje dopiero
   wtedy, gdy broker potwierdzi każdą wiadomość. Gdy broker nie odpowiada, dni polecą przy
   następnym biegu, zamiast przepaść.
+- **Producent nie bierze ceny z trwającej sesji.** Przed 17:55 czasu polskiego
+  (`kod/session.py`, strefa `Europe/Warsaw`, więc także zimą) pomija dzisiejszą świecę i dopisuje
+  to w logu. Dzień pójdzie przy biegu o 18:00. Sprawdzone na EC2 08.10: o 16:32 ręczny bieg
+  `dziś pominięte`, o 18:00 bieg `cron` `nowych dni: 1`.
 - **Konsument przesuwa zakładkę dopiero po zapisie do S3.** Zakładka to numer ostatniej
   przeczytanej wiadomości. Gdy grupa ją straci, czyta od najstarszej zachowanej wiadomości,
   a powtórki odsiewa Silver.
@@ -80,7 +102,9 @@ później (11.09 o 17:45 jeszcze jej nie było, o 18:00 była). `crontab` ma
   miejsc.
 - **Kompakcja ma strażnika.** Przed nadpisaniem `bronze` pobiera jego kopię i przerywa, gdy
   którejkolwiek spółce ubyło wierszy. Athena potrafi bez błędu oddać pół tabeli (04.09: 405
-  wierszy zamiast 2283).
+  wierszy zamiast 2283). Od 09.10 kopia pobiera się przed zapytaniem do Atheny, a „zero
+  wierszy” (nowa spółka) liczy się tylko wtedy, gdy S3 odpowie `404` (nie ma pliku). Każda inna
+  odmowa S3, np. `403`, zatrzymuje skrypt, zanim cokolwiek zapisze albo skasuje.
 - **Kontrola o 18:30** (`kod/control.py`) szuka **dowodu sukcesu**, a nie słów „błąd”:
   - w dzisiejszym bloku logu każda spółka ma `stan: zapisane`, Konsument wypisał `Odebrano`,
     Gold dwa razy `S3: wysłano`, nie ma `Traceback`;
@@ -92,9 +116,11 @@ później (11.09 o 17:45 jeszcze jej nie było, o 18:00 była). `crontab` ma
   po zmianie stanu.
 - **Liczby przed biegiem.** Każdą zmianę sprawdza się porównaniem liczb zapisanych przed
   uruchomieniem (numer linii w logu, liczba wierszy, zakładka, rozmiar pliku) z wynikiem.
-- **Testy:** `pytest kod/ -v`, 18 testów. 11 sprawdza `control.py` na prawdziwym bloku logu
-  z 18.09 (`kod/dane_testowe/`), 7 sprawdza daty z `path.py` na zmyślonych danych. Testy nie
-  łączą się z AWS.
+- **Testy:** `pytest kod/ -v`, 28 testów. 11 sprawdza `control.py` na prawdziwym bloku logu
+  z 18.09 (`kod/dane_testowe/`), 7 sprawdza daty z `path.py` na zmyślonych danych, 10 sprawdza
+  granicę 17:55 z `session.py` (w tym godziny zimowe i letnie). Testy nie łączą się z AWS.
+- **Ceny porównane z giełdą.** Punktem odniesienia jest archiwum notowań GPW, nie serwisy
+  pośrednie. 90 cen z S3 porównanych do 10.10 — wszystkie zgodne co do grosza.
 
 ---
 
@@ -105,24 +131,36 @@ sprawdzenie z liczbą policzoną przed biegiem; awaria jest głośna; działa ta
 działać (EC2); opis mówi też, czego nie ma.
 
 **Sprawdzone:**
-- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 06.10).
+- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 09.10).
 - Kontrola o 18:30 chodzi z `cron` od 21.09, a sprawdzenie danych w Athenie od 26.09.
   Wymuszone awarie (19.09 i 26.09) dały u stróża `Failure` i e-mail. 06.10 ta sama próba na
   Pythonie 3.14 dała `Failure` z treścią co do bajtu taką, jak policzona przed wysłaniem.
-- Dane: 785 dni notowań na spółkę, od 14.08.2023 do 02.10.2026 (2355 wierszy), te same daty
-  u wszystkich trzech. Kursy z 17, 18 i 21.09 są zgodne z archiwum notowań GPW. Starszych
-  nie porównywaliśmy.
+- Dane: 790 dni notowań na spółkę, od 14.08.2023 do 09.10.2026 (2370 wierszy), te same daty
+  u wszystkich trzech. 90 cen z S3 porównanych z archiwum notowań GPW, wszystkie zgodne co do
+  grosza: 66 z historii (w tym wszystkie podejrzane serie jednakowych cen i dni odzyskane
+  03.09), 17, 18 i 21.09 oraz każdy dzień od 05 do 09.10. Reszty historii nie porównywaliśmy.
 - Od 03.10 EC2 liczy na Pythonie 3.14. Pliki Silvera i Golda z nowego i starego Pythona są
   identyczne co do bajtu, a pierwszy bieg (sobota) zgadza się co do linii. Pierwszy dzień
   giełdowy na nowym Pythonie (05.10) też: Kafka i zapis do S3 działają jak wcześniej.
+- Warunek „przed 17:55 pomiń dzisiejszą świecę” chodzi na EC2 od 07.10. 08.10 ręczny bieg
+  o 16:32 pominął dzień, a bieg `cron` o 18:00 go wysłał.
+- Nowy strażnik kompakcji (09.10): ścieżka błędu sprawdzona na prawdziwym skrypcie (zmyślone
+  klucze → `403` → skrypt staje, S3 nietknięte), zwykła droga próbą generalną bez zmian w danych
+  (`783 → 783`, `Usunięto 0 plików`, pliki co do bajtu te same). Pierwsza kompakcja z prawdziwym
+  kasowaniem na nowym kodzie: początek listopada.
 
 **Czego nie ma i znane ograniczenia:**
-- **Ręczne uruchomienie Producenta w dzień roboczy przed 17:00 zapisze cenę z trwającej sesji
-  jako kurs zamknięcia.** Godzinę pilnuje tylko `cron`, nie kod. Warunek w kodzie (przed 17:55
-  pomiń dzisiejszą świecę) jest napisany i sprawdzony na laptopie (06.10), na EC2 jeszcze go nie
-  ma.
-- Korekty, które Yahoo wprowadza wstecz, nie docierają do S3. Zostaje cena z pierwszego
-  pobrania.
+- **Yahoo podaje dobrą cenę tylko za ostatni dzień** (w naprawie). Wcześniejsze dni bieżącego
+  tygodnia mają w odpowiedzi Yahoo zamknięcie z poprzedniego piątku, a poprawiony tydzień
+  przychodzi dopiero po jego zakończeniu (zaobserwowane 08–10.10; w piątek o 18:00 jeszcze
+  niepoprawiony). Zwykły bieg wysyła jeden nowy dzień, czyli ostatni, więc S3 ma dobre ceny.
+  Groźny jest bieg z kilkoma nowymi dniami naraz, np. dzień po awarii: starsze dni poszłyby
+  z ceną z poprzedniego piątku, a kontrola tego nie zobaczy, bo daty się zgadzają.
+- **Producent ma zapasowy adres brokera** (w naprawie): bez zmiennej `KAFKA_BOOTSTRAP` łączy się
+  z brokerem na EC2. Bieg z laptopa bez tej zmiennej mógłby wysłać drugi raz dni, których pamięć
+  laptopa nie zna, a Silver przy dwóch różnych cenach tego samego dnia wybiera przypadkowo.
+- Producent wysyła każdy dzień raz. Gdy Yahoo poprawi cenę dnia już wysłanego, S3 tej poprawki
+  nie dostanie.
 - Gdy Yahoo spóźni się ze świecą, kontrola o 18:30 zgłosi jej brak, a Producent dociągnie
   dzień następnego wieczoru.
 - Kontrola nie wykryje złej ceny przy dobrej dacie ani dnia, którego brakuje wszystkim
@@ -133,7 +171,9 @@ działać (EC2); opis mówi też, czego nie ma.
 - Czwarta spółka wymaga ręcznych kroków. Athena nie zobaczy nowej partycji bez `MSCK REPAIR
   TABLE` i nie zgłosi przy tym błędu. Okno „3 lata wstecz” liczy się od dnia pierwszego
   pobrania, więc „zmiana za cały okres” porównałaby różne okresy.
-- Kompakcja jest ręczna, z laptopa, raz w miesiącu.
+- Kompakcja jest ręczna, z laptopa, raz w miesiącu. Strażnik nie odróżni skasowanego przez
+  pomyłkę pliku `bronze` od nowej spółki (oba dają `404`), a kopia sprzed kompakcji ma jedno
+  pokolenie — następny bieg ją nadpisuje.
 - Wykresy rysuje się ręcznie na laptopie. Raport Power BI
   (`wykresy/PowerBi_do_dopracowania.pbix`) czyta stare lokalne pliki i pokazuje dane do
   20.09.2026.
@@ -143,7 +183,8 @@ działać (EC2); opis mówi też, czego nie ma.
   - nagłówek pliku z rankingiem ma inne nazwy dwóch kolumn (`pierwsza_cena`, `ostatnia_cena`)
     niż tabela w Athenie (`pierwotna_cena`, `aktualna_cena`). Tabela dopasowuje kolumny po
     kolejności, więc dane są poprawne;
-  - jedno nadmiarowe uprawnienie IAM na koncie administracyjnym, do odpięcia przed stroną.
+  - część Producenta poza `session.py` (scalanie pamięci z odpowiedzią Yahoo, wybór nowych dni)
+    nie ma testów.
 - Strony internetowej z wynikiem jeszcze nie ma.
 
 ---
@@ -153,16 +194,17 @@ działać (EC2); opis mówi też, czego nie ma.
 | Plik | Gdzie chodzi | Co robi |
 |---|---|---|
 | `config.py` | wszędzie | lista spółek, bucket, region, baza Atheny |
-| `data_ingestion.py` | EC2, 18:00 | Producent: pobiera 3 lata notowań z Yahoo, wybiera dni, których jeszcze nie wysłał, wysyła je do Kafki z potwierdzeniem, zapisuje pamięć `companies/{spółka}.txt`. Wypisuje linię startu i po linii na spółkę (`nowych dni`, `wysłane`, `stan`) |
+| `data_ingestion.py` | EC2, 18:00 | Producent: pobiera 3 lata notowań z Yahoo, przed 17:55 pomija dzisiejszą świecę, wybiera dni, których jeszcze nie wysłał, wysyła je do Kafki z potwierdzeniem, zapisuje pamięć `companies/{spółka}.txt`. Wypisuje linię startu i po linii na spółkę (`nowych dni`, `wysłane`, `stan`, ewentualnie `dziś pominięte`) |
+| `session.py` | EC2 (przez `data_ingestion.py`) | `dzien_do_pominiecia(teraz)`: przed 17:55 czasu polskiego zwraca dzisiejszą datę, później nic |
 | `kafka_consumer.py` | EC2, 18:00 | Konsument (grupa `gpw_consumer`): czyta do 5 s ciszy, zapisuje po pliku JSON na spółkę do `live/`, dopiero potem przesuwa zakładkę |
 | `silver.py` | EC2, 18:10 | pyta Athenę o `bronze UNION live`, poprawia typy, odsiewa powtórzone dni, zapisuje `silver/clean_data.csv` |
 | `gold.py` | EC2, 18:10 | zmiana procentowa dzień do dnia, zmiana za cały okres, najbardziej zmienny **pełny** miesiąc (bez pierwszego i ostatniego miesiąca historii i bez miesięcy poniżej 15 dni notowań); zapis na dysk, a przy `GOLD_DO_S3=1` także do S3 |
 | `control.py` | EC2, 18:30 | kontrola: dzisiejszy blok logu + sprawdzenie dat w Athenie, wynik do stróża (`STROZ_URL`) |
 | `path.py` | EC2 (przez `control.py`), laptop | `pobierz_dane()` i `sprawdz_daty()`: test „prawdziwej drogi”, czyli końca potoku w Athenie |
-| `compaction.py` | laptop, raz w miesiącu | przepisuje zakończone miesiące do `bronze/` (Parquet), ze strażnikiem liczby wierszy, kasuje pokryte pliki z `live/` |
+| `compaction.py` | laptop, raz w miesiącu | przepisuje zakończone miesiące do `bronze/` (Parquet), ze strażnikiem liczby wierszy (kopia poprzedniego `bronze` pobierana najpierw, tylko `404` = nowa spółka), kasuje pokryte pliki z `live/` |
 | `wykresy.py` | laptop | ceny trzech spółek w czasie z `gold_dane_dzienne` → `wykresy/wykres3spolek.png` |
 | `ranking.py` | laptop | słupki zmiany za cały okres z `gold_ranking_spolek` → `wykresy/ranking.png` |
-| `test_control.py`, `test_path.py` | laptop | 18 testów (`pytest kod/ -v`) |
+| `test_control.py`, `test_path.py`, `test_session.py` | laptop | 28 testów (`pytest kod/ -v`) |
 | `dane_testowe/blok_2026-09-18.txt` | laptop | prawdziwy blok logu z 18.09, wzór do testów |
 | `pipeline.bat` | — | dawny lokalny bieg Silver+Gold z Harmonogramu Windows; zadanie wyłączone od 21.09, plik zostaje |
 
@@ -229,6 +271,15 @@ te same wersje, ale tylko to, czego potrzebuje potok.
   i liczby przewidziane przed każdym biegiem.
 - **Sygnał awarii:** szukanie słowa „błąd” w logu nie łapie ciszy. Wniosek: dowód sukcesu
   plus zewnętrzny stróż, który alarmuje także wtedy, gdy nikt się nie zgłosi.
+- **08.09 — cena z trwającej sesji.** O 16:43 Yahoo miało już świecę z dzisiejszą datą i ceną
+  sprzed zamknięcia. Godzinę pilnował tylko `cron`. Wniosek: granica czasu w kodzie
+  (`session.py`), ze strefą czasową, żeby działała także zimą i na serwerze w UTC.
+- **08.10 — trzy jednakowe ceny w środku tygodnia.** Dwie hipotezy (błąd w kodzie, dzisiejsza
+  cena we wczorajszym dniu) okazały się złe. Odpowiedź dało archiwum GPW: to było zamknięcie
+  z poprzedniego piątku. Wniosek: dziwną liczbę najpierw szukać w źródle, potem zgadywać.
+- **08.10 — strażnik, który przepuszczał wszystko.** `except ClientError` brał każdą odmowę S3
+  za „nowa spółka”, a wtedy strażnik porównywał z zerem. Wniosek: łapać tylko ten błąd, na który
+  jest plan (`404`), a resztę puszczać dalej (`raise`).
 
 ---
 
@@ -241,12 +292,12 @@ te same wersje, ale tylko to, czego potrzebuje potok.
 | `bronze/` | lokalne pliki Parquet z kompakcji — poza gitem |
 | `silver/`, `gold/` | wyniki biegu na EC2 — poza gitem, w repozytorium tylko pusty `.gitkeep` |
 | `wykresy/` | dwa obrazki i raport Power BI |
-| `notatki/plany/` | notatki projektowe (każdy mechanizm: co, po co, co może pójść źle, decyzje, wyniki), [przegląd z 08.09](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md) (źródło prawdy o wadach), [historia projektu](notatki/plany/Historia-projektu.md) (dawny README z datami) |
+| `notatki/plany/` | notatki projektowe (każdy mechanizm: co, po co, co może pójść źle, decyzje, wyniki), [przegląd z 08.10](notatki/plany/Przeglad-2026-10-08-calosc.md) (źródło prawdy o wadach; [przegląd z 08.09](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md) to już historia), [historia projektu](notatki/plany/Historia-projektu.md) (dawny README z datami), [historia stanu](notatki/plany/Historia-stanu.md) (codzienne sekcje stanu z CLAUDE.md, 12.09–10.10) |
 | `notatki/Slownik.md` | pojęcia wyjaśnione prostym językiem, z przykładami |
 | `notatki/lekcje/`, `notatki/Zrodla.md` | materiały do nauki |
 | `notatki/dziennik/` | zapis każdej sesji — **prywatny, poza gitem** |
 | `aws/` | klucz SSH — poza gitem |
-| `CLAUDE.md` | zasady pracy z asystentem AI i bieżący stan projektu, dzień po dniu |
+| `CLAUDE.md` | zasady pracy z asystentem AI, bieżący stan projektu, codzienna kontrola i otwarte sprawy |
 | `requirements-*.txt` | spisy paczek dla dwóch maszyn |
 
 **Jak powstaje projekt:** kod i testy pisze autor. Asystent AI (Claude) tłumaczy pojęcia na

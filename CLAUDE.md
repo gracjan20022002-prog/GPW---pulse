@@ -3,7 +3,10 @@
 Ten plik jest długi celowo. Do 08.09.2026 był skracany do ~300 słów
 i przez to nie mieścił ustaleń z rozmów — ginęły po jednej sesji. Od dziś
 trzyma **wszystkie** zasady współpracy. Historia sesji nadal idzie do
-dziennika, nie tutaj.
+dziennika, nie tutaj. **Od 10.10** (decyzja 6 z przeglądu z 08.10) codzienne
+sekcje stanu z liczbami są w `notatki/plany/Historia-stanu.md`. Tutaj zostają
+zasady, stan bieżący, kontrola, przewidywania, otwarte sprawy i terminy.
+Stan z dnia sesji dopisywać tutaj krótko, szczegóły do dziennika.
 
 ## Kim jest użytkownik
 
@@ -16,7 +19,8 @@ pandas w praktyce (`read_csv`, typy, `groupby`, `pct_change`, `agg`,
 `merge`, `drop_duplicates`, `to_parquet`, od 03.10 `read_sql` z `pyathena` i `sort_values`
 z `ascending=False` w wykresach), `matplotlib` podstawy, Power BI
 podstawy, `pytest` podstawy, strefy czasowe (`ZoneInfo`, `.astimezone`, `time(17, 55)`,
-od 05.10) i flaga z `continue` w pętli (06.10), `kafka-python` (Producent/Konsument, `group_id`,
+od 05.10) i flaga z `continue` w pętli (06.10), `except ClientError as e` z
+`e.response["Error"]["Code"]` i samo `raise` (09.10), `kafka-python` (Producent/Konsument, `group_id`,
 `commit`), `boto3` (`put_object`, `upload_file`, `delete_object`),
 `pyathena` + SQL w Athenie (w tym `UNION`, `GROUP BY`, `HAVING`, `"$path"`),
 Harmonogram Windows, `cron`, `systemd` na poziomie „enable/start/status",
@@ -155,298 +159,166 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
 
 15. **Najpierw naprawa, potem budowa.** Żadnej nowej funkcji, dopóki
     lista wad z przeglądu 08.09 nie jest zamknięta w kolejności
-    ustalonej z Gracjanem.
+    ustalonej z Gracjanem. **Lista z 08.09 zamknięta 04.10.** Od 08.10
+    obowiązują wady i kolejność z `Przeglad-2026-10-08-calosc.md` (decyzja 7,
+    zmieniona 10.10: duża dokumentacja przed naprawami 1 i 2, kod strony po nich).
 
 16. **Przegląd całości** (cały kod + wszystkie notatki od początku) po
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu — uczciwie (08.10 wieczorem)
+## Stan projektu (10.10)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
-**Źródło prawdy o wadach i kolejności napraw (od 08.10, decyzja Gracjana):**
-[`notatki/plany/Przeglad-2026-10-08-calosc.md`](notatki/plany/Przeglad-2026-10-08-calosc.md),
-nie README. Przegląd z 08.09 (`Przeglad-2026-09-08-co-nie-gra.md`) to od 08.10 historia.
+- **Źródło prawdy o wadach i kolejności napraw (od 08.10, decyzja Gracjana):**
+  [`notatki/plany/Przeglad-2026-10-08-calosc.md`](notatki/plany/Przeglad-2026-10-08-calosc.md),
+  tabela „Stan punktów” na górze. Przegląd z 08.09 to historia.
+- **Historia stanu dzień po dniu (12.09–10.10):**
+  [`notatki/plany/Historia-stanu.md`](notatki/plany/Historia-stanu.md). Są tam:
+  - wszystkie dawne sekcje „Stan …” z liczbami;
+  - tabele przewidywań do 16.10;
+  - kolejność napraw z 08.09 (lista zamknięta 04.10);
+  - sygnał awarii z 21.09 i test zakładki z 14.09;
+  - stare „Wciąż otwarte” i pełna lista pomyłek Claude'a.
 
-### Jak dziś płyną dane, sprawdzone
+  Plik przeniesiony 10.10 bez zmian (decyzja 6 z 08.10). Stan sprzed 12.09:
+  `notatki/plany/Historia-projektu.md` i dziennik.
 
-Na EC2 (`t3.micro`, Elastic IP `13.63.105.190`, 24/7) `cron` uruchamia
-codziennie **o 18:00 czasu polskiego** jedną linię
-`data_ingestion.py ; kafka_consumer.py` i **o 18:10** `silver.py &&
-gold.py`, a **od 21.09 o 18:30** skrypt kontrolny `control.py`. Od 13.09 na górze
-`crontab` stoi `CRON_TZ=Europe/Warsaw`, więc
-godziny w pliku (`0 18`, `10 18`) są polskie przez cały rok. Sprawdzone
-wpisem `RELOAD` w dzienniku systemowym i biegami 13.09 (niedziela) oraz
-14.09 (dzień giełdowy). Pełny tekst `crontab`:
-`notatki/plany/Notatka-2026-09-13-strefa-czasowa-cron.md`, część 4 (stan z 13.09).
-**Od 21.09 `crontab` ma siedem linii:** `CRON_TZ`, `KAFKA_BOOTSTRAP`, `GOLD_DO_S3`,
-`STROZ_URL` (adres stróża, **nigdy w gicie**), `0 18`, `10 18` i `30 18` (skrypt
-kontrolny). Wgrany 21.09 o 14:53:03 UTC (16:53 polskiego).
-**Od 26.09 (EC2 na `fc6e262`) skrypt kontrolny o 18:30 sprawdza log i dane:** poza blokiem
-w `errors.txt` pyta Athenę (`SELECT spolka, data FROM gold_dane_dzienne` przez
-`pobierz_dane()` z `kod/path.py`) i dokłada problemy z `sprawdz_daty` (brak dzisiejszej
-świecy w dzień pon–pt, wpis z przyszłości, różna liczba dni między spółkami, spółka bez
-wierszy) do tej samej listy. Jedno zgłoszenie do stróża. `crontab` bez zmian. Pierwszy bieg
-z `cron` na nowym kodzie: 26.09 o 18:30, **sprawdzony tego samego wieczoru**: blok 30 linii,
-`Kontrola: Dane 2340 wierszy`, `Kontrola: OK`.
-**Od 03.10 (`RELOAD` 09:45:01 UTC) wszystkie trzy biegi idą na Pythonie 3.14.6** z
-`~/GPW---pulse/venv314/bin/python` (pandas 3.0.5, `urllib3` 2.7.0). Tylko ścieżka w trzech
-liniach `crontab` się zmieniła; nadal siedem linii. Stary `venv` (3.9.25) stoi nietknięty jako
-powrót: `crontab ~/crontab-kopia-1003.txt`. Pierwszy bieg (sobota 03.10) zgodny co do linii,
-pierwszy dzień giełdowy (pon. 05.10) też, a zgłoszenie awarii do stróża na 3.14 sprawdzone
-06.10 (#21, 1836 B). Od #17 stróż widzi `python-requests/2.34.2` (wcześniej `2.32.5`).
+### Jak dziś płyną dane
 
-**UWAGA przy czytaniu logu:** strefa działa **tylko wewnątrz `cron`**.
-Skrypty, log, `ls -l`, narzędzia Kafki i dziennik systemowy dalej chodzą
-w UTC. Latem bieg o 18:00 polskiego ma w linii startu `16:00:0X`. **Od
-25.10 pokaże `17:00:0X` i to będzie poprawne**, nie przesunięcie biegu.
-Przy każdej godzinie mówić, w jakiej strefie jest.
+**Maszyna.** EC2 `t3.micro`, Elastic IP `13.63.105.190`, chodzi 24/7, Amazon Linux
+`2023.12.20260817`.
 
-- **Producent** (`data_ingestion.py`): Yahoo `range=3y` → Kafka, topic
-  `gpw_tracker`. Każda wiadomość z potwierdzeniem brokera
-  (`send(...).get(timeout=10)`); pamięć `companies/*.txt` zapisywana tylko
-  po potwierdzeniu. W logu linia startu z datą i godziną UTC, potem jedna
-  linia na spółkę: `nowych dni`, `wysłane`, `stan: zapisane|nietknięte`.
-- **Konsument** (`kafka_consumer.py`): grupa `gpw_consumer`,
-  `auto_offset_reset='earliest'`, czyta do 5 s ciszy, pisze po jednym
-  pliku JSON na spółkę do S3 `live/spolka=…/`, na końcu `commit()`.
-  **Od 17.09 na EC2:** `enable_auto_commit=False` w konstruktorze
-  i `consumer.close()` w ostatniej linii. Zakładka przesuwa się **tylko** po
-  udanym zapisie do S3 — wcześniej biblioteka zapisywała ją sama co 5 s,
-  w trakcie pętli, czyli przed zapisem. Dowody, testy i ograniczenia:
-  `notatki/plany/Notatka-2026-09-17-zakladka-przed-zapisem.md`.
-  **Uwaga:** `close()` stoi za `put_object`, więc przy awarii zapisu się nie
-  wykonuje i broker przez kilkanaście sekund widzi martwego członka grupy.
-  To blokuje `--reset-offsets`, który wymaga grupy nieaktywnej.
-  **18.09 pierwszy bieg z `cron` na nowym Konsumencie:** `Odebrano 3
-  wiadomości`, blok zgodny co do linii. Zakładka odczytana 20.09: `2354 2354 0`
-  i `no active members` — stan zostawiony przez bieg piątkowy, bo w weekend
-  nic nie wpadło.
-- **Silver** (`silver.py`): Athena `bronze UNION live`, odsiewa powtórzone
-  dni → `silver/clean_data.csv` na dysku EC2.
-- **Gold** (`gold.py`): zmiany procentowe i ranking „najbardziej zmiennego
-  **pełnego** miesiąca" (bez pierwszego i ostatniego miesiąca historii
-  spółki i bez miesięcy poniżej 15 dni notowań) → `gold/*.csv` na dysku EC2.
-  **Na EC2 od 17.09, działa z `cron`:** po zapisie na dysk, gdy zmienna
-  `GOLD_DO_S3` jest równa `1`, wysyła oba pliki do S3
-  (`gold/dane_dzienne/dane_dzienne.csv`, `gold/ranking/ranking.csv`) i pisze
-  `S3: wysłano …` na plik; bez zmiennej pisze
-  `S3: Pominięto, brak GOLD_DO_S3 == 1`. Zmienna stoi w `crontab` na górze,
-  pod `KAFKA_BOOTSTRAP` — musi być **nad** linią `10 18`.
-- **`bronze`** w S3 to Parquet do końca poprzedniego miesiąca, przepisywany
-  ręcznie przez `compaction.py`, **wyłącznie z laptopa**. **Pierwszy bieg z prawdziwym
-  kasowaniem: 03.10** — `Usunięto 66 plików`, `bronze` do `2026-09-30 17:00:00`
-  (783 wiersze na spółkę), w `live/` zostały pliki z października. Następny: na początku
-  listopada, nie między 17:55 a 18:35.
-- **Lokalny Harmonogram Windows (WYŁĄCZONY 21.09)** liczył Silver+Gold równolegle o 18:10 jako
-  „zapas" (`kod/pipeline.bat`, pełne ścieżki do `.venv\Scripts\python.exe`).
-  Od 15.09 z nowym `gold.py`, bez przełącznika, więc nic nie wysyłał do S3.
-  **21.09:** zadanie `GPW Pulse - pipeline` (codziennie od 02.09 o 18:10, akcja
-  `cmd.exe /c … kod\pipeline.bat`) ma stan `Disabled`; wraca komendą
-  `Enable-ScheduledTask`. `kod/pipeline.bat` zostaje w gicie.
-- **Silver i gold poza gitem (od 21.09, commit `6af7b48`).** `.gitignore` ma
-  `silver/*`, `!silver/.gitkeep`, `gold/*`, `!gold/.gitkeep`; w obu folderach leży
-  pusty `.gitkeep`, bo git nie trzyma pustych folderów, a `silver.py` i `gold.py`
-  nie zakładają folderu (`to_csv`). EC2 na `6af7b48` od 21.09 ok. 19:03, w folderach
-  sam `.gitkeep`; pliki `.csv` **wróciły z pierwszym biegiem o 18:10 — sprawdzian
-  22.09 potwierdzony w całości**, `git status --short` po biegu dalej pusty.
-  Lokalne pliki na laptopie stoją od 20.09 20:22:04 (Harmonogram wyłączony, to
-  zamierzone). Notatka:
-  `notatki/plany/Notatka-2026-09-21-jedno-miejsce-liczenia.md`.
+**`crontab` ma siedem linii.** Cztery zmienne na górze:
+- `CRON_TZ=Europe/Warsaw`;
+- `KAFKA_BOOTSTRAP=localhost:9094`;
+- `GOLD_DO_S3=1`;
+- `STROZ_URL=…` — adres stróża, **nigdy w gicie, nigdy na zrzucie ekranu**.
 
-**Normalny blok jednego biegu w `errors.txt`, stan od 17.09:**
-- w dzień giełdowy **28 linii**: Producent 4, ostrzeżenie `kafka-python` 2,
-  `boto3` 2, `Odebrano` 1, `pandas` 2, Silver 1, Gold 12, ostrzeżenie
-  `boto3` w Goldzie 2 (osobny program), 2 × `S3: wysłano`;
-- bez nowych wiadomości **26 linii**, bo Konsument tworzy klienta S3,
-  a z nim ostrzeżenie `boto3`, tylko wtedy, gdy ma co zapisać.
-- Zmiany w Konsumencie z 17.09 **nie dodają ani nie ujmują linii**. Gdyby
-  blok się zmienił, znaczyłoby to, że zmieniło się coś jeszcze.
-- **Od 21.09** po bloku z 18:00 dochodzi jedna linia skryptu kontrolnego z 18:30
-  (`Kontrola: OK`): w dzień giełdowy **29 linii**, bez nowych wiadomości **27**.
-  Potwierdzone 21.09 (start w linii 663, `Kontrola: OK` w linii 691). Przy
-  martwym brokerze blok urośnie o 4 linie `ERROR` (trzy z biblioteki Kafki, jedna
-  nasza).
-- **Od 26.09** (nowy `control.py` na EC2) skrypt kontrolny dokłada 3 linie: 2 linie
-  ostrzeżenia `pandas` (stderr, więc **nad** liniami `Kontrola:`) i `Kontrola: Dane N
-  wierszy` (przedostatnia). Blok: **32 linie** w dzień giełdowy, **30** w weekend/święto.
-  Przy awarii Atheny zamiast 4 linii kontroli będzie ok. 30: 2 ostrzeżenia, 25 linii od
-  `pyathena` (`Failed to execute query.` + `Traceback`, policzone 26.09) i 3 linie wyniku
-  (pandas 2.3.3 opakowuje błąd, dwie z tych linii nie zaczynają się od `Kontrola:`).
-  **Potwierdzone 26.09 (sobota): blok w liniach 808–837, 30 linii.** Blok dnia giełdowego
-  (32) pierwszy raz 28.09.
-- **Od 03.10 (Python 3.14) blok ma 28 linii w obu rodzajach dni.** Znikają ostrzeżenia
-  `boto3` o Pythonie 3.9: 2 linie w Goldzie (zawsze, bo `GOLD_DO_S3=1` tworzy klienta S3)
-  i 2 w Konsumencie (tylko w dzień giełdowy, gdy ma co zapisać). Weekend 30 − 2 = 28, dzień
-  giełdowy 32 − 4 = 28. Ostrzeżenie powstaje przy **tworzeniu klienta S3**, nie przy imporcie,
-  dlatego ręczny Gold bez `GOLD_DO_S3` nie pokazywał go nawet na 3.9. **Potwierdzone 03.10
-  (sobota): 1028–1055.** Dzień giełdowy na 3.14 potwierdzony 05.10 (1084–1111) i 06.10 (1112–1139). Przy awarii Atheny na
-  pandas 3.0.5 wynik kontroli powinien zająć 1 linię zamiast 3 (tak było na laptopie 25.09),
-  a `Traceback` od `pyathena` na 3.14 jest dłuższy niż 25 linii — **na EC2 niesprawdzone**.
+Pod nimi trzy biegi. Wszystkie idą na `~/GPW---pulse/venv314/bin/python` (Python 3.14.6 od 03.10)
+i piszą przez `>> companies/errors.txt 2>&1`:
+- **18:00** `data_ingestion.py ; kafka_consumer.py`;
+- **18:10** `silver.py && gold.py`;
+- **18:30** `control.py`.
 
-Stan 20.09 wieczorem, odczytany na EC2 i w Athenie: `errors.txt` **662
-linie**. Linie startu biegów: 441 (12.09), 462, 483, 507, 531, 555, 583
-(18.09), 611, 637 (20.09), wszystkie `16:00:02` UTC — jeden bieg na dzień,
-bez dziury. Rozmiary bloków 21, 21, 24, 24, 24, 28, 28, 26, 26; skoki mają
-wyjaśnienie: Gold z pełnymi miesiącami +1 linia (od 14.09), zmiany z 17.09
-+4 (dwie linie `boto3` w Goldzie i dwa razy `S3: wysłano`), a weekend po
-17.09 to 22 + 4. 18.09 Silver i Gold po `(2325, 3)`: trzy powtórki z testu
-B (17.09) odsiane, jak przewidzieliśmy. Weekend bez sesji (19 i 20.09):
-3 × `nowych dni: 0`, `Odebrano 0 wiadomości`, 2 × `(2325, 3)`,
-2 × `S3: wysłano`. Zakładka `2354 2354 0`, pliki spółek po 775, `COUNT(*)`
-na `gold_dane_dzienne` 2325 (po spółce 775 dni od 2023-08-14 do
-2026-09-18). W S3 `gold/` oba pliki z 20.09 16:10:07 UTC (odczyt z EC2);
-`dane_dzienne.csv` 155560 bajtów = lokalny 157886 − 2326 linii (Windows
-kończy linię dwoma znakami, Linux jednym), `ranking.csv` 360 = 364 − 4.
-**Zero linii `Traceback`, `Error`, `ERROR`, `nietknięte` w całym pliku.**
-Log przed linią 441 ma stary kształt bez linii startu, więc biegów sprzed
-12.09 tą metodą nie liczymy. Ranking bez zmian: CBF 202,80, SNT 352,60,
-XTB 150,34. `errors.log` 8 (stan z 17.09; potwierdzone 21.09). W `live/`
-trzy powtórki z testu B — kompakcja 1.10 wypisze o trzy pliki więcej.
+Godziny są polskie przez cały rok, bo `crontab` ma `CRON_TZ`.
 
-**Stan 21.09 wieczorem** (dzień giełdowy, po pierwszym biegu skryptu kontrolnego z
-`cron`): `errors.txt` **691** linii; start biegu w linii **663** (`16:00:02` UTC), blok
-28 linii (663–690), `Kontrola: OK` w linii 691 (18:30:02 polskiego); Silver i Gold po
-`(2328, 3)`; zakładka `2357 2357 0`, `no active members`; pliki spółek po 776 (razem
-2328); `COUNT(*)` na `gold_dane_dzienne`: 776 dni na spółkę, `do` = `2026-09-21
-17:00:00`; S3 `gold/` z 16:10:07 UTC: `dane_dzienne.csv` 155778 B, `ranking.csv`
-359 B (lokalnego pliku do porównania rozmiaru już nie ma). `errors.log` 8. Zero linii
-`Traceback`, `Error`, `ERROR`, `nietknięte`. Ranking: CBF 212,80, SNT 351,40, XTB
-148,58 — zgodne z archiwum GPW (odczyt narzędziem, streszczenie strony; procenty
-+4,93 / −0,34 / −1,17 zgodne z liczonymi od cen z 18.09).
+**UWAGA przy czytaniu logu:** strefa działa **tylko wewnątrz `cron`**. Skrypty, log, `ls -l`,
+narzędzia Kafki, `aws s3 ls` i dziennik systemowy chodzą w UTC. Latem bieg o 18:00 polskiego ma
+w linii startu `16:00:0X`. **Od 25.10 pokaże `17:00:0X` i to będzie poprawne.** Przy każdej
+godzinie mówić, w jakiej jest strefie.
 
-**Stan 22.09 wieczorem** (dzień giełdowy, sprawdzian punktu 6 — folderów
-`silver/`/`gold/` odtworzonych z samego `.gitkeep`): `errors.txt` **720**
-linii; start biegu w linii **692** (`16:00:02` UTC, odczyt na EC2 ok. 19:04
-polskiego); blok 29 linii (692–720), `Kontrola: OK` w linii 720; Silver
-i Gold po `(2331, 3)`; zakładka `2360 2360 0`, `no active members`; pliki
-spółek po 777 (razem 2331); `COUNT(*)` na `gold_dane_dzienne`: 777 dni na
-spółkę na wszystkich trzech, `do` = `2026-09-22 17:00:00`; S3 `gold/`
-z 16:10:07 UTC: `dane_dzienne.csv` 155997 B, `ranking.csv` 364 B.
-`errors.log` 8, bez zmian. Zero linii `Traceback`, `Error`, `ERROR`,
-`nietknięte`. `ls -a silver gold` na EC2: w `silver` `.gitkeep`
-i `clean_data.csv`, w `gold` `.gitkeep`, `dane_dzienne.csv`,
-`ranking.csv`; `git status --short` **pusty**. Stróż: `#4 OK`, 22.09 18:30,
-`Up`, łącznie cztery zgłoszenia. Wszystkie piętnaście przewidywań zapisanych
-21.09 trafione co do liczby — patrz „Kolejność napraw", punkt 6.
+#### Producent (`data_ingestion.py`)
 
-**Stan 23.09 wieczorem** (dzień giełdowy). **Codziennej kontroli na EC2 nie było**
-(log, zakładka, stróż, S3 nieodczytane). Jedyny odczyt to test prawdziwej drogi z laptopa
-ok. 19:20 polskiego: `gold_dane_dzienne` ma **2334** wiersze, po 778 dni na spółkę,
-każda z wpisem z 23.09, bez dni z przyszłości (`Dane: OK`). Pośrednio znaczy to, że bieg
-o 18:00/18:10 dopisał świece. Przewidywania na kontrolę z 23.09, gdyby ją robić z logu:
-start w linii 721, `wc -l` 749, 2 × `(2334, 3)`, zakładka 2363, pliki spółek po 778.
-**Potwierdzone 25.09:** linia startu 23.09 to 721.
+- Pobiera z Yahoo `range=3y` i wysyła do Kafki, topic `gpw_tracker`.
+- **Przed 17:55 polskiego pomija dzisiejszą świecę** (`kod/session.py`, na EC2 od 07.10) i dopisuje
+  w logu `dziś pominięte (przed 17:55)`.
+- Każda wiadomość czeka na potwierdzenie brokera (`send(...).get(timeout=10)`).
+- Pamięć `companies/*.WA.txt` zapisuje tylko po potwierdzeniu, **cały plik od nowa i z cenami
+  z bieżącej odpowiedzi Yahoo** (linia 62). Do Kafki idą tylko nowe daty.
+- Błędy (`ERROR`) idą na stderr, czyli do `errors.txt`. Linia startu ma `flush=True`.
+- Linia 16 ma zapasowy adres brokera `13.63.105.190:9092`. Do usunięcia w naprawie 2.
 
-**Stan 25.09 wieczorem** (piątek, dzień giełdowy; 24.09 bez kontroli, sprawdzony razem
-z 25.09). Odczyt na EC2 o 17:54:35 UTC. Linie startu **721, 750, 779**, wszystkie
-`16:00:02` UTC. `wc -l` **807**. Bloki 24.09 i 25.09 po 29 linii: `(2337, 3)` i `(2340, 3)`,
-2 × `S3: wysłano`, `Kontrola: OK`. Zero linii `Traceback|Error|ERROR|nietknięte`. Pliki
-spółek po **780** (razem 2340). `errors.log` 8. Zakładka `2369 2369 0`, `no active members`.
-S3 `gold/` z 16:10:07 UTC: `dane_dzienne.csv` **156615 B** (w przewidzianym zakresie
-156550–156750), `ranking.csv` **338 B** (przewidziane „ok. 360”, szacunek bez wyliczenia).
-`silver`/`gold` z `.gitkeep` i `.csv`, `git status --short` pusty, EC2 na `6af7b48`. Athena:
-780 dni na spółkę, `od` 2023-08-14, `do` 2026-09-25 17:00:00, przeczytane 152,94 kB. Stróż:
-#5–#7 `OK` o 18:30 (23–25.09), bez zmiany stanu od 21.09 `down → up`. Ranking 25.09:
-CBF 204,60, SNT 353,00, XTB 151,50 (niesprawdzone w archiwum GPW). ~~Przewidywania na
-następny dzień giełdowy (pon. 28.09): start w linii 808, `wc -l` 836~~ — **błąd, sprostowany
-26.09:** 808 to start sobotniego bloku, bo liczba pomijała weekend. Nieaktualne też dlatego,
-że kod z etapu B trafił na EC2 26.09. Aktualne przewidywania: tabela w „Stan 26.09” niżej.
+#### Konsument (`kafka_consumer.py`)
 
-**Stan 26.09** (sobota; po południu wdrożenie, wieczorem kontrola pierwszego biegu z `cron`).
-**Etap B punktu 7 (test prawdziwej drogi na EC2) zamknięty.** `date` na EC2 13:55:17 UTC,
-`git status --short` pusty, `git pull` `6af7b48..fc6e262` (`13 files changed, 3258
-insertions(+), 178 deletions(-)`, zgodnie z przewidywaniem), po nim `git status --short` pusty.
-Ręczne biegi `control.py` w oknie SSH, bez `>>` (log **807** linii przed i po):
-- **E1** `KONTROLA_DATA=2026-09-25` → 2 linie ostrzeżenia `pandas`, `Kontrola: Dane 2340
-  wierszy`, `Kontrola: OK`, `Kontrola: brak adresu stróża`. Import `path.py` działa na
-  Pythonie 3.9, rola EC2 czyta `gold_dane_dzienne`.
-- **E2** `KONTROLA_DATA=2026-09-28` → `AWARIA` z 4 problemami (brak pomiaru z 28.09 + 3 × `brak
-  wpisu z: 2026-09-28`), co do słowa.
-- **E3** zmyślone `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` → `Failed to execute query.`
-  i `Traceback` od `pyathena` (razem 25 linii), potem wynik w **3 liniach**: `Kontrola: AWARIA -
-  Athena: Błąd - Execution failed on sql: SELECT …`, `An error occurred
-  (UnrecognizedClientException) …`, `unable to rollback`. Pandas 2.3.3 na EC2 opakowuje błąd
-  (laptop, pandas 3.0.5: jedna linia). Przewidziane przed biegiem, sprawdzone w kodzie pandas.
-- **E4** adres stróża z `crontab -l` przez `$( )` (`${#STROZ_URL}` = 56): E2 → u stróża **#8
-  `Failure`**, `POST`, 16:04, **2450 B** (= 154 linia `AWARIA` + 2 + 2294 blok z 25.09),
-  `up → down`; E1 → **#9 `OK`**, `GET`, 16:04, `down → up`. `unset`, potem `${#STROZ_URL}` = 0.
-  **Maile `DOWN` i `UP` przyszły na Interię o 16:19**, 15 minut po zmianie stanu u stróża
-  (hipoteza z 19.09 potwierdzona).
+- Grupa `gpw_consumer`, `auto_offset_reset='earliest'`, `enable_auto_commit=False`.
+- Czyta, aż przez 5 s nic nie przyjdzie. Zapisuje jeden plik JSON na spółkę do
+  `live/spolka=…/`. Potem `commit()`, na końcu `close()`.
+- Klienta S3, a z nim plik, tworzy tylko wtedy, gdy ma co zapisać.
+- `close()` stoi za `put_object`, a nie w `finally`. Przy awarii zapisu broker przez kilkanaście
+  sekund widzi więc martwego członka grupy, co blokuje `--reset-offsets`.
 
-**Przewidywania do 02.10** (zapisane 26.09 ok. 16:15, przed biegami; blok **30** linii
-w weekend, **32** w dzień giełdowy; brak świąt w tym okresie, z pamięci):
+#### Silver (`silver.py`)
 
-| Dzień | Start | `wc -l` po biegu | `Kontrola: Dane` | Zakładka | Pliki spółek | Stróż (tylko biegi `cron`) |
-|---|---|---|---|---|---|---|
-| sob. 26.09 | 808 | 837 | 2340 | 2369 | 780 | #10 |
-| niedz. 27.09 | 838 | 867 | 2340 | 2369 | 780 | #11 |
-| pon. 28.09 | 868 | 899 | 2343 | 2372 | 781 | #12 |
-| wt. 29.09 | 900 | 931 | 2346 | 2375 | 782 | #13 |
-| śr. 30.09 | 932 | 963 | 2349 | 2378 | 783 | #14 |
-| czw. 1.10 | 964 | 995 | 2352 | 2381 | 784 | #15 |
-| pt. 2.10 | 996 | 1027 | 2355 | 2384 | 785 | #16 |
+- Athena `bronze UNION live`, odsiewa powtórzone dni i zapisuje `silver/clean_data.csv` na EC2.
+- Przy dwóch różnych cenach tego samego dnia wybiera przypadkowo (znana wada).
 
-Do tego w sobotę 26.09 i niedzielę 27.09: 3 × `nowych dni: 0, wysłane: 0, stan: zapisane`,
-`Odebrano 0`, 2 × `(2340, 3)`, 2 × `S3: wysłano`, S3 `gold/` **156615 B** i **338 B** (wejście
-bez zmian). Każdy ręczny bieg `control.py` ze `STROZ_URL` przesuwa numery u stróża.
+#### Gold (`gold.py`)
 
-**Wieczorna kontrola 26.09** (`date` na EC2 17:00:43 UTC): wiersz sobotni tabeli trafiony
-w całości. Linie startu 779 i **808** (`16:00:02` UTC), `wc -l` **837**, blok 30 linii:
-3 × `nowych dni: 0, wysłane: 0, stan: zapisane`, `Odebrano 0 wiadomości`, 2 × `(2340, 3)`,
-2 × `S3: wysłano`, na końcu 2 linie ostrzeżenia z `kod/path.py:32`, **`Kontrola: Dane 2340
-wierszy`**, **`Kontrola: OK`** — ostrzeżenie nad liniami `Kontrola:`, jak wynikało z bufora.
-Zero `Traceback|Error|ERROR|nietknięte`. Pliki spółek 780 × 3 (2340), `errors.log` 8, zakładka
-`2369 2369 0`, `no active members`. S3 `gold/` 16:10:06 UTC: **156615 B** i **338 B**.
-`silver`/`gold` z `.gitkeep` i `.csv`, `git status --short` pusty. Stróż: według Gracjana
-„wszystko OK” (zrzutu nie było, więc numer #10 nieodczytany przez Claude'a).
+- Liczy zmiany procentowe i ranking najbardziej zmiennego **pełnego** miesiąca. Pełny znaczy: bez
+  pierwszego i ostatniego miesiąca historii spółki i bez miesięcy poniżej 15 dni notowań.
+- Zapisuje `gold/*.csv` na EC2. Przy `GOLD_DO_S3=1` wysyła też oba pliki do S3:
+  `gold/dane_dzienne/dane_dzienne.csv` i `gold/ranking/ranking.csv` (linia `S3: wysłano …`).
 
-**Stan 03.10** (sobota, sesja 10:35–12:32; kontrola wieczornego biegu dopiero 04.10). Dziennik
-`notatki/dziennik/2026-10-03.md`.
-- **Biegi 27.09–02.10 sprawdzone wstecz:** cała tabela „Przewidywania do 02.10” wyżej trafiona
-  (starty 808…996, `wc -l` 1027, blok 28.09 868–899 = 32 linie z `Dane 2343` i `OK`, pliki
-  785 × 3, zakładka `2384 2384 0`, S3 157673 B / 350 B z 02.10 16:10:07 UTC, stróż #10–#16
-  `OK` bez zmiany stanu, na Interii żadnego `DOWN`). Zastrzeżenie „tylko sobota” z punktu 7
-  zdjęte: „brak dzisiejszej świecy” przeszedł pięć dni giełdowych.
-- **Kompakcja zrobiona** (laptop, `python kod/compaction.py`): przewidziane z samego `Total
-  Objects: 72` „usunięte 66” → `stara ilosc: 761, nowa_ilosc: 783` × 3, `Usunięto 66 plików`.
-  `bronze` do `2026-09-30 17:00:00` (783 wiersze na spółkę), w `live/` 6 plików z 01–02.10,
-  Athena `bronze UNION ALL live` 785 dni × 3 przed i po.
-- **Python 3.14 na EC2** (notatka `notatki/plany/Notatka-2026-10-03-python-na-ec2.md`,
-  zatwierdzona; decyzja 5 wbrew rekomendacji: przepięcie w sobotę). Laptop: nowy
-  `requirements-ec2.txt` (18 paczek przez `-c requirements-lokalny.txt`), `venv314/` w
-  `.gitignore`, commit `4aca12d`. EC2: `pull` do `4aca12d`, `dnf install python3.14` (3.14.6;
-  systemowy `python3` dalej 3.9.25), `venv314` z gotowych paczek, `diff` z `pip freeze` pusty.
-  Silver+Gold w obu `venv` → **3 × `diff -q` puste, pliki identyczne co do bajtu**. Ręczne biegi
-  na `venv314`: `control.py` `Dane 2355`/`OK`, Producent 3 × `zapisane`, Konsument `Odebrano 0`.
-  `crontab`: kopia `~/crontab-kopia-1003.txt`, nowy `~/crontab-nowy-1003.txt` (`sed
-  's#/venv/bin/python#/venv314/bin/python#g'`), `diff` `5,7c5,7`, `RELOAD` **09:45:01 UTC**.
-- **Wykresy na Athenie** (notatka `Notatka-2026-10-03-wykresy-na-athene.md`, pięć decyzji (a);
-  instrukcja `Notatka-2026-10-03-jak-przepiac-wykresy.md`): `wykresy.py` i `ranking.py` czytają
-  `gold_dane_dzienne` / `gold_ranking_spolek`, sortują, w tytule `(stan na: RRRR-MM-DD)`;
-  `test_plikow.py` usunięty; `pytest kod/ -v` → `18 passed`; awaria ze zmyślonymi kluczami głośna,
-  obrazek nienadpisany. Commit `96f191b`. Power BI odłożony.
-- **Pierwszy bieg `cron` na 3.14 (sob. 03.10), odczyt 04.10 o 13:20 UTC — zgodny w całości:**
-  starty 996 i **1028** (`16:00:03` UTC), `wc -l` **1055**, blok **28 linii** bez ani jednej
-  `PythonDeprecationWarning` (dowód, że szedł `venv314`), 3 × `nowych dni: 0 … zapisane`,
-  `Odebrano 0`, 2 × `(2355, 3)`, Gold `117`/`111`, 2 × `S3: wysłano`, `Kontrola: Dane 2355
-  wierszy`, `Kontrola: OK`, zero błędów, pliki 785 × 3, `errors.log` 8, zakładka `2384 2384 0`,
-  S3 157673 B / 350 B z 16:10:07 UTC, `git status --short` pusty, stróż `Up` (numeru #17 nie
-  odczytaliśmy), Interia bez maili.
-- **Na 3.14 sprawdzone później:** wysyłka przez Kafkę i zapis Konsumenta do S3 (05.10) oraz
-  zgłoszenie `/fail` do stróża z `urllib3` 2.7.0 (06.10) — „Stan 05–06.10” niżej.
+#### Kontrola (`control.py`, 18:30)
 
-**Przewidywania od 04.10** (zapisane 04.10 ok. 15:30; blok **28 linii w obu rodzajach dni**;
-w październiku brak świąt; Gold `117`/`111` do końca października):
+Sprawdza dwie rzeczy:
+1. **Ostatni blok `errors.txt`, czyli dowód sukcesu:** `stan: zapisane` przy każdej spółce,
+   `Odebrano`, 2 × `S3: wysłano`, zero `Traceback`.
+2. **Tabelę `gold_dane_dzienne` w Athenie**, przez `pobierz_dane()` i `sprawdz_daty()` z
+   `kod/path.py`. Szuka czterech problemów: brak dzisiejszej świecy w dzień pon–pt, wpis
+   z przyszłości, różna liczba dni między spółkami, spółka bez wierszy.
+
+Wysyła jedno zgłoszenie do stróża: `GET` przy `OK`, a przy awarii `POST …/fail` z treścią
+w UTF-8. Każda linia wyniku zaczyna się od `Kontrola:`, żeby powtórny bieg tego samego dnia
+pominął własne linie.
+
+#### `bronze` i kompakcja (`compaction.py`)
+
+- `bronze` to Parquet do końca poprzedniego miesiąca.
+- Kompakcja przepisuje go ręcznie, **tylko z laptopa** (EC2 nie ma `pyarrow`), raz w miesiącu,
+  nigdy między 17:55 a 18:35.
+- **Strażnik od 09.10:** kopia poprzedniego `bronze` pobierana przed zapytaniem do Atheny, kod
+  `"404"` znaczy nową spółkę, każdy inny kod → `raise`.
+- Ostatnie biegi:
+  - 03.10 z kasowaniem: `bronze` do 30.09, 783 wiersze na spółkę, `Usunięto 66 plików`;
+  - 09.10 próba generalna: `Usunięto 0 plików`.
+- Następna: początek listopada.
+
+#### Laptop
+
+- `silver/` i `gold/` są poza gitem od 21.09. `.gitignore` przepuszcza tylko `.gitkeep`.
+- Harmonogram Windows (`GPW Pulse - pipeline`) jest wyłączony od 21.09, więc lokalne `silver/`
+  i `gold/` stoją od 20.09. Powrót: `Enable-ScheduledTask`.
+- Wykresy (`wykresy.py`, `ranking.py`) czytają Athenę od 03.10.
+- Power BI odłożony, pokazuje dane do 20.09.
+
+### Normalny blok jednego biegu w `errors.txt`
+
+**Od 03.10 blok ma 28 linii w każdym rodzaju dnia**, razem z `Kontrola: OK`. Kolejno:
+
+| Linie | Co |
+|---|---|
+| 1 | linia startu |
+| 3 | wynik Producenta, po jednej linii na spółkę |
+| 2 | ostrzeżenie `value_deserializer` |
+| 1 | `Odebrano N wiadomości` |
+| 2 | ostrzeżenie `pandas` z `silver.py` |
+| 2 | `(M, 3)` z Silvera i z Golda |
+| 11 | reszta Golda: tabela 4, `Pełna liczba … 117, Prawidłowa … 111` (październik) 1, ranking 6 |
+| 2 | `S3: wysłano` |
+| 2 | ostrzeżenie `pandas` z `kod/path.py:32` |
+| 2 | `Kontrola: Dane M wierszy`, `Kontrola: OK` |
+
+Jak czytać rozjazd:
+- **Inna liczba linii** znaczy, że zmieniło się coś jeszcze.
+- **Martwy broker:** blok rośnie o 4 linie `ERROR`.
+- **Awaria Atheny:** zamiast 4 linii kontroli będzie `Traceback` od `pyathena` (25 linii na
+  Pythonie 3.9, na 3.14 więcej) i 1 linia wyniku (pandas 3.0.5). **Na EC2 na 3.14 niesprawdzone.**
+- **`PythonDeprecationWarning` w bloku** znaczy, że `cron` wrócił do starego `venv`.
+
+### Ostatnie liczby (bieg 09.10, sprawdzony 10.10)
+
+- Log: start w linii **1196**, `wc -l` **1223**.
+- Dane: 2 × `(2370, 3)`, `Kontrola: Dane 2370 wierszy`, pliki spółek **790 × 3**.
+- Zakładka **`2399 2399 0`**, `errors.log` **8**.
+- S3 `gold/`: **158692 B** i **338 B**, z `16:10:08` UTC.
+- Stróż: **#25**.
+- Ranking: CBF 200,00, SNT 344,00, XTB 139,72 — zgodne z GPW.
+- Ceny w S3 porównane z archiwum GPW: 90, wszystkie zgodne co do grosza (66 z historii, 17, 18
+  i 21.09 oraz 05–09.10).
+
+### Przewidywania od 10.10
+
+Zapisane przed biegami: wiersze 10–16.10 dnia 08.10, a 17–25.10 dnia 10.10.
+- Blok ma 28 linii.
+- W październiku nie ma świąt. Gold daje `117`/`111` do końca miesiąca.
+- **Numery u stróża przesuwa każdy ręczny `control.py` ze `STROZ_URL`.**
+- S3 `dane_dzienne.csv` rośnie o ok. 193–218 B na dzień giełdowy (09.10: +193). `ranking.csv`
+  ma 330–370 B.
 
 | Dzień | Start | `wc -l` po biegu | `Odebrano` | `Kontrola: Dane` | Zakładka | Pliki spółek | Stróż |
 |---|---|---|---|---|---|---|---|
-| niedz. 04.10 | 1056 | 1083 | 0 | 2355 | 2384 | 785 | #18 |
-| pon. 05.10 | 1084 | 1111 | 3 | 2358 | 2387 | 786 | #19 |
-| wt. 06.10 | 1112 | 1139 | 3 | 2361 | 2390 | 787 | #20 |
-| śr. 07.10 | 1140 | 1167 | 3 | 2364 | 2393 | 788 | #23 |
-| czw. 08.10 | 1168 | 1195 | 3 | 2367 | 2396 | 789 | #24 |
-| pt. 09.10 | 1196 | 1223 | 3 | 2370 | 2399 | 790 | #25 |
 | sob. 10.10 | 1224 | 1251 | 0 | 2370 | 2399 | 790 | #26 |
 | niedz. 11.10 | 1252 | 1279 | 0 | 2370 | 2399 | 790 | #27 |
 | pon. 12.10 | 1280 | 1307 | 3 | 2373 | 2402 | 791 | #28 |
@@ -454,104 +326,82 @@ w październiku brak świąt; Gold `117`/`111` do końca października):
 | śr. 14.10 | 1336 | 1363 | 3 | 2379 | 2408 | 793 | #30 |
 | czw. 15.10 | 1364 | 1391 | 3 | 2382 | 2411 | 794 | #31 |
 | pt. 16.10 | 1392 | 1419 | 3 | 2385 | 2414 | 795 | #32 |
+| sob. 17.10 | 1420 | 1447 | 0 | 2385 | 2414 | 795 | #33 |
+| niedz. 18.10 | 1448 | 1475 | 0 | 2385 | 2414 | 795 | #34 |
+| pon. 19.10 | 1476 | 1503 | 3 | 2388 | 2417 | 796 | #35 |
+| wt. 20.10 | 1504 | 1531 | 3 | 2391 | 2420 | 797 | #36 |
+| śr. 21.10 | 1532 | 1559 | 3 | 2394 | 2423 | 798 | #37 |
+| czw. 22.10 | 1560 | 1587 | 3 | 2397 | 2426 | 799 | #38 |
+| pt. 23.10 | 1588 | 1615 | 3 | 2400 | 2429 | 800 | #39 |
+| sob. 24.10 | 1616 | 1643 | 0 | 2400 | 2429 | 800 | #40 |
+| niedz. 25.10 | 1644 | 1671 | 0 | 2400 | 2429 | 800 | #41 |
 
-Wiersze 12–16.10 dopisane 08.10 ok. 19:05, przed biegami. Wiersze 04–08.10 trafione w całości
-(stróż #18–#20, #23 i #24). **Numery u stróża od 07.10 poprawione
-06.10 o +2**, bo ręczny test dał #21 i #22; każdy ręczny `control.py` ze `STROZ_URL` je przesuwa.
-S3 `dane_dzienne.csv`: 158499 B na 2367 wierszy (08.10), ok. +195–218 B na dzień giełdowy (07.10
-+208, 08.10 +195 — krótkie ceny jak `196.0` dają mniej bajtów); `ranking.csv` 330–370 B. Warunek na EC2 od 07.10 (18:57 UTC) bloku nie
-zmienia: o 18:00 nic się nie pomija, więc dopisku nie ma, blok dalej 28 linii. Ręczny Producent
-nie przesuwa numerów u stróża (zgłasza tylko `control.py`).
+25.10 to pierwszy bieg po zmianie czasu. Linia startu ma wtedy `17:00:0X` UTC, a u stróża
+zgłoszenie dalej ok. 18:30 polskiego.
 
-**Stan 05–06.10** (dzienniki `2026-10-05.md` i `2026-10-06.md`):
-- **05.10 (poniedziałek), pierwszy dzień giełdowy na Pythonie 3.14:** kontrola o 17:01 UTC, wiersze
-  04 i 05.10 tabeli trafione w całości (1084–1111, `Odebrano 3`, `Dane 2358`, zakładka 2387, pliki
-  786 × 3, S3 157891 B / 362 B), bez `PythonDeprecationWarning`. Kafka → S3 działa na nowym
-  Pythonie; niedzielny bieg potwierdził, że odpięcie `IAMFullAccess` nie ruszyło EC2. Wieczorem
-  porcja 1 warunku: `kod/session.py` (9 linii) i `kod/test_session.py` (10 testów), `10 passed`.
-  Nazwy po angielsku (wybór Gracjana), instrukcja przepisana z `sesja` na `session`.
-- **06.10 (wtorek):** porcja 2 — pięć zmian w `kod/data_ingestion.py` (84 → 92 linie, linie 6,
-  27, 30, 59–61, 83–84), `pytest kod/ -v` → `28 passed in 2.16s`; bieg z
-  `KAFKA_BOOTSTRAP=localhost:9999` o 16:45:35 → 4 × `ERROR` po 30 s, 3 × `nowych dni: 24, wysłane:
-  0, stan: nietknięte, dziś pominięte (przed 17:55)`, pamięć nietknięta. **Pierwszy dowód na
-  prawdziwych danych z Yahoo; na EC2 jeszcze stary kod** (warunek (d) 07.10). Kontrola biegu
-  06.10 (17:07 UTC): 1112–1139, wszystko z tabeli, S3 158096 B / 349 B, stróż #20. Test `/fail`
-  na 3.14 o 19:12 (ręczne `control.py` bez `>>`): `KONTROLA_DATA=2026-10-07` → `AWARIA` z 4
-  problemami, u stróża **#21 `Failure`, `POST`, 1836 B** (przewidziane przed biegiem: 154 + 2 +
-  1680; blok na EC2 `wc -c` 1681), `up → down`; `KONTROLA_DATA=2026-10-06` → **#22 `OK`**, `down →
-  up`. **Nieodczytane w sesji:** maile `DOWN`/`UP` (ok. 19:27) i polskie litery w treści #21.
-  Ranking 06.10: CBF 203,00, SNT 343,80, XTB 136,12.
+### Wciąż otwarte
 
-**Stan 07.10** (środa, sesja 20:39–21:10; dziennik `2026-10-07.md`). W ciągu dnia sesji nie było,
-więc okno przed 16:50 minęło. Decyzja Gracjana (zgodnie z rekomendacją): dziś kontrola i wdrożenie
-w wariancie „pull wieczorem + ręczny bieg bez pominięcia”, dowód pominięcia na EC2 później.
-- **Kontrola biegu 07.10 (stary kod), odczyt 18:53:45 UTC — wiersz tabeli trafiony w całości:**
-  1140–1167, blok 28, 3 × `nowych dni: 1 … zapisane`, `Odebrano 3`, 2 × `(2364, 3)`, `Dane 2364`,
-  `OK`, pliki 788 × 3, zakładka `2393 2393 0`, S3 **158304 B** / 350 B z 16:10:07 UTC, stróż **#23**.
-  Maile `DOWN`/`UP` z testu 06.10 przyszły. Treść #21 (polskie litery) dalej nieodczytana.
-  Ranking 07.10: CBF 199,20, SNT 342,20, XTB 135,00.
-- **Wdrożenie warunku:** `date` 18:57:26 UTC, `git pull` `4aca12d..5676575` (`27 files changed, 2220
-  insertions(+), 449 deletions(-)`, 7 × `create mode`, 1 × `delete mode` — przewidziane z `git diff
-  --stat` na laptopie), `git status --short` pusty przed i po, `wc -l` 9 / 91 (92 linie w edytorze,
-  ostatnia bez końca linii). Ręczny Producent bez `>>` o 18:58:04 UTC: 3 × `nowych dni: 0, wysłane: 0,
-  stan: zapisane`, bez dopisku i bez `Traceback`; log 1167, pliki 788, zakładka 2393. Dowód: nowy
-  kod i strefa działają na EC2. **Nie ma jeszcze:** pierwszego biegu `cron` na nowym kodzie (08.10)
-  i dowodu pominięcia na EC2 (ręczny bieg w dzień giełdowy przed 16:50). `crontab` bez zmian.
-- **Kolejność do dużej dokumentacji (ustalona 07.10):** przegląd całości + kontrola 08.10 → ręczny
-  bieg przed 16:50 → decyzja Gracjana o wadach z przeglądu → duża dokumentacja (README, CLAUDE.md,
-  tabela przeglądu, odświeżone obrazki) → strona. Nieaktualne w README, sprawdzone 07.10: „stan na
-  04.10” (linia 9), „sprawdzone do 06.10” (108), „18 testów” (95, 165), brak `session.py`
-  i `test_session.py` w tabeli, warunek jako ograniczenie (120–123) i bez opisu przy Producencie
-  (156), „uprawnienie IAM do odpięcia” (146), liczby i obrazki ze stanem na 02.10. Do decyzji:
-  przeniesienie codziennych sekcji stanu z CLAUDE.md do pliku z historią.
+**Pełne opisy:** przegląd z 08.10. Decyzje Gracjana 08.10 (wszystkie w wariancie (a)), a 10.10
+zmieniona kolejność: duża dokumentacja przed naprawami 1 i 2.
 
-**Stan 08.10** (czwartek, sesja 16:30–19:10; dziennik `2026-10-08.md`):
-- **Dowód pominięcia na EC2** (`date` 14:32:49 UTC, w trakcie sesji): ręczny Producent bez `>>` →
-  3 × `nowych dni: 0, wysłane: 0, stan: zapisane, dziś pominięte (przed 17:55)`, zakładka `2393 2393
-  0`, pliki 788 × 3, log 1167, ostatni wiersz `2026-10-07`.
-- **Kontrola biegu 08.10 (pierwszy `cron` na nowym kodzie), odczyt 16:46 UTC — wiersz tabeli
-  trafiony w całości:** 1168–1195, 3 × `nowych dni: 1 … zapisane` bez dopisku, `Odebrano 3`,
-  2 × `(2367, 3)`, `Dane 2367`, `OK`, pliki 789 × 3, `errors.log` 8, zakładka `2396 2396 0`, S3
-  158499 B / 339 B z 16:10:07 UTC, `git status --short` pusty, stróż **#24 `OK`**, Interia bez maila.
-  **Warunek sesji: (a)–(d) ✅, (e) czeka na README.** Ranking 08.10: CBF 196,00, SNT 342,80, XTB
-  137,00 (do porównania z GPW 09.10).
-- **Nowe: Yahoo podaje za wcześniejsze dni tygodnia piątkowe zamknięcie z poprzedniego
-  tygodnia.** Pamięć Producenta na EC2 ma za 05–07.10 CBF 201,0, SNT 341,6, XTB 138,56 = zamknięcia
-  z 02.10 (archiwum GPW); tak było o 16:32 i o 18:00, a zapytanie `python -c` do Yahoo na EC2
-  (SNT, `range=3y`) dało te same liczby. Dobra jest tylko ostatnia świeca. S3 bez szkody, bo idą
-  tylko nowe dni; groźny bieg z kilkoma nowymi dniami naraz (🔴 warunkowo). 03.09 tego zjawiska nie
-  było. **66 cen z historii w S3 porównanych z GPW — wszystkie zgodne** (odzyskanie 26–31.08, serie
-  jednakowych cen, CBF 11 i 14.09).
-- **Przegląd całości** `notatki/plany/Przeglad-2026-10-08-calosc.md` — **od 08.10 źródło prawdy
-  o wadach**. Decyzja Gracjana: wszystkie siedem punktów w wariancie (a) — patrz „Wciąż otwarte”.
+1. **Naprawa 1 — złe ceny Yahoo przy kilku nowych dniach naraz** (🔴 warunkowo).
+   - Dobrą cenę ma tylko ostatnia świeca. Wcześniejsze dni tygodnia mają zamknięcie
+     z poprzedniego piątku.
+   - Zakres zapytania nic nie zmienia (09.10, `3y` = `5d`).
+   - W piątek o 18:00 tydzień był jeszcze niepoprawiony (10.10).
+   - **Zostaje zbadać:** kiedy Yahoo poprawia tydzień. Odczyt pamięci (krok 16 kontroli) po
+     biegach 10, 11 i 12.10.
+   - Potem jedna notatka projektowa na naprawy 1 i 2, pełna instrukcja, kod Gracjana i wdrożenie.
+2. **Naprawa 2 — zapasowy adres brokera** w Producencie (`data_ingestion.py:16`). Brak
+   `KAFKA_BOOTSTRAP` ma być głośnym błędem. Konsument (`kafka_consumer.py:7`) ma ten sam adres —
+   do rozważenia w notatce.
+3. **Git w OneDrive:** zostawione (decyzja 4). Przy pytaniu `Deletion of directory … (y/n)` po
+   commicie: Ctrl+C. Commit jest już zrobiony, potem `git push`. 10.10: 755 luźnych obiektów,
+   wszystkie w paczkach. Repozytorium nie przenosić, bo dziennik ma jedyną kopię w chmurze
+   w OneDrive.
+4. **Strona:** decyzje 06.10 niżej. Kod strony po naprawach 1 i 2, ustalenia wyglądu mogą iść
+   wcześniej.
+5. **Osobne decyzje, później:**
+   - stary `venv` na EC2 (ok. 17.10);
+   - aktualizacja Amazon Linux (nie w tygodniu 25.10);
+   - zawężenie `AWSGlueConsoleFullAccess`;
+   - Power BI na Athenę (sterownik ODBC na laptopie).
 
-**Stan 09–10.10** (dzienniki `2026-10-09.md` i `2026-10-10.md`):
-- **09.10 (piątek, sesja 11:37–12:31), badanie Yahoo na EC2 (`python -c`):** `range=3y` i `range=5d`
-  dają te same ceny (za 05–08.10 zamknięcie z 02.10) — zakres nic nie zmienia; tydzień 28.09–02.10
-  już poprawiony (15 cen zgodnych z GPW).
-- **09.10, strażnik kompakcji ✅ (a)–(d)** (notatka i instrukcja z 09.10, kod Gracjana w
-  `compaction.py`: kopia pobierana przed Atheną, `"404"` → 0, inny kod → `raise`): ścieżka błędu ze
-  zmyślonymi kluczami → `Traceback` `(403) … HeadObject`, S3 nietknięte; próba generalna o 12:27 →
-  3 × `783 → 783`, `Usunięto 0 plików`, rozmiary `bronze/` co do bajtu te same. (e) w README.
-- **Wieczornej kontroli 09.10 nie było** (sesja skończyła się w południe); zrobiona **10.10 o 12:35
-  UTC: wiersz 09.10 tabeli trafiony w całości** (1196, 1223, `Odebrano 3`, 2 × `(2370, 3)`, `Dane
-  2370`, zakładka 2399, 790 × 3, S3 **158692 B** / 338 B z 16:10:08 UTC, stróż #25). Ceny z 08.10
-  i 09.10 zgodne z GPW (09.10: CBF 200,00, SNT 344,00, XTB 139,72). Pamięć (krok 16): **w piątek
-  o 18:00 dni 05–08.10 dalej z ceną z 02.10** — poprawka nie przychodzi zaraz po sesji.
-- **10.10 decyzja Gracjana:** duża dokumentacja przed naprawami 1 i 2 (zmiana decyzji 7 z 08.10),
-  potem ustalenia wyglądu strony.
+**Ograniczenia opisane w README** (decyzja 04.10, uzupełnione 10.10):
+- kwadrans zapasu u Yahoo;
+- poprawki Yahoo dni już wysłanych nie docierają do S3;
+- `close()` bez `finally`;
+- ostrzeżenia `pandas` i `value_deserializer` w logu;
+- jedno źródło danych, bez planu B;
+- nowa spółka wymaga ręcznych kroków (partycja w Athenie, okno `range=3y`);
+- rozjazd nazw kolumn rankingu (plik a tabela);
+- granice kontroli: zła cena przy dobrej dacie, ubytek u wszystkich spółek naraz, fałszywy alarm
+  w święto;
+- kompakcja ręczna; strażnik nie odróżni skasowanego pliku od nowej spółki; kopia ma jedno
+  pokolenie;
+- brak testów reszty Producenta.
 
-**Kompletność sesji** (lokalny `gold/dane_dzienne.csv`, rozmiar zgodny
-z S3 po odjęciu końców linii): po 775 unikalnych dni na spółkę, te same
-daty u wszystkich trzech, 810 dni roboczych − 35 świąt = 775. Wszystkie 35
-przerw to święta lub dni bez sesji (24.12 i 31.12 z pamięci, nie
-z kalendarza GPW). Największy skok dzienny −16,4% (SNT 30.06.2025);
-pojedynczych skoków nie porównywaliśmy z archiwum. **Niepotwierdzone
-zewnętrznie:** ceny sprzed 14.09, poza CBF z 14–17.09 oraz SNT i XTB
-z 17.09; ceny z 18.09 i z 21.09 potwierdzone w archiwum GPW (przez narzędzie, nie
-własnym okiem). **Lokalny `gold/dane_dzienne.csv` stoi od 20.09** (Harmonogram
-wyłączony), więc kompletność od 22.09 liczyć przez Athenę albo z pliku pobranego
-z S3.
+**Niesprawdzone:**
+- treść zgłoszenia #21 u stróża (polskie litery);
+- czy port 9092 brokera jest otwarty dla laptopa;
+- rozmiar `athena-results/`;
+- liczba linii przy awarii Atheny na EC2 na 3.14.
+
+### Terminy
+
+- **ok. 17.10** — decyzja o starym `venv` na EC2, razem z nim `~/porownanie-1003/`. Dwa tygodnie
+  spokoju na 3.14 mijają.
+- **25.10 (niedziela)** — pierwszy bieg po zmianie czasu:
+  - `17:00:0X` w linii startu i to jest poprawne;
+  - u stróża pierwszy prawdziwy sprawdzian strefy.
+- **26.10 (poniedziałek)** — pierwszy dzień giełdowy zimą: `nowych dni: 1` bez dopisku.
+- **01.11** — Gold zmieni `117`/`111`. Przeliczyć przed biegiem, nie z pamięci.
+- **początek listopada** — kompakcja za październik, z laptopa, nie między 17:55 a 18:35.
+  Pierwsza z prawdziwym kasowaniem na nowym strażniku. Przewidywania z Atheny przed biegiem.
+- **11.11 (środa)** — pierwszy fałszywy alarm kontroli w święto: mail `DOWN`, 12.11 `UP`.
+- **19.02.2027** — koniec darmowego planu AWS albo wcześniej koniec kredytu. 04.10 zostało
+  83,44 USD, „140 days remaining”. Przed tą datą decyzja: płatny plan, wyłączenie albo zmiana
+  architektury.
 
 ### Codzienna kontrola po biegu (ułożona 20.09, przeliczona 21.09, 26.09 i 03.10)
 
@@ -562,7 +412,7 @@ dzień bez. **Od 03.10 (Python 3.14) blok ma 28 linii w obu rodzajach dni**, wi�
 `tail -n 28`. Wcześniej: 32/30 (26.09–02.10), 29/27 (21–25.09). **Przy kontroli kilku dni
 naraz** w krokach 5–7 brać wszystkie linie startu (`grep -n "=== Data pomiaru"
 companies/errors.txt | tail -n N`, N = liczba dni) i porównać z tabelą „Przewidywania od
-04.10” w „Stan 03.10”. Przy podawaniu kroków Gracjanowi kroki 1–2 są krokami
+10.10” wyżej. Przy podawaniu kroków Gracjanowi kroki 1–2 są krokami
 **PRZEŁĄCZENIE** (zasada 4), każda komenda w osobnym okienku.
 
 1. **PRZEŁĄCZENIE [lokalny PowerShell, nowe okno, venv nieistotne]** `cd "C:\Users\gracj\OneDrive\Dokumenty\DE\GPW - pulse\aws\aws ec2 key"` — wiersz kończy się na `aws ec2 key>`.
@@ -604,583 +454,29 @@ companies/errors.txt | tail -n N`, N = liczba dni) i porównać z tabelą „Prz
     liczbę wierszy daje też linia `Kontrola: Dane N wierszy` w logu; konsola Atheny
     potrzebna tylko do `od`/`do` albo przy rozjeździe.
 13. **[EC2, przez SSH]** `aws s3 ls s3://gpw-tracker-bucket/gold/ --recursive` — dwa pliki
-    z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2). Rozmiar `dane_dzienne.csv`: 158499 B
-    na 2367 wierszy (08.10), rośnie o ok. 65–73 B na wiersz (ok. +195–218 B na dzień giełdowy);
+    z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2; od 25.10 `17:10`). Rozmiar
+    `dane_dzienne.csv`: 158692 B na 2370 wierszy (09.10), rośnie o ok. 64–73 B na wiersz (ok.
+    +193–218 B na dzień giełdowy; krótkie ceny jak `200.0` dają mniej);
     `ranking.csv` 330–370 B. **Lokalnego pliku do porównania rozmiaru nie ma od 21.09**
     (Harmonogram wyłączony).
 14. **[przeglądarka]** stróż: `Up`, ostatnie zgłoszenie ok. 18:30 (`Europe/Warsaw`), typ `GET`
     z `13.63.105.190`, `python-requests/2.34.2`, liczba zgłoszeń +1 na dzień (21.09: 3; 26.09
-    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
+    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24; 09.10 #25). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
     `DOWN` (mail przychodzi ok. 15 minut po zmianie stanu).
 15. **[EC2, przez SSH]** (od 22.09, po punkcie 6) `ls -a silver gold` — w każdym
     `.gitkeep` i pliki `.csv`; `git status --short` — pusty.
 16. **[EC2, przez SSH]** (od 09.10, na czas badania punktu 1.1 przeglądu z 08.10)
     `tail -n 6 companies/*.WA.txt` — sześć ostatnich dni pamięci każdej spółki. Pamięć ma ceny
     z odpowiedzi Yahoo z 18:00. Szukamy dnia, w którym dni bieżącego tygodnia przestaną mieć
-    piątkowe zamknięcie z poprzedniego tygodnia (08.10: za 05–07.10 CBF 201,0, SNT 341,6, XTB
-    138,56; prawdziwe: archiwum GPW, adres w „Gdzie co jest”). Wynik zapisywać w dzienniku.
+    piątkowe zamknięcie z poprzedniego tygodnia (08.10 i 09.10: za 05–08.10 CBF 201,0, SNT
+    341,6, XTB 138,56; prawdziwe zamknięcia w „Na następną sesję”, punkt 1, i w archiwum GPW,
+    adres w „Gdzie co jest”). Wynik zapisywać w dzienniku.
 
 Przy rozjeździe: wkleić wynik, porównać liczba po liczbie, niczego nie uruchamiać
 ponownie. To kontrola ręczna, która uzupełnia sygnał awarii, a go nie zastępuje: sygnał
 (od 21.09 w `cron`) łapie brak zgłoszenia, `Traceback`, brak `stan: zapisane`, `Odebrano`
 albo `S3: wysłano`, ale **nie** łapie złych danych przy udanym biegu ani braku świecy
 w dzień giełdowy.
-
-### Kolejność napraw — gdzie jesteśmy
-
-Kolejność z Części 5 przeglądu, zatwierdzona 08.09.
-
-1. **Producent nie gubi danych** — ✅ 08.09.
-2. **Strażnik kompakcji** — ✅ 08.09.
-3. **Konsument `earliest` i jedna linia `crontab`** — ✅ 08–10.09.
-   **Ścieżka bez zakładki sprawdzona testem 14.09, Silver na EC2 potwierdził
-   15.09** (`(2316, 3)`, powtórki nie dodały wiersza).
-   **Domknięty głębiej 17.09:** naprawione gubienie danych przy **awarii**
-   zapisu do S3. Wada dopisana 14.09 jako podejrzenie, 17.09 potwierdzona
-   w kodzie `kafka-python 3.0.11`, pokazana na żywo (zakładka przeskoczyła
-   2348 → 2351 przy pustym `live/`), naprawiona przez
-   `enable_auto_commit=False` + `consumer.close()`. Dwa testy po zmianie:
-   zapis odcięty → zakładka **stoi** (`2348 2351 3`); bieg zwykły →
-   `Odebrano 3`, `2351 2351 0`, `no active members` od razu. **18.09
-   pierwszy bieg z `cron`:** blok 28 linii, `Odebrano 3`, 2 × `(2325, 3)`,
-   zgodnie z przewidywaniem. **Trzy odczyty domknięte 20.09:** zakładka
-   `2354 2354 0`, pliki spółek po 775, `COUNT(*)` 2325 — wszystkie trzy jak
-   przewidzieliśmy.
-4. **Sprzątanie kodu** — ✅ 11.09 na EC2. Do tego:
-   - podsumowanie Producenta, ✅ trzy ścieżki: awaria brokera 11.09
-     lokalnie, „nic nowego" 12.09 na EC2, dzień giełdowy 14.09 na EC2;
-   - spisy wymagań dla dwóch maszyn, ✅ 11.09;
-   - `CRON_TZ`, ✅ 13–14.09.
-5. **Wynik Golda do S3 i Atheny** — ✅ **17.09**. Notatka
-   `notatki/plany/Notatka-2026-09-15-wynik-golda-do-s3.md` zatwierdzona (pięć
-   decyzji: nadpisywać, CSV, przełącznik tylko na EC2, tabele ręcznie SQL,
-   bez kolumny z godziną). Przełącznik w `gold.py` napisany przez Gracjana.
-   Tabele w Athenie założone ręcznie 16.09. **17.09:** kod na EC2
-   (`git pull` do `070b478`), `GOLD_DO_S3=1` w `crontab` z `REPLACE`
-   14:59:47 UTC i `RELOAD` 15:00:01 UTC, bieg z `cron` o 18:10 polskiego
-   wypisał 2 × `S3: wysłano`, a `COUNT(*)` na `gold_dane_dzienne` dał
-   **2322** zamiast 2316. **To ta liczba jest dowodem** — plik policzony
-   przez `cron` sam przeszedł do S3 i Athena go czyta.
-   **Niespełniony tylko warunek (c):** awaria nadal cicha.
-6. **Wyłączenie lokalnego Harmonogramu, `silver/` i `gold/` poza gitem** — ✅ **21.09
-   wdrożone, 22.09 sprawdzian zamknięty.** Notatka
-   `notatki/plany/Notatka-2026-09-21-jedno-miejsce-liczenia.md` zatwierdzona: cztery
-   decyzje zgodnie z rekomendacją (`.gitkeep`, wyłączenie a nie usunięcie zadania,
-   `pipeline.bat` zostaje, historia gita nietknięta), piąta (termin): laptop od razu, EC2
-   po potwierdzeniu 18:30 (tego samego wieczoru). Laptop: `.gitignore` z wyjątkiem
-   `.gitkeep`, `git rm --cached`, commit `6af7b48` (`6 files changed, 4 insertions(+),
-   4656 deletions(-)`, zgodnie z przewidywaniem), zadanie `GPW Pulse - pipeline` w stanie
-   `Disabled`. Próba na klonie testowym zgodna (bez rytuału `pull` się przerywa, po
-   rytuale kasuje pliki, foldery z `.gitkeep` zostają). EC2: rytuał i `pull` do `6af7b48`,
-   sześć przewidywań zgodnych, w `silver/` i `gold/` sam `.gitkeep`. **22.09:** pierwszy
-   bieg `cron` (18:00/18:10/18:30) na odtworzonych folderach — piętnaście przewidywań,
-   piętnaście trafień (linia startu 692, `wc -l` 720, `(2331,3)`, zakładka 2360, Athena
-   777/spółkę, S3 155997 B/364 B, stróż `Up`, `git status --short` pusty). Warunek (a)–(e)
-   definicji „zrobione" spełniony. **Zostaje, świadomie poza tym punktem:** przepięcie
-   wykresów, `ranking.py`, `test_plikow.py` i Power BI na Athenę (czytają lokalne pliki na
-   laptopie, stojące od 20.09) — **03.10 zrobione poza Power BI**: wykresy na Athenie,
-   `test_plikow.py` usunięty (`96f191b`); Power BI świadomie odłożony.
-7. **Test prawdziwej drogi** — ✅ **26.09, z zastrzeżeniami.** 25.09 wpięty do `control.py`
-   na laptopie (etap A, commit `8b8f585`); 26.09 na EC2 (etap B, `fc6e262`), biegi E1–E4
-   zgodne, mail `DOWN` o 16:19; pierwszy bieg z `cron` o 18:30 (etap C) zgodny co do linii
-   (szczegóły i zastrzeżenia na końcu punktu).
-   `notatki/plany/Notatka-2026-09-22-test-prawdziwej-drogi.md`: sedno — dzisiejsze testy
-   (`test_dzialania`, `test_powtorek`) sprawdzają rzeczy obok drogi danych, nic nie łączy
-   się z Athena i nie sprawdza „dziś brakuje spółki" ani „jest dzień z przyszłości".
-   Kształt wzorem `control.py` (czysta funkcja zwraca listę problemów, osobna warstwa
-   łączy się z Athena). Cztery decyzje zatwierdzone: (1) tabela `gold_dane_dzienne`
-   (koniec całej drogi, nie `live`); (2) dzień giełdowy wykrywany heurystyką
-   poniedziałek–piątek, nie listą świąt GPW — oceniona pracochłonność 20–30 minut,
-   świadomie przyjęty koszt: kilkanaście fałszywych alarmów rocznie w święta; (3) na start
-   uruchamiane ręcznie z laptopa, wpięcie do `control.py`/EC2 to osobna, późniejsza
-   decyzja; (4) sprawdza oba fakty z przeglądu **i** zgodność liczby dni między trzema
-   spółkami, od razu.
-   **23.09 kod napisany przez Gracjana i sprawdzony na laptopie.** `kod/path.py`:
-   `sprawdz_daty(df, spolki, dzis)` (trzy sprawdzenia, kolumna `dzien` przez
-   `.dt.date`) + `__main__` czytający `SELECT spolka, data FROM gold_dane_dzienne`
-   z datą z `$env:DROGA_DATA` albo `date.today()`, wypisuje `len(df)` i `Dane: OK` /
-   `Dane: Problem - …`. `kod/test_path.py`: 6 testów na zmyślonych danych
-   z `ticker`, **`6 passed`**. Bieg na Athenie: `2334`, `Dane: OK`. Alarm na żywych
-   danych przy udawanym dniu: 24.09 → trzy braki, 22.09 → trzy wpisy z przyszłości,
-   bez zmiennej → `OK` — trzy trafienia co do słowa. Instrukcja:
-   `notatki/plany/Notatka-2026-09-23-jak-napisac-testy-drogi.md`. Spełnione (a), (b),
-   (e); **niespełnione (c) i (d)**, bo test chodzi ręcznie z laptopa.
-   **24.09 notatka projektowa** `notatki/plany/Notatka-2026-09-24-droga-na-ec2.md`, **25.09
-   zatwierdzona w całości**, osiem decyzji w wariancie (a):
-   - wpięcie do `control.py`, jedna lista problemów i jedno zgłoszenie do stróża (osobna
-     linia `cron` z tym samym stróżem kasowałaby awarię późniejszym `OK`);
-   - problem z danymi = awaria u stróża;
-   - błąd Atheny → problem na liście (wewnętrzny `try`);
-   - wspólna `pobierz_dane()` w `path.py`;
-   - jedna `KONTROLA_DATA`;
-   - czwarte sprawdzenie „spółka z `ticker` bez ani jednego wiersza”, zawsze (luka: pusta
-     tabela w weekend dawała `[]`);
-   - linia `Kontrola: Dane N wierszy`;
-   - ostrzeżenie `pandas` zostaje.
-
-   Instrukcja przed kodem: `notatki/plany/Notatka-2026-09-25-jak-wpiac-droge-do-kontroli.md`.
-   **25.09 kod Gracjana:** `path.py` z czwartym sprawdzeniem i `pobierz_dane()`,
-   `test_path.py` z 7. testem (`test_brak_spolki_w_sobote`), `control.py` z importem obu
-   funkcji, `dzis = date.fromisoformat(KONTROLA_DATA)` przed wewnętrznym `try` (linie 43–49:
-   `pobierz_dane()`, `print(f"Kontrola: Dane {len(dane)} wierszy")`, `blad = blad +
-   sprawdz_daty(...)`, `except` → `Athena: Błąd - {e}`). Wyniki:
-   - `7 passed`;
-   - `python kod/path.py` → `2340`, `Dane: OK`;
-   - `18 passed in 0.61s` na obu plikach;
-   - bieg na bloku z 18.09 → `Kontrola: Dane 2340 wierszy` + `AWARIA` z 3 × wpis z przyszłości,
-     co do słowa;
-   - zmyślone klucze AWS → jeden problem `Athena: Błąd - An error occurred
-     (UnrecognizedClientException) … token … invalid.`, bez linii `Dane`.
-
-   **Nieprzewidziane:** `pyathena` przy błędzie wypisuje na stderr `Failed to execute query.`
-   i pełny `Traceback` (ok. 40 linii na 3.14, na 3.9 mniej, nie sprawdzone). Na EC2 trafi to
-   do `errors.txt`. **Decyzja Gracjana: zostawić.** Koszt: ręczny bieg `control.py` tego
-   samego dnia po powrocie Atheny dalej da `AWARIA` (w bloku jest `Traceback`), a stróż wróci
-   na `Up` przy następnym biegu. Commit `8b8f585` (`5 files changed, 752 insertions(+),
-   5 deletions(-)`, zgodnie z przewidywaniem), wypchnięty.
-   **26.09 etap B zamknięty** (sobota, `pull` ok. 13:56 UTC, przed oknem 17:55): `fc6e262`,
-   `13 files changed, 3258 insertions(+), 178 deletions(-)`, `git status --short` pusty przed
-   i po. E1 → `Dane 2340`, `OK`; E2 → 4 problemy; E3 → `Athena: Błąd - Execution failed on
-   sql …` w 3 liniach (pandas 2.3.3) + 25 linii od `pyathena` (tyle na Pythonie 3.9, co
-   domyka „nie sprawdzone” wyżej); E4 → stróż #8 `Failure` 2450 B i #9 `OK`, obie zmiany
-   stanu. Wszystko przewidziane przed komendami, wszystko trafione. Pełne wyniki: notatka
-   z 24.09, „Wyniki etapu B”, i „Stan 26.09” wyżej. Liczby w „Codziennej kontroli” zmienione
-   na 32/30. Stan warunków: (a) ✅, (b) ✅, (c) ✅ `Failure` u stróża i mail `DOWN` na Interii
-   o 16:19 (`UP` też 16:19), (d) ✅ pierwszy bieg z `cron` 26.09 o 18:30 sprawdzony tego
-   samego wieczoru (blok 808–837, `Kontrola: Dane 2340 wierszy`, `Kontrola: OK`, wszystkie
-   liczby z tabeli trafione), (e) ✅ ten opis.
-   **Zastrzeżenia:** ~~jeden bieg i to w sobotę~~ — **zdjęte 03.10:** siedem biegów 26.09–02.10
-   zgodnych z tabelą, w tym pięć dni giełdowych z „brakuje dzisiejszej świecy” (28.09: blok 32,
-   `Dane 2343`). Zostają: w święta w dzień roboczy fałszywy alarm (pierwszy 11.11); nie łapie
-   złej ceny przy dobrej dacie ani ubytku dni u wszystkich spółek po równo.
-8. **Sygnał awarii** — ✅ **21.09, z zastrzeżeniami**, wzięty przed 6 i 7 decyzją Gracjana
-   18.09. Notatka zatwierdzona, `control.py` i 11 testów, 19.09 kod na EC2 i testy 2–3
-   z prawdziwym stróżem, 21.09 linia `30 18` w `crontab` (16:53 polskiego), test ciszy
-   (mail `DOWN` 19.09 19:00:00 +0200) i pierwszy bieg z `cron` o 18:30:02 zgodny
-   z przewidywaniem (start w linii 663, `wc -l` 691, `Kontrola: OK`, stróż `#3 OK`,
-   `down → up`). Warunki (a)–(d) spełnione jednym biegiem, (e) niniejszy opis.
-   **Zastrzeżenia:** to jeden bieg, nie tydzień; głośna awaria pokazana na dwóch testach
-   wymuszonych, nie na prawdziwej awarii potoku; sygnał nie łapie złych danych przy
-   udanym biegu, braku świecy w dzień giełdowy (wygląda jak sobota) ani lokalnych rzeczy;
-   strefę sprawdzi dopiero 25.10; zależy od jednej osoby po stronie stróża. Skutek dla
-   reszty listy: każde ✅ wyżej miało niespełniony warunek (c) — od 21.09 awaria w zakresie
-   sygnału jest głośna (mail). Stan szczegółowo niżej, w „Sygnał awarii — stan 21.09
-   wieczorem".
-9. **Pełne miesiące w rankingu** — ✅ 12.09 lokalnie, 14.09 na EC2, wzięte
-   poza kolejnością.
-10. **Dokumentacja** — ✅ **04.10.** (1) README od nowa (`aaf39b4`): opis potoku z diagramem
-    Mermaid, jak projekt pilnuje sam siebie, stan uczciwie z ograniczeniami z decyzji 04.10,
-    lekcje z błędów; stary README w `notatki/plany/Historia-projektu.md`. Gracjan: „póki co
-    jest ok”, poprawi go przed zakończeniem projektu. (2) Dziesięć wpisów dziennika (21.07,
-    10.08, 12.08, 13.08, 17.08, 19.08, 20.08, 21.08, 24.08, 25.08) z „Czego się nauczyłem”
-    napisanym z treści wpisów, z dopiskiem, że uzupełnione 04.10 przez Claude'a (dziennik poza
-    gitem). Wpisy 22.07–06.08 mają własne sekcje „Nauczone”/„Napotkane błędy i nauka” — bez
-    zmian. (3) Plany: w `Plan-ogolny`, `Plan-01`…`Plan-06`, `Codzienna-rutyna`,
-    `Stare-repo-co-to-bylo` blok „Status (04.10.2026): dokument historyczny” z tym, co dziś
-    obowiązuje (w Plan-04 tabela części A–D, w Plan-06 tabela wątków 1–10); pięć odsyłaczy
-    `[[project-…]]` do prywatnych notatek Claude'a (Plan-05, Plan-06) zamienione na tekst.
-    Treści planów nie przepisywano — to historia. **Lista napraw z 08.09 zamknięta.**
-
-**Poza listą, zrobione 03.10** (szczegóły w „Stan 03.10”):
-- **Kompakcja** z prawdziwym kasowaniem — ✅ `Usunięto 66 plików`, Athena 785 × 3 przed i po.
-- **Python 3.14 na EC2** (dawna wada „Python 3.9 na EC2”) — ✅ **06.10**: sobota 03.10 zgodna
-  co do linii, dzień giełdowy 05.10 (Kafka → S3) zgodny, zgłoszenie `/fail` 06.10 (#21, 1836 B,
-  `python-requests/2.34.2`) zgodne co do bajtu. Zastrzeżenie: maili z testu 06.10 nie
-  odczytano w sesji. Stary `venv` do skasowania najwcześniej ok. 17.10.
-- **Wykresy na Athenie, `test_plikow.py` usunięty** — ✅ (a)–(d), (e) czeka na README (opis
-  `test_plikow.py`, Power BI z danymi do 20.09).
-
-### Sygnał awarii — stan 21.09 wieczorem
-
-Notatka: `notatki/plany/Notatka-2026-09-18-sygnal-awarii.md`, **zatwierdzona w całości**,
-wyniki testów dopisane 21.09. Dwa słowa, żeby się nie mylić: **skrypt kontrolny** to nasz
-skrypt na EC2, który ocenia dzisiejszy blok; **stróż** to usługa poza EC2 (healthchecks.io),
-która czeka na zgłoszenie i pisze e-mail, gdy nie przyjdzie albo przyjdzie z awarią.
-
-- **Decyzje:** stróż zewnętrzny, plan darmowy (nie SNS — sama SNS nie złapie martwego EC2 ani
-  niedziałającego `cron`); „dowód sukcesu" zamiast szukania złych słów: `stan: zapisane` przy
-  każdej spółce z `config.ticker`, `Odebrano`, 2 × `S3: wysłano`, zero `Traceback`; Producent
-  pisze błędy do `errors.txt` (koniec osobnego `errors.log`); adres zgłoszenia jako `STROZ_URL`
-  w `crontab`, **nigdy w gicie**; skrypt kontrolny o 18:30 polskiego, zapas 30 minut, strefa
-  `Europe/Warsaw` w stróżu (nie UTC — inaczej 25.10 fałszywy alarm).
-- **U stróża:** konto założone przez Gracjana. Zadanie `GPW - bieg dzienny` (Cron `30 18 * * *`,
-  `Europe/Warsaw`, Grace 30 min, e-mail na Interię włączony dla zadania) — ustawienia
-  potwierdzone 19.09 zrzutami. **Historia zdarzeń (zrzut 21.09):** 19.09 14:17 `new → down`
-  i `down → up` (dwa testy z EC2: awaria, potem OK), **19.09 19:00 `up → down` (cisza; test 4
-  z notatki zaliczony, strefa polska)**, 21.09 18:30 `down → up` (`#3 OK`, `GET` z
-  `13.63.105.190`), 22–25.09 #4–#7 `OK` o 18:30, **26.09 16:04 test E4 z nowym
-  `control.py`: #8 `Failure` (`POST`, 2450 B, `up → down`) i #9 `OK` (`GET`, `down → up`)**.
-  Stróż pisze tylko przy zmianie stanu (dwa dni ciszy dały jeden mail). Mail
-  `UP` 21.09: „downtime lasted 1 day, 23 hours", `Status Changed to Up at … 18:30:02 +0200`.
-  **Opóźnienie maili: 15 minut, potwierdzone 26.09** (hipoteza z 19.09): zmiany stanu
-  o 16:04, maile `DOWN` i `UP` na Interii o 16:19. Nie wiadomo, czy czeka stróż, czy Interia.
-  Na co dzień: awaria zgłoszona o 18:30 → mail ok. 18:45; cisza (stróż 19:00) → mail ok. 19:15. Konto bez logowania przez rok jest kasowane. Obsługa
-  stróża to jedna osoba — sami piszą, że możliwe są przerwy wielodniowe. Adres zgłoszenia
-  pojawił się 19.09 w rozmowie (odczyt `control.py`, zrzut ekranu) — ryzyko małe; przy
-  podejrzeniu wycieku nowe zadanie z nowym adresem. Zrzuty z 21.09 były przycięte bez pola
-  z adresem.
-- **Kod:** `kod/control.py` — `sprawdz_blok(blok, spolki, dzis)` zwraca listę problemów,
-  `wytnij_blok(tekst)` wycina blok od ostatniej linii startu i odsiewa linie zaczynające się
-  od `Kontrola:`, część główna (patrz niżej); `kod/test_control.py` — 11 testów na prawdziwym
-  bloku z 18.09 (`kod/dane_testowe/blok_2026-09-18.txt`), `11 passed` (wynik wklejony 19.09).
-  **Wyjaśnienie testów zrobione 19.09**, dwa razy: tabela 8 + 3 testów, potem kod linia po
-  linii i każdy test z przebiegiem; Gracjan: „wszystko już rozumiem". Nazwa `control.py`, nie
-  `kontrola.py` z notatki — wybór Gracjana.
-- **Dwie pułapki znalezione 18.09, obie w notatce:**
-  - komunikaty skryptu kontrolnego zawierają szukane słowa, więc drugi bieg tego samego dnia
-    widziałby własną linię i uznał awarię za komplet — stąd odsiew i test
-    `test_powtorna_kontrola`. **Linia wyniku skryptu musi zaczynać się od `Kontrola:`**;
-  - polskie litery w treści zgłoszenia: EC2 ma `urllib3==1.26.20`, który oddaje tekst do
-    `http.client`, a ten koduje latin-1 → `UnicodeEncodeError`. Laptop (`urllib3==2.7.0`)
-    koduje UTF-8, więc test na laptopie tego nie pokaże. Treść wysyłać jako
-    `.encode("utf-8")`. **Sprawdzone na EC2 19.09** (2351 bajtów co do bajta, litery bez
-    krzaków w treści wpisu i w mailu) — ryzyko zamknięte.
-- **19.09, commit `b28e3de`** (wpis `notatki/dziennik/2026-09-19.md` napisany 21.09
-  z transkryptu sesji): część główna `control.py` — czyta `errors.txt` (albo plik z
-  `KONTROLA_LOG`), datę bierze z `KONTROLA_DATA` albo z dzisiejszej daty maszyny, adres
-  stróża z `STROZ_URL`; wypisuje `Kontrola: OK` albo `Kontrola: AWARIA - …`; przy komplecie
-  `get`, przy awarii `post …/fail` z treścią w UTF-8; odpowiedź inna niż 200 albo wyjątek →
-  linia `Kontrola: …` i kod wyjścia 1; bez `STROZ_URL` druga linia `Kontrola: brak adresu
-  stróża`. `data_ingestion.py`: `basicConfig` bez `filename`, więc błędy `ERROR` idą na
-  stderr, czyli do `errors.txt`; `flush=True` przy linii startu, bo bez niego `ERROR`
-  lądował **przed** linią startu, poza blokiem (zwykły `print` do pliku czeka w buforze,
-  `stderr` nie) — pokazane na żywo na laptopie. Sprawdzone 19.09: lokalnie `11 passed`
-  i obie gałęzie wysyłki z fałszywym adresem; na EC2 (pull do `b28e3de`) testy 2 i 3
-  z notatki: data 18.09 → `Kontrola: OK`, data 19.09 → `Kontrola: AWARIA - …`, oba
-  kod 0; stróż: `#1 Failure` (POST, 2351 bajtów = 57 + 2294, policzone przed odczytem)
-  i `#2 OK` (GET); trzy maile na Interii (test z przycisku, DOWN, UP).
-- **21.09 — wgranie i pierwszy bieg z `cron`:** `crontab` wgrany o **14:53:03 UTC (16:53
-  polskiego)** z pliku `~/crontab-nowy-0919.txt` (kontrole przed: żywy `crontab` = kopia,
-  5 / 7 linii, `diff` z zamaskowanym adresem cztery linie, `wc -c` linii z adresem 67,
-  `date` 14:52:55 UTC, przed oknem 17:55). Bieg o 18:00 i skrypt kontrolny o 18:30:02:
-  start w linii **663** (`16:00:02` UTC), blok 28 linii, `Kontrola: OK` w linii **691**,
-  stróż `#3 OK` (18:30, `GET` z `13.63.105.190`, `down → up`), mail `UP`. Wszystkie
-  przewidywania zapisane przed odczytem.
-- **Blok w `errors.txt`:** 29 linii w dzień giełdowy, 27 bez nowych wiadomości —
-  **potwierdzone 21.09** dla dnia giełdowego.
-- **Czego sygnał świadomie nie łapie:** złych danych przy udanym biegu (Athena zwraca pół
-  tabeli, Yahoo poprawia ceny wstecz, cena z trwającej sesji); braku świecy o 18:00 w dzień
-  giełdowy (wygląda jak sobota, sam się naprawia dzień później); lokalnych rzeczy
-  (kompakcja z laptopa). Gdy EC2 leży albo `cron` nie ruszył, alarm idzie po 19:00 od
-  stróża, nie od skryptu.
-- **Zostaje:** 25.10 pierwszy prawdziwy sprawdzian strefy u stróża; obserwacja przez
-  kolejne dni (jeden bieg to za mało na „działa"); godzina przyjścia maili (hipoteza
-  o opóźnieniu z Interii).
-
-### Wciąż otwarte (najkrócej, pełne opisy w przeglądzie)
-
-**Od 08.10 pełna lista otwartych wad: `notatki/plany/Przeglad-2026-10-08-calosc.md`** (Część 1 —
-nowe, Część 2 — co z 08.09 dalej jest, Część 3 — nieaktualna dokumentacja). Wpisy niżej są
-starsze; część z nich jest już zamknięta i zostanie uporządkowana przy dużej dokumentacji
-(decyzja 6). **Decyzje Gracjana 08.10, wszystkie w wariancie (a):**
-1. złe ceny Yahoo za wcześniejsze dni tygodnia (1.1, 🔴 warunkowo) — **najpierw zbadać** (krok 16
-   kontroli, porównania z GPW), potem jedna notatka projektowa na punkty 1 i 2;
-2. Producent **bez domyślnego adresu brokera** (Konsument ma ten sam domyślny adres — do
-   rozważenia w notatce) — brak `KAFKA_BOOTSTRAP` = głośny błąd
-   (dziś domyślny to broker na EC2, a pamięć laptopa kończy się na 01.09: ręczny bieg z laptopa
-   wysłałby 26 dni × 3 drugi raz); w tej samej zmianie co punkt 1;
-3. ✅ **09.10** (stan w „Stan 09–10.10”) **strażnik kompakcji** (`compaction.py:31`, każdy `ClientError` = „nowa spółka”) — naprawić
-   **przed listopadową kompakcją**: tylko „nie ma pliku” = 0, inny błąd przerywa;
-4. **git w OneDrive** — zostawić (734 luźne obiekty po przerwanym sprzątaniu 07.10, wszystkie
-   w paczce); pytanie o kasowanie katalogu przy commicie → Ctrl+C jak 07.10 albo wstrzymać OneDrive;
-   repozytorium nie przenosić (dziennik ma jedyną kopię w chmurze w OneDrive);
-5. źródło prawdy o wadach — nowy przegląd (przegląd z 08.09 to historia);
-6. CLAUDE.md — przy dużej dokumentacji codzienne sekcje stanu do osobnego pliku z historią;
-7. kolejność: **1 i 2 przed dużą dokumentacją**, 3 przed kompakcją w listopadzie, reszta jako
-   ograniczenia w README.
-
-**Decyzja Gracjana 04.10 o znanych wadach — wszystko zgodnie z rekomendacją Claude'a:**
-- **Naprawić przed stroną (N):** warunek w Producencie przeciw cenie z trwającej sesji
-  (czerwona wada, groźna przy ręcznych biegach w dzień roboczy przed 17:00 — notatka, kod,
-  wdrożenie na EC2) — **06.10 kod i testy na laptopie zrobione** (`28 passed`, bieg z martwym
-  brokerem o 16:45 z dopiskiem przy trzech spółkach), **07.10 na EC2** (`5676575`, ręczny bieg po
-  18:00 bez pominięcia zgodny), **✅ 08.10:** dowód pominięcia na EC2 o 16:32 i pierwszy bieg `cron`
-  na nowym kodzie zgodny (zostaje opis w README); odpięcie `IAMFullAccess` od użytkownika `gpw-tracker-admin` — **✅ 04.10
-  ok. 16:20** (Gracjan, konsola jako root): przed — „Last Accessed” dla IAM „19 days ago” (15.09,
-  sprawdzanie roli EC2), polityki przy IAM „AWSGlueConsoleFullAccess and 1 more”; po — przy IAM
-  samo `AWSGlueConsoleFullAccess` (ta polityka daje część IAM: odczyt ról, przekazanie roli
-  Glue), usług 20 → 19; z laptopa `get-caller-identity` bez zmian, `aws s3 ls` 157673/350 B,
-  `python kod/path.py` → `2355`, `Dane: OK`, `aws iam list-attached-user-policies` →
-  `AccessDenied` („no identity-based policy allows”). Zrzutu zakładki Permissions (3 polityki)
-  nie było. EC2 bez wpływu (rola `gpw_tracker_ec2_role`) — potwierdzi bieg 04.10. Powrót:
-  Permissions → Add permissions → Attach policies directly → `IAMFullAccess`. Możliwe dalsze
-  zawężenie (czy `AWSGlueConsoleFullAccess` jest potrzebne) — osobna decyzja, później. ~~Komentarz „niedobór
-  pamięci” w `compaction.py`~~ — **sprawdzone 04.10 po decyzji: nic do naprawy**, w `kod/` nie
-  ma takiego słowa, a linia 1 `compaction.py` od 11.09 (`4b535d8`) podaje prawdziwy powód
-  (brak `pyarrow` na EC2). Pozycja na liście „do decyzji” była nieaktualna od 11.09.
-- **Zostają jako ograniczenia opisane w README (O):** kwadrans zapasu u Yahoo (od 26.09 głośny
-  i sam się naprawia); korekty Yahoo wstecz (razem z nimi uśpiony przypadkowy wybór ceny
-  w Silverze — naprawiać kiedyś razem); `close()` bez `finally`; ostrzeżenia SQLAlchemy
-  i `value_deserializer`; brak planu B dla źródła; nowa spółka (partycja w Athenie + okno
-  `range=3y`) — warunek „przed dodaniem spółki”; rozjazd nazw kolumn w rankingu; granice
-  kontroli (zła cena przy dobrej dacie, ubytek u wszystkich, fałszywy alarm w święta);
-  kompakcja ręczna raz w miesiącu.
-- **Później (P):** aktualizacja Amazon Linux — po 17.10, osobna notatka.
-- Power BI — odłożony decyzją z 03.10 (README: dane do 20.09).
-
-- Producent uruchomiony przed 17:00 zapisuje cenę z trwającej sesji jako
-  zamknięcie.
-- Okno na kurs zamknięcia u Yahoo ma najwyżej kwadrans zapasu (11.09:
-  o 17:45 brak świecy, o 18:00 jest).
-- Testy sprawdzają rzeczy obok potoku — **od 23.09 jest test prawdziwej drogi**
-  (`kod/path.py`), od 25.09 wpięty w `control.py`, **od 26.09 na EC2 i w `cron`** (`fc6e262`,
-  biegi ręczne E1–E4 i pierwszy bieg z `cron` zgodne — kolejność napraw, punkt 7).
-  `test_plikow.py` **usunięty 03.10** (oba jego testy dublowały silniejsze sprawdzenia).
-- Nikt nie dowie się o awarii — **zamknięte 21.09 w zakresie sygnału** (patrz „Sygnał awarii"). Log
-  podwójny naprawiony w kodzie 19.09: Producent pisze błędy na stderr do
-  `errors.txt`, `errors.log` przestał rosnąć (laptop: 6519 bajtów przed
-  i po; EC2: 8 linii, potwierdzone 21.09).
-- Korekty cen Yahoo nie docierają do S3.
-- **Nowe 21.09:** wykresy (`wykresy.py`, `ranking.py`), `test_plikow.py` i Power BI
-  czytają lokalne `gold/` i `silver/`, które stoją od 20.09 (Harmonogram wyłączony) —
-  pokażą stare dane bez błędu. **03.10: wykresy przepięte na Athenę (z datą ostatniej świecy
-  w tytule), `test_plikow.py` usunięty. Zostaje Power BI** — dalej pokazuje dane do 20.09,
-  świadomie odłożony (łącznik Athena wymaga sterownika ODBC na laptopie).
-- **Nowe 03.10:** `dnf` na EC2 ostrzega o nowszym Amazon Linux (do `2023.12.20260930`, system
-  na `2023.12.20260817`) — aktualizacja systemu, osobna decyzja, nie w tym samym tygodniu co
-  zmiana Pythona ani 25.10. Stary `venv` (3.9, ok. 0,2 GB) do skasowania najwcześniej ok.
-  17.10. Daty na osi X w `wykres3spolek.png` nachodzą na siebie (kosmetyka, było i przed
-  zmianą).
-- Nierówne okna `range=3y` dla nowej spółki (13.09).
-- README obiecuje więcej, niż jest.
-- **Trzy sprawy z 14.09 — wszystkie zamknięte 17.09:**
-  - `consumer.close()` — ✅ dopisane, sprawdzone (`no active members` od
-    razu po biegu). **Zostaje ograniczenie:** `close()` stoi za
-    `put_object`, więc przy awarii się nie wykonuje. Pełne rozwiązanie
-    wymaga `finally` — odłożone świadomie, nie gubi danych;
-  - zakładka przed zapisem — ✅ z podejrzenia zrobił się fakt potwierdzony
-    w kodzie i na żywo, potem naprawiony (patrz punkt 3 kolejki);
-  - CBF — ✅ porównane z BiznesRadarem: 14.09 `201.00`, 15.09 `197.40`,
-    16.09 `195.30`, **co do grosza zgodnie z Yahoo**. **17.09 `204.00`
-    potwierdzone 18.09 w oficjalnym archiwum GPW** (gpw.pl, Archiwum
-    notowań), razem z SNT 344,80 i XTB 147,24. BiznesRadar miał w archiwum
-    203,80 — to jego błąd (jego własny nagłówek wskazywał 204,00). **Od
-    18.09 porównujemy z archiwum GPW, nie z BiznesRadarem.**
-- **Nowe 17.09:**
-  - **rozjazd nazw kolumn**, zamierzony: plik CSV w S3 ma w nagłówku
-    `pierwsza_cena` i `ostatnia_cena`, a tabela `gold_ranking_spolek`
-    `pierwotna_cena` i `aktualna_cena`. Nic nie psuje (nagłówek pomijany,
-    dopasowanie po kolejności), ale trzeba o tym wiedzieć. Zrównanie nazw
-    wymagałoby zmiany w `gold.py`, czyli wdrożenia na EC2;
-  - Cyber_Folks połączył się z Shoperem, 15.09 weszło ponad 3,2 mln akcji
-    serii F. Przy takich zdarzeniach kursy historyczne bywają przeliczane
-    wstecz — to zaostrza znaną wadę „korekty cen nie docierają do S3".
-- **Poza kolejnością, do decyzji Gracjana:**
-  - ~~Python 3.10 na EC2~~ — **03.10 Python 3.14 na EC2** (3.10 w Amazon Linux 2023 nie ma),
-    potwierdzony 05–06.10 (patrz „Poza listą, zrobione 03.10”);
-  - `pd.read_sql` przez SQLAlchemy;
-  - ostrzeżenie `value_deserializer`;
-  - ~~słowa „niedobór pamięci" w komentarzu `compaction.py`~~ — nieaktualne od 11.09
-    (sprawdzone 04.10: komentarz w linii 1 podaje brak `pyarrow`);
-  - plan B dla źródła danych;
-  - **(15.09) kompakcja, wykresy (`wykresy.py`, `ranking.py`) i Power BI nie
-    mają miejsca w kolejności napraw.** Propozycja Claude'a: kompakcja na EC2
-    po sygnale awarii i Pythonie 3.10 (w `cron` byłaby comiesięcznym
-    kasowaniem, którego nikt nie ogląda); wykresy i Power BI przepiąć na
-    Athenę zaraz po wyłączeniu Harmonogramu, bo inaczej pokażą stare dane
-    bez błędu **(od 21.09 to się już dzieje: Harmonogram wyłączony)**. Silvera do S3
-    nie potrzeba: `gold/dane_dzienne.csv` ma
-    wszystkie jego kolumny. **03.10: kompakcja zrobiona ręcznie z laptopa (dalej poza
-    `cron`), wykresy przepięte, Power BI odłożony.**
-
-### Test „zakładki nie ma" — wynik z 14.09, potwierdzony na EC2 15.09
-
-Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
-
-- **Bramka:** najstarsza wiadomość w topicu miała numer 2327, czyli segment
-  z zalewem z 01.09 został skasowany tak, jak przewidzieliśmy 09.09.
-- **Test:** grupa `gpw_consumer` skasowana `--delete`, potem ręczny bieg
-  Konsumenta z `KAFKA_BOOTSTRAP=localhost:9094`. Wynik: `Odebrano 15
-  wiadomości` i zakładka 2342.
-- **S3:** w `live/` 24 → 27 plików. Nowe pliki są bajt w bajt sklejeniem
-  pięciu dziennych plików spółki.
-- **Silver** na laptopie po teście: `(2313, 3)`, plik z tą samą sumą SHA256
-  co przed testem.
-- **Pomyłka Claude'a:** przewidział `no active members` zaraz po biegu,
-  a wyszedł jeszcze członek grupy (brak `close()`).
-- **15.09 na EC2:** 2 × `(2316, 3)`, `Odebrano 3`, zakładka 2345. Brakuje
-  tylko sygnału awarii.
-- **Skutek za miesiąc:** 3 pliki powtórek w `live/`, więc kompakcja 1.10
-  wypisze o 3 więcej w `Usunięto N plików`.
-
-### Pomyłki Claude'a z ostatnich dni, wszystkie sprostowane
-
-- **11.09:** trzy commity zapowiedziane przy `git pull`, było sześć;
-  decyzja o `pyarrow` „nigdzie niezapisana", a była w trzech miejscach;
-  wada rankingu „znana tylko z opisu", a była zaobserwowana.
-- **11–12.09:** „po `CRON_TZ` linia startu pokaże 18:00". Nieprawda, zostaje
-  UTC. Sprostowane w notatce z 11.09.
-- **12.09:** sobotni blok „23 linie". Było 21, bez `boto3`.
-- **12.09:** „o 17:00 świecy tym bardziej nie będzie". Za pewne: 08.09
-  o 16:43 była świeca z ceną z trwającej sesji.
-- **13.09:** „dokładnie siedem linii `diff`". Było osiem, treść zgodna.
-- **14.09:** `no active members` zaraz po ręcznym biegu Konsumenta. Członek
-  grupy był jeszcze na liście.
-- **14.09:** pierwsza wersja notatki o teście zakładki niezrozumiała, stąd
-  dopisek w zasadzie 10.
-- **15.09:** blok po nowym Goldzie „+1 linia”. Będzie +4: Gold jako osobny
-  program wypisze też 2 linie ostrzeżenia `boto3`.
-- **15.09:** `echo %GOLD_DO_S3%` (składnia cmd) podane do PowerShella, gdzie
-  zawsze wypisuje sam napis i nic nie sprawdza.
-- **15.09:** `git status` „5 linii” po teście wysyłki. Było 6, bo Claude
-  chwilę wcześniej sam zmienił notatkę z 14.09.
-- **17.09:** liczenie godziny z głowy zamiast sprawdzenia zegara. Claude
-  napisał „jest 17:56", gdy było 17:37 — i wcześniej też szacował czas na
-  podstawie postępu rozmowy. Gracjan sprostował. **Wniosek: przed każdą
-  wypowiedzią o godzinie uruchomić `date`.**
-- **17.09:** przewidziane „`3 insertions`" przy `git commit`, a wyszło 321.
-  Liczba 3 dotyczyła samego `kafka_consumer.py`; `git commit` sumuje
-  wszystkie pliki w commicie, a w tym był też plik notatki (318 linii),
-  którego długość Claude znał. **Wniosek: przy `git commit` podawać sumę,
-  przy `git diff plik` — liczbę dla pliku.**
-- **17.09:** w notatce zapisane, że jeden bieg testowy dowiedzie zarówno
-  nieruszonej zakładki, jak i działania `close()`. Niewykonalne — przy
-  awarii zapisu program pada przed `close()`. Poprawione w notatce po
-  napisaniu kodu, rozdzielone na dwa testy.
-- **17.09:** „aktualna cena 191,2 zł" z wyszukiwarki podana jako możliwy
-  punkt odniesienia dla dzisiejszego biegu. Arytmetyka się nie domykała
-  (spadek 3,34% od 195,30 dałby 188,8), więc wartość była niewiarygodna od
-  początku i nie powinna trafić do rozmowy jako poszlaka.
-- **18.09:** „AWS nie łapie czwartku i piątku" — za szeroko. Nie łapie
-  **sama SNS**; AWS ma CloudWatch, który umie alarmować przy ciszy.
-  Sprostowane na pytanie Gracjana, wariant dopisany do notatki.
-- **18.09:** dwa podobne słowa na dwie różne rzeczy („strażnik" i „stróż")
-  w jednej notatce. Zmienione na „skrypt kontrolny" i „stróż".
-- **18.09:** kroki do sprawdzenia biegu podane jako „są w wiadomości sprzed
-  trzech", a kroki do kodu jako długa lista z tabelą w środku jednego kroku.
-  Gracjan dwa razy prosił o przepisanie. Stąd dopisek w zasadzie 3.
-- **18.09:** niejasna uwaga o komunikacie przy braku `Odebrano` („wypisze
-  całą listę spółek") — Gracjan zrozumiał ją jako prośbę o komunikat na
-  każdą spółkę i dopisał pętlę. Chodziło o komunikat o Konsumencie.
-- **18.09:** jako wzór testów wskazany `test_bieg_nie_z_dzis` — jedyny test
-  z inną datą. Gracjan przepisał datę `2026-09-19` do sześciu testów.
-- **18.09:** od 13.09 w CLAUDE.md i przeglądzie stało „26.10 pierwszy bieg
-  po zmianie czasu". Czas zmienia się w nocy z 24 na 25.10, więc pierwszy
-  bieg z `17:00` UTC to niedziela 25.10 (sprawdzone strefą czasową Windows).
-  Poprawione w obu miejscach.
-- **20.09:** przewidywanie rozmiaru pliku Golda w S3 (157886 − 2326 = 155560)
-  policzone przed komendą, ale wpisane do wiadomości dopiero po niej.
-  Sprawdzenie było dobre, zapis „przed" nie. **Wniosek: liczbę napisać
-  w wiadomości, dopiero potem puszczać komendę.**
-- **21.09:** na starcie sesji podałem stan sprzed 19.09 jako aktualny (EC2 na
-  `033107f`, zadanie u stróża niepotwierdzone, ceny z 18.09 otwarte, testy
-  niewyjaśnione, „nie wiemy, czy część główna była uruchamiana"), bo dziennika
-  z 19.09 nie było, a CLAUDE.md kończył się na 20.09. Transkrypt sesji z 19.09
-  pokazał, że kod jest na EC2, ustawienia stróża potwierdzone, ceny sprawdzone,
-  testy wyjaśnione, a część główna przetestowana. **Wniosek: dziennik
-  i CLAUDE.md pisać w dniu sesji, także gdy sesja urwie się w połowie; brak
-  wpisu z dnia to sygnał, że stan trzeba sprawdzić w transkrypcie
-  (`list_events` na sesji), a nie zakładać, że nic się nie zdarzyło.**
-- **19.09 (z transkryptu):** Claude kazał sprawdzać Gmaila, a maile idą na
-  Interię — adres wziął z danych sesji, nie z ustawień stróża. Pierwsze
-  przewidywanie testu z fałszywym adresem: jedna linia zamiast dwóch (zmienne
-  `$env:` zostają w oknie PowerShella). Sprostowane w sesji.
-- **21.09 (wieczór):** `git add` — przewidziano „brak wyniku", a wypisał ostrzeżenie
-  o końcach linii (`LF` na `CRLF`); wcześniej o nim wspominano tylko przy commicie.
-  Niegroźne.
-- **21.09:** kolejność linii w wynikach przewidziana błędnie: `git rm --cached` wypisuje
-  alfabetycznie, `git status --short` daje nieśledzone `??` na końcu. Treść zgodna.
-  **Wniosek: przewidywać liczby i słowa, nie układ.**
-- **21.09:** zakres godziny dla `date` na EC2 (15:00–15:15 UTC), a wyszło 14:52:55, bo
-  Gracjan szedł szybciej niż zakładano; odczyt `RELOAD` ustawiony bez odczekania,
-  więc pierwszy odczyt nie mógł go jeszcze zawierać (wpis potrzebuje kilku–
-  kilkunastu sekund).
-- **21.09:** wpis z 19.09 napisany najpierw w pierwszej osobie. Dziennik ma narrację
-  bezosobową, pierwsza osoba tylko w „Czego się nauczyłem". Przepisany.
-- **23.09:** zasady do funkcji i testów podawane po kawałku, dopiero przy ocenie
-  wklejonego kodu (`test_` w nazwie, `ticker` zamiast `df["spolka"]`, `[1:]`, liczenie
-  problemów ze wszystkich sprawdzeń). Gracjan to wytknął. Stąd dopisek w zasadzie 3
-  i notatka „wszystko w jednym miejscu".
-- **23.09:** o 16:45 zapowiedziany test alarmu przed 18:10, bez rezerwy na funkcję, testy
-  i część z Atheną. Nie zdążyliśmy. Zastąpiony udawanym dniem przez `DROGA_DATA`.
-- **23.09:** pierwsze przykłady testów z `* 3` i nazwami wpisanymi na sztywno, a
-  `len(...)`, `[0]` i `[1:]` dopiero później, więc Gracjan przepisywał tabele.
-- **24.09:** sesja zakończona bez wpisu w dzienniku. To ta sama sytuacja co przed 21.09.
-  Dopisany 25.09 z transkryptu.
-- **25.09:** komendy wpisane w tekst kroków zamiast w osobne okienka. Gracjan poprosił
-  o powrót do okienek (zasada 4).
-- **25.09:** `ranking.csv` „ok. 360 B” bez wyliczenia, wyszło 338.
-- **25.09:** „`pytest` poniżej sekundy” po zmianie pliku, wyszło 1,62 s. Dowodem braku
-  połączenia z Atheną jest brak `warnings summary`, a nie czas.
-- **25.09:** bieg ze zmyślonymi kluczami: tekst przewidziany jako `Execution failed on sql …`,
-  a przyszedł sam komunikat `botocore`. Nieprzewidziany `Traceback` od `pyathena` na stderr.
-- **25.09:** pułapka `in` na kolumnie pandas dopisana do tabeli błędów dopiero po pytaniu
-  Gracjana o warunek. Pierwsza wersja warunku Gracjana brzmiała `t not in spolki`.
-- **25.09 (znalezione 26.09):** przewidywanie na poniedziałek 28.09 „start w linii 808,
-  `wc -l` 836” pominęło weekend — 808 to start sobotniego bloku. **Wniosek: przy
-  przewidywaniu na dzień odległy o kilka biegów liczyć każdy bieg po kolei, także weekend.**
-- **26.09:** `export`, `unset` i `${#…}` przedstawione jako nowe, a są w słowniku od 19.09
-  (używane wtedy z `read -s` przy tym samym adresie). Nowe były tylko `$( )` i `cut -d= -f2-`.
-  Słownika nie sprawdziłem przed wiadomością.
-- **03.10:**
-  - `python3.1?` „łapie 3.11–3.13”, a złapał też 3.14 (`?` to dowolny jeden znak);
-  - commit `4aca12d`: przewidziane `127/13`, wyszło `128/14`, bo edytor dopisał koniec ostatniej
-    linii `.gitignore`;
-  - `venv314` „250–450 MB”, wyszło 205 MB;
-  - 2 linie `boto3` w ręcznym Goldzie na starym `venv`: nie było ich, bo ostrzeżenie wychodzi
-    przy tworzeniu klienta S3 (`GOLD_DO_S3=1`), nie przy imporcie;
-  - `wykresy.py` „24 linie”, ma 27;
-  - instrukcja bez ostrzeżenia przed nazwą `max` (dopisana zasada 13 w instrukcji);
-  - porcja z testem awarii bez kroku włączającego `venv` i bez wyraźnego przejścia z EC2 na
-    laptop (`pytest` z Pythona systemowego), potem „włącz venv” obok „venv nieistotne”. Stąd
-    krok PRZEŁĄCZENIE w zasadzie 4;
-  - sesja przerwana o 12:32 przed wieczorną kontrolą: dziennik był już zapisany jako szkic,
-    więc 04.10 start poszedł z dobrego stanu. CLAUDE.md i słownik czekały do 04.10.
-- **03.10 (znalezione 04.10):** przewidywanie na pon. 05.10 „start 1056, `wc -l` 1083”
-  pominęło niedzielny bieg (to liczby niedzieli). **Drugi raz ten sam błąd co 25.09.**
-  **Wniosek: przewidywania na kolejne dni zawsze jako tabela z wierszem na każdy dzień
-  kalendarza** (jak „Przewidywania od 04.10”), nigdy jedną liczbą na „następny dzień
-  giełdowy”.
-- **04.10:**
-  - w tabeli znanych wad zarekomendowałem „naprawić” komentarz „niedobór pamięci”
-    w `compaction.py`, biorąc pozycję z listy w CLAUDE.md bez zajrzenia do kodu. Komentarz był
-    poprawny od 11.09. Gracjan przyjął rekomendację, więc decyzja stała na nieaktualnej
-    przesłance. **Wniosek: przed rekomendacją naprawy otworzyć plik, którego dotyczy;**
-  - napisałem, że `Codzienna-rutyna` nie istnieje — istnieje (`notatki/plany/`), nie
-    sprawdziłem przed wiadomością;
-  - przy liczeniu zmian do commita użyłem `git add -N` (zmiana indeksu) i cofnąłem —
-    Claude czyta stan gita, ale go nie zmienia (zasada 5);
-  - README zapowiedziany na 150–200 linii, wyszło 254;
-  - przy IAM nie przewidziałem, że `AWSGlueConsoleFullAccess` sama daje część IAM (wiersz IAM
-    po odpięciu `IAMFullAccess` został, z jedną polityką).
-- **06.10:**
-  - po zmianach w `data_ingestion.py` nie sprawdziłem pliku i nie opisałem nowych linii z własnej
-    inicjatywy; Gracjan musiał poprosić („miałeś to robić za każdym razem”). Dopisane do
-    zasady 3;
-  - w rozmowie formy rodzajowe zwracające się do Gracjana („sama”, „pominęła”), bez żadnej
-    podstawy;
-  - instrukcja z 04.10 (Część 8, krok 4): ręczny bieg na EC2 „przed 17:55” bez zastrzeżenia,
-    że po 17:00 Yahoo może nie mieć świecy (przy kroku 2 zastrzeżenie było). Poprawione na
-    „przed 16:50”.
-- **07.10:**
-  - `date` przed wdrożeniem: przewidziane 19:00–19:45 UTC, wyszło 18:57:26 (założone wolniejsze
-    tempo; ten sam błąd co 21.09). **Wniosek: dolną granicę godziny liczyć od ostatniego odczytu
-    `date` + kilka minut, nie od szacunku tempa;**
-  - pytanie Gracjana o „całą dokumentację” najpierw zrozumiane jako dokumentacja dzisiejszej sesji;
-    chodziło o dużą dokumentację po dużych zmianach.
-- **08.10:**
-  - `date` przed ręcznym biegiem: przewidziane od 14:33 UTC, wyszło 14:32:49 — trzeci raz ten sam
-    błąd (21.09, 07.10), tym razem w drugą stronę: Gracjan szybszy niż założone „+2 minuty”;
-  - cena CBF za 07.10 w pamięci przewidziana jako stara (199,2), a `data_ingestion.py:62` nadpisuje
-    ceny znanych dni przy każdym biegu — kod był otwarty kilka minut wcześniej;
-  - dwie błędne hipotezy o złych cenach: „Yahoo wkłada dzisiejszą cenę do wczorajszego dnia”
-    (obalona krokiem 9: trzy dni z tą samą ceną) i „to tylko w trakcie sesji” (obalona o 18:00:
-    przewidziane „Yahoo wraca do dobrych cen”, nie wróciło). Dopiero archiwum GPW z 02.10 pokazało,
-    skąd są liczby. **Wniosek: przy dziwnej liczbie najpierw szukać jej w danych źródłowych (GPW),
-    potem budować hipotezę;**
-  - indeks ujemny (`[-4:]`) przedstawiony jako nowy, a jest w słowniku (linia 1546) — drugi raz
-    ten sam błąd co 26.09;
-  - przegląd całości: notatki i dziennik od 08.09 przeszukane słowami kluczowymi, nie przeczytane
-    w całości; napisane wprost w pliku przeglądu („Podstawa”);
-  - przegląd (punkt 1.2): „przerwa w sieci” zaliczona do `ClientError` — sprostowane 09.10 w notatce.
-- **09.10:** sesja skończona w południe bez dokończonego dziennika i bez CLAUDE.md (szkic dziennika był,
-  więc 10.10 start poszedł z dobrego stanu, ale wieczorna kontrola przepadła na dzień).
-
-### Priorytet Gracjana (08.09)
-
-Czysty, działający łańcuch `data_ingestion → Kafka → S3/Athena → silver →
-gold` → wynik na stronie. Wykresy, README pod pracodawcę, Power BI —
-dopiero potem.
 
 ### Strona — decyzje 06.10
 
@@ -1195,67 +491,81 @@ Pięć otwartych pytań z Plan-06 (wątek 4) rozstrzygniętych 06.10, wszystkie 
    świecy), wykres trzech spółek, ranking. Zakładki spółek i słownik później.
 
 Następny krok: notatka projektowa (zasada 10), po zatwierdzeniu pełna instrukcja (zasada 3);
-w niej instalacja Plotly w `.venv` i dopisanie do `requirements-lokalny.txt`. **Od 08.10 strona
-idzie po naprawach 1 i 2 z przeglądu z 08.10 i po dużej dokumentacji** (decyzja 7 z 08.10).
+w niej instalacja Plotly w `.venv` i dopisanie do `requirements-lokalny.txt`. **Kod strony idzie
+po naprawach 1 i 2 z przeglądu z 08.10** (decyzja 7). Duża dokumentacja zrobiona 10.10, przed
+naprawami. Ustalenia wyglądu strony (bez kodu) mogą iść wcześniej — wybór Gracjana 10.10.
 
 ### Na następną sesję
 
-Stan 08.10 (czwartek, koniec sesji ok. 19:10). **Warunek sesji zamknięty na EC2** ((a)–(d), (e)
-czeka na README) — szczegóły w „Stan 08.10”. Przegląd całości zrobiony, **od 08.10 źródło prawdy
-o wadach: `notatki/plany/Przeglad-2026-10-08-calosc.md`**, decyzje w „Wciąż otwarte”. Komendy
-commita z dokumentacją 08.10 podane na koniec sesji — na starcie sprawdzić, czy commit jest i czy
-wypchnięty (przy commicie mogło wrócić pytanie gita o kasowanie katalogu — decyzja 4).
-**Przed każdym kawałkiem kodu: notatka projektowa (zasada 10) i pełna notatka-instrukcja
-(zasada 3); po każdej zmianie Gracjana — opis każdej nowej linii (zasada 3).**
+Stan 10.10 (sobota, w trakcie sesji).
+- **Zrobione:**
+  - kontrola biegu 09.10, zgodna;
+  - commit `5fa6098` (strażnik i dokumentacja 09.10), wypchnięty;
+  - duża dokumentacja: README, ten plik, `Historia-stanu.md`.
+- **Czeka:** odświeżone obrazki (bieg Gracjana na laptopie) i commit dużej dokumentacji.
+- **Przed każdym kawałkiem kodu:** notatka projektowa (zasada 10) i pełna notatka-instrukcja
+  (zasada 3). **Po każdej zmianie Gracjana:** opis każdej nowej linii (zasada 3).
 
-**Kolejność (decyzja 7 z 08.10):** badanie złych cen Yahoo → jedna notatka projektowa na punkty 1
-i 2 przeglądu (złe ceny przy kilku nowych dniach + brak domyślnego adresu brokera) → kod Gracjana,
-wdrożenie → duża dokumentacja → strona. Strażnik kompakcji (punkt 3) przed kompakcją w listopadzie.
+0. **Na starcie:**
+   - `git log -1` i `git status --short` na laptopie: commit jest, drzewo czyste, gałąź nie przed
+     GitHubem;
+   - `date`;
+   - lista sesji: czy po ostatniej była jakaś bez dziennika.
+1. **Kontrola biegów od 10.10** według tabeli „Przewidywania od 10.10”, **z krokiem 16** (pamięć
+   spółek). Pytanie: czy i kiedy Yahoo poprawiło 05–08.10. Prawdziwe zamknięcia z GPW:
+   - CBF 202,80 / 203,00 / 199,20 / 196,00;
+   - SNT 339,80 / 343,80 / 342,20 / 342,80;
+   - XTB 134,80 / 136,12 / 135,00 / 137,00.
 
-0. **Na starcie:** `git log -1` i `git status --short` na laptopie (commit z 08.10 jest, drzewo
-   czyste, gałąź nie przed GitHubem); `date`.
-1. **Pt. 09.10 — ceny z 08.10 w archiwum GPW** (Claude, przeglądarka, adres w „Gdzie co jest”):
-   S3 ma CBF 196,0, SNT 342,8, XTB 137,0. Zgodne → zwykły bieg dalej daje dobrą ostatnią świecę.
-2. **Kontrola biegu 09.10 po 18:32** (wiersz 09.10 tabeli „Przewidywania od 04.10”: start 1196,
-   `wc -l` 1223, `Odebrano 3`, `Dane 2370`, zakładka 2399, pliki 790, stróż #25) **plus krok 16
-   kontroli** (`tail -n 6 companies/*.WA.txt`). Przewidywanie na 09.10: za 05–08.10 dalej
-   piątkowe zamknięcie z 02.10 (201,0 / 341,6 / 138,56), 09.10 świeży — **nie sprawdzone, jeden dzień
-   obserwacji**. Weekend (10–11.10) i pon. 12.10: czy Yahoo poprawi dni z minionego tygodnia.
-3. **Badanie złych cen (decyzja 1)**, bez kodu, aż będzie wiadomo: kiedy Yahoo poprawia dni,
-   czy dotyczy tylko `range=3y` (np. jedno zapytanie `python -c` z `range=5d` w trakcie tygodnia,
-   na EC2, bez Kafki). Potem notatka projektowa na punkty 1 i 2 (możliwości m.in.: przy kilku
-   nowych dniach wysyłać tylko ostatni i alarmować; przed 17:55 nie wysyłać nic; zapytanie o zaległe
-   dni inną drogą) — Gracjan wybiera, potem pełna instrukcja i kod.
-4. **Strażnik kompakcji** (decyzja 3) — notatka i kod przed kompakcją na początku listopada.
-5. **Duża dokumentacja** (po 1–3): README (Część 3 przeglądu z 08.10: lista nieaktualnych miejsc
-   z numerami linii; opis „korekt Yahoo” do sprawdzenia, bo za 01.09 w S3 jest cena prawdziwa),
-   CLAUDE.md (decyzja 6: codzienne sekcje stanu do pliku z historią, „Wciąż otwarte” od nowa),
-   odświeżone obrazki (`wykresy.py`, `ranking.py` — bieg Gracjana na laptopie). Przy okazji: treść
-   #21 u stróża (polskie litery), nieodczytana 06–08.10. Po dużej dokumentacji **strona**: notatka
-   projektowa według „Strona — decyzje 06.10” wyżej.
-6. **Stary `venv` na EC2** — do skasowania najwcześniej ok. 17.10, osobna decyzja po dwóch
-   tygodniach spokoju (decyzja 6 z notatki o Pythonie). Razem z nim `~/porownanie-1003/`.
-7. **Power BI na Athenę** — odłożony 03.10 (sterownik ODBC na laptopie, osobna notatka); na
-   stronę nie idzie (decyzja 06.10). Do tego czasu README mówi, że raport pokazuje dane do 20.09.
-8. **Aktualizacja Amazon Linux** (ostrzeżenie `dnf` 03.10) — osobna decyzja; nie w tygodniu
-   zmiany Pythona ani w tygodniu 25.10. Ewentualne zawężenie `AWSGlueConsoleFullAccess` — też
-   osobna decyzja.
-9. **Terminy:**
-   - **25.10** (niedziela) pierwszy bieg po zmianie czasu — `17:00:0X` w linii startu i to
-     będzie poprawne, a u stróża pierwszy prawdziwy sprawdzian strefy;
-   - **26.10** (poniedziałek) pierwszy dzień giełdowy zimą — w bloku `nowych dni: 1` bez
-     dopisku (strefa w warunku liczy się dobrze także zimą; Część 8, krok 6 instrukcji);
-   - **01.11** Gold zmieni linię `Pełna liczba …` z `117`/`111` (doliczyć nowy miesiąc
-     i październik jako pełny — przeliczyć przed biegiem, nie z pamięci);
-   - **początek listopada** kompakcja za październik (z laptopa, nie między 17:55 a 18:35);
-   - **11.11** (środa) pierwszy fałszywy alarm kontroli w święto (mail `DOWN`, 12.11 `UP`);
-   - **19.02.2027** koniec darmowego planu AWS (albo wcześniej, gdy skończy się kredyt: 04.10
-     zostało **83,44 USD** ze 100, „140 days remaining”; EC2 chodzi 24/7). Przed tą datą
-     decyzja: płatny plan, wyłączenie albo zmiana architektury.
+   Pamięć ma ceny z ostatniego biegu, więc odczyt w niedzielę nie odróżni soboty od niedzieli,
+   chyba że ktoś zajrzy w sobotę po 18:00.
+2. **Notatka projektowa na naprawy 1 i 2**, gdy będzie wiadomo, kiedy Yahoo poprawia tydzień.
+   Możliwości do opisania, między innymi:
+   - przy kilku nowych dniach wysłać tylko ostatni i dać alarm;
+   - starsze dni wstrzymać do poprawki;
+   - przed 17:55 nie wysyłać nic.
+3. **Strona — ustalenia wyglądu** (decyzje 06.10 niżej). Kod strony po naprawach 1 i 2.
+4. **ok. 17.10:** decyzja o starym `venv` na EC2.
+5. Terminy wyżej, w „Terminy”.
 
-**EC2 jest na `5676575` od 07.10 18:57 UTC** (`pull` `4aca12d..5676575`, 27 plików, w tym
-`kod/session.py` i usunięty `kod/test_plikow.py`; `git status --short` pusty przed i po).
-Poprzednio: `4aca12d` od 03.10, `fc6e262` od 26.09, `6af7b48` od 21.09.
+**EC2 jest na `5676575` od 07.10 18:57 UTC.** Laptop i GitHub są dalej:
+- `5fa6098` — strażnik w `compaction.py`, który chodzi tylko z laptopa;
+- notatki i dokumentacja.
+
+Na EC2 nic z tego nie jest potrzebne, przyjdzie przy najbliższym wdrożeniu (naprawy 1 i 2).
+Poprzednio EC2 było na: `4aca12d` od 03.10, `fc6e262` od 26.09, `6af7b48` od 21.09.
+
+### Pomyłki Claude'a — wnioski
+
+Pełna lista z datami: `notatki/plany/Historia-stanu.md`, sekcja „Pomyłki Claude'a”. Od 10.10
+nowe pomyłki idą do dziennika dnia. Tutaj zostają wnioski, które obowiązują:
+
+1. **Godzina tylko z `date`.** Dolną granicę liczyć od ostatniego odczytu + kilka minut, nigdy
+   z szacunku tempa rozmowy (17.09, 21.09, 07.10, 08.10).
+2. **Przewidywanie zapisać w wiadomości przed komendą** (20.09). Przewidywać liczby i słowa,
+   nie układ linii (21.09).
+3. **Przy `git commit` podawać sumę wszystkich plików w commicie**, przy `git diff plik` — liczbę
+   dla pliku (17.09).
+4. **Przewidywania na kilka dni zawsze jako tabela z wierszem na każdy dzień kalendarza**, także
+   weekend. Nigdy jedna liczba na „następny dzień giełdowy” (25.09, 03.10).
+5. **Przed rekomendacją naprawy otworzyć plik, którego dotyczy** (04.10). **Przed nazwaniem
+   pojęcia „nowym” sprawdzić słownik** (26.09, 08.10). Przed stwierdzeniem, że plik nie istnieje,
+   sprawdzić (04.10).
+6. **Dziwną liczbę najpierw szukać w źródle** (archiwum GPW), dopiero potem stawiać hipotezę
+   (08.10). Wartości z wyszukiwarki, przy których nie domyka się arytmetyka, nie podawać nawet
+   jako poszlaki (17.09).
+7. **Dziennik i CLAUDE.md pisać w dniu sesji, także gdy sesja się urwie.** Brak wpisu z dnia
+   znaczy, że trzeba sprawdzić transkrypt (`list_events`), a nie zakładać, że nic się nie stało
+   (21.09, 24.09, 09.10).
+8. **Claude czyta stan gita, ale go nie zmienia.** Także `git add -N` jest zmianą (04.10).
+9. **Zasady i nowe pojęcia podawać od razu, w pełnej instrukcji**, nie po kawałku przy ocenie
+   kodu (23.09). Kroki krótkie, w kolejności, z PRZEŁĄCZENIEM i komendą w osobnym okienku
+   (18.09, 25.09, 03.10).
+10. **Jedno słowo na jedną rzecz** („skrypt kontrolny” i „stróż”, 18.09). Maile od stróża idą na
+    **Interię**, nie na Gmaila (19.09).
+11. **Bez form rodzajowych wobec Gracjana bez podstawy** (06.10).
+12. **Przy hipotezie o zachowaniu kodu przeczytać kod**, zanim się przewidzi wynik. Przykład:
+    cena w pamięci, której linia 62 nadpisuje stare wartości (08.10).
 
 ### Kopie
 
@@ -1326,7 +636,7 @@ w przeglądarce. Archiwum z dzisiejszego dnia o 18:48 jeszcze puste (08.10).
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`
 i `notatki/Slownik.md` **są śledzone**. Poza gitem, przez `.gitignore`, są
 `notatki/dziennik/` i `notatki/.obsidian/`. Znaczy to, że **wszystkie wpisy
-dziennika (32 pliki na 15.09), czyli cały zapis nauki z tego projektu,
+dziennika (51 plików na 10.10), czyli cały zapis nauki z tego projektu,
 istnieją wyłącznie na laptopie i w OneDrive, ani jeden nie jest
 w repozytorium**. **Decyzja Gracjana 06.10: zostaje tak** — dziennik tylko lokalnie (laptop
 i OneDrive), poza gitem. Świadomy koszt: jedna kopia, w zamian prywatność.

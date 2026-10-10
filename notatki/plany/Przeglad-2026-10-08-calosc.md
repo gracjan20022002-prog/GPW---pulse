@@ -21,7 +21,7 @@ z przerwanym sprzątaniem gita) i sporo nieaktualnych miejsc w README i CLAUDE.m
 | 1.2 strażnik kompakcji (decyzja 3) | ✅ **09.10** (a)–(d): kod Gracjana, ścieżka błędu `403` → `Traceback` bez zmian w S3, próba generalna `783 → 783`, `Usunięto 0`; 10.10 `(2370, 3)` po próbie. (e) w README. Opis zawężony — sprostowanie w 1.2 |
 | 1.3 git w OneDrive (decyzja 4) | zostawione; Ctrl+C przy pytaniu o kasowanie katalogu |
 | 1.4 drobne | bez zmian |
-| Część 3, dokumentacja (decyzja 6) | duża dokumentacja **od 10.10** — kolejność zmieniona decyzją Gracjana 10.10 (decyzja 7 niżej) |
+| Część 3, dokumentacja (decyzja 6) | ✅ **10.10** (kolejność zmieniona decyzją Gracjana, decyzja 7 niżej): README — wszystkie miejsca z listy w Części 3, do tego warunek sesji, strażnik, złe ceny Yahoo i adres brokera jako ograniczenia „w naprawie”, rozpiska dnia biegu, 90 cen porównanych z GPW; CLAUDE.md 1395 → ok. 700 linii, codzienne sekcje stanu bez zmian w `Historia-stanu.md`; obrazki — bieg Gracjana 10.10 |
 
 ## Podstawa
 
