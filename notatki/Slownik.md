@@ -408,7 +408,8 @@ dopiero przy pierwszym prawdziwym zapisie.*
 
 ### Status code
 Trzycyfrowa odpowiedź serwera. **200** = w porządku. **404** = nie znaleziono.
-**500** = awaria po ich stronie.
+**403** = brak dostępu (zły klucz, brak uprawnień). **500** = awaria po ich stronie.
+*09.10, S3 z laptopa: nieistniejący plik → `(404) … Not Found`, zmyślone klucze → `(403) … Forbidden`.*
 
 ### `timeout` (limit czasu)
 Dodatkowa informacja podana przy pytaniu do API: ile sekund czekać na
@@ -1975,6 +1976,41 @@ i na EC2 (UTC).
 *08.10: Yahoo dla SNT podało `1791356400` = 07.10.2026, 07:00 UTC = 09:00 polskiego (otwarcie
 sesji). Każdy dzień ma tę samą godzinę, dlatego data wychodzi ta sama na obu maszynach.*
 
+### `ClientError` (i `HeadObject`)
+Wyjątek z biblioteki `botocore` (na niej stoi `boto3`). Znaczy: połączenie było, S3 odpowiedziało,
+ale odmówiło. Treść ma zawsze kształt `An error occurred (KOD) when calling the OPERACJA operation:
+OPIS` — w nawiasie stoi kod odpowiedzi. `download_file` najpierw pyta S3 o plik operacją
+**`HeadObject`**, dlatego ta nazwa stoi w błędzie przy pobieraniu. Błędy sieci
+(`EndpointConnectionError`) i brak kluczy (`NoCredentialsError`) to **inne** wyjątki — `except
+ClientError` ich nie łapie.
+*09.10: `download_file` nieistniejącego pliku → `ClientError: An error occurred (404) when calling the
+HeadObject operation: Not Found`; ze zmyślonymi kluczami → to samo z `(403) … Forbidden`.*
+
+### `except … as e` i `e.response["Error"]["Code"]`
+`as e` daje złapanemu wyjątkowi nazwę `e` (wcześniej w `control.py`: `except Exception as e`).
+`ClientError` niesie w `e.response` zwykły słownik ze słownikiem w środku:
+`{"Error": {"Code": "404", "Message": "Not Found"}, …}`. Kod jest **napisem**.
+*Lody, uruchomione 09.10: Gdańsk (brak pliku) → `e.response["Error"]["Code"]` → `'404'`. Porównanie
+`kod == 404` (liczba) nigdy nie jest prawdą — każdy brak pliku zatrzymałby skrypt.*
+**W tym projekcie:** `compaction.py` od 09.10 — `"404"` → `poprzedni[t] = 0` (nowa spółka), każdy
+inny kod → `raise`.
+
+### `raise` bez niczego
+Wewnątrz `except` samo słowo `raise` wyrzuca **ten sam** wyjątek jeszcze raz. Program staje tak, jakby
+`try` nie było, a `Traceback` pokazuje miejsce, w którym błąd powstał. Używa się, gdy złapany błąd
+nie jest tym, na który mamy plan.
+*Lody, 09.10: Poznań (`403`) → `Traceback`, ostatnia linia `botocore.exceptions.ClientError: An error
+occurred (403) …`; pętla nie idzie dalej. Pułapka: `else:` z wcięciem równym `except` to część
+`try … except … else` (wykonuje się, gdy błędu **nie było**) → `RuntimeError: No active exception to
+reraise` już przy pierwszej budce.*
+
+### Próba generalna
+Prawdziwy bieg nowego kodu w chwili, gdy z założenia nic nie zmieni w danych — żeby pierwszy „ważny”
+bieg nie był pierwszym w ogóle. Dowodem są liczby przewidziane przed biegiem i rozmiary plików po nim.
+*09.10: kompakcja z nowym strażnikiem → 3 × `stara ilosc: 783, nowa_ilosc: 783`, `Usunięto 0 plików`,
+pliki `bronze/` nadpisane, rozmiary co do bajtu te same (9285 / 10253 / 11147 B); wieczorem Silver
+`(2370, 3)` = 2367 + 3.*
+
 ---
 
 ## Strona internetowa
@@ -2074,6 +2110,9 @@ zgadzają, więc sprawdzenie dat tego nie wykryje.
 341,60, XTB 138,56), a dobrą cenę miał tylko ostatni dzień. 03.09 tego zjawiska nie było. Do S3 idą
 tylko nowe dni, zwykle jeden, czyli ostatni — dlatego ceny w S3 zgadzają się z GPW (66 cen
 sprawdzonych 08.10). Groźny byłby bieg z kilkoma nowymi dniami naraz.*
+*09.10: `range=5d` (pięć dni) daje te same złe ceny co `range=3y` — zakres zapytania nic nie zmienia.
+Tydzień 28.09–02.10 był już poprawiony. 10.10: w piątek o 18:00 dni 05–08.10 dalej miały cenę z 02.10,
+więc poprawka nie przychodzi zaraz po piątkowej sesji.*
 
 ### Dzień bez sesji a dziura w danych
 Giełda nie notuje w weekendy i święta, więc tych dni w danych brakuje i to

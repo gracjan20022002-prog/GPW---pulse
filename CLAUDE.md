@@ -525,6 +525,22 @@ w wariancie „pull wieczorem + ręczny bieg bez pominięcia”, dowód pominię
 - **Przegląd całości** `notatki/plany/Przeglad-2026-10-08-calosc.md` — **od 08.10 źródło prawdy
   o wadach**. Decyzja Gracjana: wszystkie siedem punktów w wariancie (a) — patrz „Wciąż otwarte”.
 
+**Stan 09–10.10** (dzienniki `2026-10-09.md` i `2026-10-10.md`):
+- **09.10 (piątek, sesja 11:37–12:31), badanie Yahoo na EC2 (`python -c`):** `range=3y` i `range=5d`
+  dają te same ceny (za 05–08.10 zamknięcie z 02.10) — zakres nic nie zmienia; tydzień 28.09–02.10
+  już poprawiony (15 cen zgodnych z GPW).
+- **09.10, strażnik kompakcji ✅ (a)–(d)** (notatka i instrukcja z 09.10, kod Gracjana w
+  `compaction.py`: kopia pobierana przed Atheną, `"404"` → 0, inny kod → `raise`): ścieżka błędu ze
+  zmyślonymi kluczami → `Traceback` `(403) … HeadObject`, S3 nietknięte; próba generalna o 12:27 →
+  3 × `783 → 783`, `Usunięto 0 plików`, rozmiary `bronze/` co do bajtu te same. (e) w README.
+- **Wieczornej kontroli 09.10 nie było** (sesja skończyła się w południe); zrobiona **10.10 o 12:35
+  UTC: wiersz 09.10 tabeli trafiony w całości** (1196, 1223, `Odebrano 3`, 2 × `(2370, 3)`, `Dane
+  2370`, zakładka 2399, 790 × 3, S3 **158692 B** / 338 B z 16:10:08 UTC, stróż #25). Ceny z 08.10
+  i 09.10 zgodne z GPW (09.10: CBF 200,00, SNT 344,00, XTB 139,72). Pamięć (krok 16): **w piątek
+  o 18:00 dni 05–08.10 dalej z ceną z 02.10** — poprawka nie przychodzi zaraz po sesji.
+- **10.10 decyzja Gracjana:** duża dokumentacja przed naprawami 1 i 2 (zmiana decyzji 7 z 08.10),
+  potem ustalenia wyglądu strony.
+
 **Kompletność sesji** (lokalny `gold/dane_dzienne.csv`, rozmiar zgodny
 z S3 po odjęciu końców linii): po 775 unikalnych dni na spółkę, te same
 daty u wszystkich trzech, 810 dni roboczych − 35 świąt = 775. Wszystkie 35
@@ -863,7 +879,7 @@ starsze; część z nich jest już zamknięta i zostanie uporządkowana przy du�
    rozważenia w notatce) — brak `KAFKA_BOOTSTRAP` = głośny błąd
    (dziś domyślny to broker na EC2, a pamięć laptopa kończy się na 01.09: ręczny bieg z laptopa
    wysłałby 26 dni × 3 drugi raz); w tej samej zmianie co punkt 1;
-3. **strażnik kompakcji** (`compaction.py:31`, każdy `ClientError` = „nowa spółka”) — naprawić
+3. ✅ **09.10** (stan w „Stan 09–10.10”) **strażnik kompakcji** (`compaction.py:31`, każdy `ClientError` = „nowa spółka”) — naprawić
    **przed listopadową kompakcją**: tylko „nie ma pliku” = 0, inny błąd przerywa;
 4. **git w OneDrive** — zostawić (734 luźne obiekty po przerwanym sprzątaniu 07.10, wszystkie
    w paczce); pytanie o kasowanie katalogu przy commicie → Ctrl+C jak 07.10 albo wstrzymać OneDrive;
@@ -1155,7 +1171,10 @@ Notatka: `notatki/plany/Notatka-2026-09-14-test-zakladki.md`.
   - indeks ujemny (`[-4:]`) przedstawiony jako nowy, a jest w słowniku (linia 1546) — drugi raz
     ten sam błąd co 26.09;
   - przegląd całości: notatki i dziennik od 08.09 przeszukane słowami kluczowymi, nie przeczytane
-    w całości; napisane wprost w pliku przeglądu („Podstawa”).
+    w całości; napisane wprost w pliku przeglądu („Podstawa”);
+  - przegląd (punkt 1.2): „przerwa w sieci” zaliczona do `ClientError` — sprostowane 09.10 w notatce.
+- **09.10:** sesja skończona w południe bez dokończonego dziennika i bez CLAUDE.md (szkic dziennika był,
+  więc 10.10 start poszedł z dobrego stanu, ale wieczorna kontrola przepadła na dzień).
 
 ### Priorytet Gracjana (08.09)
 

@@ -12,6 +12,17 @@ chroni tylko dzień dzisiejszy, więc przy ręcznym biegu w ciągu dnia złe cen
 Do tego dwie mniejsze wady (strażnik kompakcji da się obejść, repozytorium w OneDrive
 z przerwanym sprzątaniem gita) i sporo nieaktualnych miejsc w README i CLAUDE.md.
 
+## Stan punktów (aktualizacja 10.10)
+
+| Punkt | Stan |
+|---|---|
+| 1.1 złe ceny Yahoo (decyzja 1) | **badanie w toku.** 09.10: zakres (`3y`/`5d`) nic nie zmienia, dobra tylko ostatnia świeca, poprzedni tydzień poprawiony po jego końcu. 10.10: w piątek o 18:00 dni 05–08.10 dalej z ceną z 02.10. Brakuje: kiedy dokładnie Yahoo poprawia tydzień. Potem notatka projektowa na decyzje 1 i 2 |
+| 1.1 punkt 2, adres brokera (decyzja 2) | czeka na wspólną notatkę z decyzją 1 |
+| 1.2 strażnik kompakcji (decyzja 3) | ✅ **09.10** (a)–(d): kod Gracjana, ścieżka błędu `403` → `Traceback` bez zmian w S3, próba generalna `783 → 783`, `Usunięto 0`; 10.10 `(2370, 3)` po próbie. (e) w README. Opis zawężony — sprostowanie w 1.2 |
+| 1.3 git w OneDrive (decyzja 4) | zostawione; Ctrl+C przy pytaniu o kasowanie katalogu |
+| 1.4 drobne | bez zmian |
+| Część 3, dokumentacja (decyzja 6) | duża dokumentacja **od 10.10** — kolejność zmieniona decyzją Gracjana 10.10 (decyzja 7 niżej) |
+
 ## Podstawa
 
 - **Kod, przeczytany w całości:** 13 plików w `kod/` (`config.py`, `data_ingestion.py`,
@@ -91,6 +102,18 @@ przykład „korekty Yahoo” z przeglądu 08.09 (punkt 2.1) — w S3 jest cena 
 pierwsza wartość w pamięci laptopa (najpewniej bieg w trakcie sesji). Opis tej wady w README
 („zostaje cena z pierwszego pobrania”) do sprawdzenia przy dużej dokumentacji.
 
+**Badanie 09–10.10 (decyzja 1a).**
+- 09.10 ok. 11:45 polskiego, EC2, `python -c` bez Kafki: `range=3y` i `range=5d` dały **te same**
+  ceny co do grosza — za 05–08.10 zamknięcie z 02.10, za 09.10 cena z trwającej sesji. Krótszy zakres
+  nie jest drogą naprawy.
+- Ten sam dzień, `3y`, dziesięć ostatnich dni: tydzień 28.09–02.10 zgodny z GPW we wszystkich 15
+  cenach. Yahoo poprawia tydzień po jego zakończeniu.
+- 10.10, pamięć spółek po biegu `cron` z piątku 09.10, 18:00: za 05–08.10 dalej CBF 201,0, SNT 341,6,
+  XTB 138,56, za 09.10 dobre zamknięcie (200,0 / 344,0 / 139,72). Poprawka **nie** przychodzi zaraz po
+  piątkowej sesji.
+- Zostaje do ustalenia: czy poprawka przychodzi w weekend, czy dopiero w poniedziałek (odczyt pamięci
+  po biegach 10.10 albo 12.10).
+
 **Dlaczego to w ogóle trafia do pamięci:** `data_ingestion.py:62` (`dane[str(data)] = c`) wpisuje
 każdy dzień z Yahoo, także dzień już znany, a linia 80 zapisuje cały plik od nowa. Do Kafki idą
 tylko nowe daty (linie 64, 70–72), więc dziś złe ceny zostały w pamięci i nigdzie dalej nie poszły.
@@ -130,6 +153,20 @@ przychodzi przy braku uprawnień, przerwie w sieci czy chwilowym błędzie S3. W
 Do tego kopia ma jedno pokolenie: każda kompakcja nadpisuje `bronze/poprzedni/`. Kompakcja jest
 ręczna, raz w miesiącu, więc zbieg dwóch rzadkich zdarzeń jest mało prawdopodobny. Następna:
 początek listopada.
+
+**Sprostowanie 09.10:** „przerwa w sieci” wyżej to błąd tego przeglądu. Błędy sieci
+(`EndpointConnectionError`, `ConnectTimeoutError`, `ReadTimeoutError`) i brak kluczy
+(`NoCredentialsError`) nie są `ClientError`, więc już przed poprawką zatrzymywały skrypt. Linia 31
+łapała tylko odpowiedzi S3 z kodem błędu (np. `403`, `503`).
+
+**✅ Naprawione 09.10** (notatka `Notatka-2026-10-09-straznik-kompakcji.md`, instrukcja
+`Notatka-2026-10-09-jak-poprawic-straznika.md`, pięć decyzji (a)): pobranie kopii przeniesione nad
+zapytanie do Atheny, `poprzedni = 0` tylko przy kodzie `"404"`, każdy inny kod → `raise`. Sprawdzone:
+kody S3 z laptopa (`404` i `403`), ścieżka błędu na prawdziwym skrypcie (zmyślone klucze →
+`Traceback` z `(403) … HeadObject … Forbidden`, `bronze/` i `live/` bez zmian), próba generalna
+(3 × `783 → 783`, `Usunięto 0 plików`, rozmiary `bronze/` co do bajtu te same), 10.10 Silver
+`(2370, 3)`. Zostaje świadomie: skasowany plik `bronze` dalej wygląda jak nowa spółka; jedno
+pokolenie kopii.
 
 ### 1.3 🟡 Repozytorium w OneDrive i przerwane sprzątanie gita (07.10)
 
@@ -245,7 +282,12 @@ zamknięcie z 02.10 (opis w 1.1). Ceny za 08.10 w S3: CBF 196,0, SNT 342,8, XTB 
 porównanie z GPW 09.10.
 
 **Dalej niesprawdzone:** treść zgłoszenia #21 u stróża (polskie litery); port 9092 dla laptopa;
-rozmiar `athena-results/`; od której godziny Yahoo psuje ostatnie dni.
+rozmiar `athena-results/`; ~~od której godziny Yahoo psuje ostatnie dni~~ — to nie zależy od
+godziny, tylko od tego, czy po dniu przyszedł następny (09.10); zostaje: kiedy Yahoo poprawia tydzień.
+
+**09.10 (kontrola zrobiona 10.10, 12:35 UTC):** wiersz 09.10 tabeli w CLAUDE.md trafiony w całości —
+start 1196, `wc -l` 1223, `Odebrano 3`, 2 × `(2370, 3)`, `Dane 2370`, `OK`, pliki 790 × 3, zakładka
+2399, S3 158692 B / 338 B, stróż #25. Ceny z 08.10 i 09.10 w S3 zgodne z archiwum GPW.
 
 **Terminy (bez zmian):** ok. 17.10 stary `venv` na EC2 do decyzji; 25.10 pierwszy bieg po zmianie
 czasu (`17:00:0X`), sprawdzian strefy u stróża; 26.10 pierwszy dzień giełdowy zimą; 01.11 Gold
@@ -296,6 +338,12 @@ decydujesz teraz.
    - (a) **1 i 2 przed dużą dokumentacją** (dotyczą Producenta, który README i tak będzie opisywał
      od nowa), 3 przed kompakcją w listopadzie, reszta Części 2 jako ograniczenia w README;
    - (b) wszystko jako ograniczenia, duża dokumentacja od razu.
+
+   **Zmiana 10.10 (decyzja Gracjana, zgodnie z rekomendacją Claude'a):** duża dokumentacja przed
+   naprawami 1 i 2, bo notatka o nich czeka na dane (kiedy Yahoo poprawia tydzień). Koszt: po
+   naprawach README trzeba poprawić drugi raz w kilku miejscach (opis Producenta, ograniczenia).
+   1 i 2 dalej przed kodem strony (ustalenia jej wyglądu mogą iść wcześniej). Punkt 3 zrobiony
+   09.10.
 
 ---
 

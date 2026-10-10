@@ -17,19 +17,23 @@ con = connect(
 os.makedirs(os.path.join(BASE_DIR, "bronze"), exist_ok=True)
 os.makedirs(os.path.join(BASE_DIR, "bronze/poprzedni"), exist_ok=True)
 s3 = boto3.client("s3")
-df = pd.read_sql(f"SELECT data, cena, spolka FROM bronze WHERE data < '{granica}' UNION SELECT data, cena, spolka FROM live WHERE data < '{granica}'", con)
-df["dzien"] = df["data"].str[:10]
-dane = df.sort_values(["spolka", "data"])
-dane = dane.drop_duplicates(subset=["dzien", "spolka"], keep = "first")
-dane = dane.drop(columns=["dzien"])
 poprzedni = {}
 for t in ticker:
     kopia = os.path.join(BASE_DIR, "bronze", "poprzedni", f"{t}.parquet")
     try:
         s3.download_file(BUCKET, f"bronze/spolka={t}/{t}.parquet", kopia)
         poprzedni[t] = len(pd.read_parquet(kopia))
-    except ClientError:
-        poprzedni[t] = 0
+    except ClientError as e:
+        kod = e.response["Error"]["Code"]
+        if kod == "404":
+            poprzedni[t] = 0
+        else:
+            raise
+df = pd.read_sql(f"SELECT data, cena, spolka FROM bronze WHERE data < '{granica}' UNION SELECT data, cena, spolka FROM live WHERE data < '{granica}'", con)
+df["dzien"] = df["data"].str[:10]
+dane = df.sort_values(["spolka", "data"])
+dane = dane.drop_duplicates(subset=["dzien", "spolka"], keep = "first")
+dane = dane.drop(columns=["dzien"])
 nowe = dane.groupby("spolka").size()
 for spolka in ticker:
     stara_ilosc = poprzedni.get(spolka, 0)
