@@ -2049,6 +2049,75 @@ na serwerze.
 *06.10 odrzucony dla strony: na `t3.micro` chodzi broker Kafki, pamięci jest mało, a aplikacja
 wymagałaby nowego otwartego portu.*
 
+### CSS
+Język, który opisuje **wygląd** strony: kolory, czcionki, odstępy, układ w kolumnach. HTML mówi,
+**co** jest na stronie (nagłówek, tabela), CSS — **jak** to wygląda.
+*`<p style="color: red; font-size: 20px">Lody</p>` — ten sam akapit „Lody”, ale czerwony
+i większy. 10.10: kafelki, tabela rankingu i układ w dwóch kolumnach na stronie projektu to HTML
+i CSS; ile napiszemy ręcznie — partia 11 notatki o stronie.*
+
+### JavaScript
+Język programowania, który działa **w przeglądarce** oglądającego. Dzięki niemu strona reaguje na
+kliknięcie, przesunięcie suwaka, wpisanie daty — bez pytania serwera.
+*Lody: przycisk „pokaż tylko truskawkowe” chowa resztę tabeli od razu po kliknięciu — to robi
+JavaScript. 10.10 decyzja Gracjana (J1a): na stronie jeden mały plik JavaScriptu — własny suwak
+okresu, pola dat, przerysowanie wykresu dla wybranego okresu, klikalne kafelki. Plotly sam też
+jest napisany w JavaScripcie, ale ten kod daje biblioteka, nie my.*
+
+### „Nad zgięciem” (*above the fold*)
+Część strony widoczna od razu po otwarciu, bez przewijania. Nazwa z gazet: to, co widać nad
+miejscem złożenia gazety na pół.
+*Laptop pokazuje szacunkowo 650–950 pikseli wysokości strony (niesprawdzone). 10.10: przy układzie
+w dwóch kolumnach (wykres po lewej, kafelki i ranking po prawej) cała strona projektu ma się
+zmieścić nad zgięciem na laptopie.*
+
+### Kontrast (WCAG)
+Stosunek jasności dwóch kolorów, np. linii i tła: od 1 : 1 (ten sam kolor) do 21 : 1 (czarne na
+białym). **WCAG** to międzynarodowe zasady dostępności stron. Wymagają co najmniej **4,5 : 1** dla
+zwykłego tekstu i **3 : 1** dla linii i kształtów.
+*Żółty z logo Cyber_Folks (`#FECD01`) na białym tle: 1,5 : 1 — linia prawie znika; na ciemnym
+tle (`#15171C`): 11,9 : 1. Granat Synektika z logo (`#153055`) — odwrotnie: 12,9 : 1 na białym,
+1,3 : 1 na ciemnym. Dlatego 10.10 każda spółka dostała osobny kolor na jasne i na ciemne tło.*
+
+### Rozróżnialność kolorów przy daltonizmie
+Część osób (wiedza ogólna: ok. 8% mężczyzn) myli niektóre kolory, najczęściej czerwony z zielonym.
+Kolory linii na wykresie sprawdza się wzorem, który udaje takie widzenie i liczy, jak daleko są od
+siebie kolory (odległość w przestrzeni kolorów **OKLab**, razy 100). Próg z narzędzia do palet:
+co najmniej 8 przy udawanym daltonizmie i 15 przy zwykłym widzeniu.
+*10.10: czerwony XTB (`#F8313E`) i czerwony „spadku” dały 11,8 przy zwykłym widzeniu — poniżej
+15, czyli trudne do odróżnienia. Rozwiązanie (K3a): kolor spółki tylko jako pasek i linia, spadek
+zawsze ze strzałką i minusem, nie samym kolorem.*
+
+### Przybliżanie a przerysowanie wykresu
+**Przybliżanie** (*zoom*) pokazuje fragment tego samego rysunku w powiększeniu — linie się
+rozciągają, a oś cen może zostać ta sama. **Przerysowanie** rysuje wykres od nowa z danych
+przyciętych do wybranego okresu: oś cen dopasowana, metki na końcu okresu.
+*Wbudowane przyciski i suwak Plotly przybliżają: przy „1 mies.” oś zostaje 0–400 zł, a linie
+wyglądają płasko. 10.10 decyzja Gracjana (J2): na stronie przerysowanie — wymaga JavaScriptu.*
+
+### Znacznik `<title>` i ikonka karty (*favicon*)
+`<title>` to napis na karcie przeglądarki, w zakładkach i w wynikach wyszukiwarki. **Favicon** to
+mała ikonka obok tego napisu.
+*`<title>Budka z lodami</title>` — karta pokazuje „Budka z lodami”. 10.10 (2.4b): karta strony
+projektu — „GPW Pulse” z ikonką (wybór ikonki: partia 7).*
+
+### Czcionka systemowa a dołączona; cyfry równej szerokości
+**Czcionka systemowa** to ta, którą ma urządzenie odwiedzającego (Windows: Segoe UI, Mac: San
+Francisco, Android: Roboto) — nic nie trzeba pobierać, ale na każdym urządzeniu strona wygląda
+trochę inaczej. **Czcionka dołączona** (np. z Google Fonts albo plik w repozytorium) wygląda
+wszędzie tak samo, ale przy pierwszym wejściu przeglądarka pobiera plik (kilkadziesiąt kB).
+**Cyfry równej szerokości** (*tabular figures*, w CSS `font-variant-numeric: tabular-nums`): każda
+cyfra zajmuje tyle samo miejsca, więc liczby w kolumnie stoją równo.
+*Bez równej szerokości „111,11” jest węższe niż „888,88” i ceny w kafelkach „skaczą”. 12.10
+szkic partii 7: IBM Plex Sans, Source Sans 3 i czcionka systemu obok siebie — wybór czeka.*
+
+### Plakietka z ceną na wykresie (metka)
+Mały prostokąt w kolorze linii, przy prawej krawędzi wykresu, z ostatnią wartością linii. Gdy końce
+linii są blisko siebie, plakietki rozsuwa się w pionie, a cienka kreska łączy plakietkę z końcem
+linii.
+*12.10 (M2 A): „SNT 352,60 zł +28,4%” — skrót, cena na koniec wybranego okresu, zmiana w okresie.
+Tekst ciemny albo biały, zależnie od koloru plakietki, tak żeby kontrast był co najmniej 4,5 : 1.*
+
 ---
 
 ## Giełda
@@ -2113,6 +2182,11 @@ sprawdzonych 08.10). Groźny byłby bieg z kilkoma nowymi dniami naraz.*
 *09.10: `range=5d` (pięć dni) daje te same złe ceny co `range=3y` — zakres zapytania nic nie zmienia.
 Tydzień 28.09–02.10 był już poprawiony. 10.10: w piątek o 18:00 dni 05–08.10 dalej miały cenę z 02.10,
 więc poprawka nie przychodzi zaraz po piątkowej sesji.*
+*12.10: w niedzielę o 18:00 zły był już także piątek 09.10 (o 18:00 w piątek był dobry), a w
+poniedziałek o 18:00 cały tydzień 05–09.10 dalej miał cenę z 02.10. To samo PKO BP i Orlen; Apple
+w porządku — zjawisko dotyczy całej GPW w Yahoo. Poprawka przychodzi między wtorkiem a piątkiem
+rano następnego tygodnia. Naprawa (12.10, 1a): Producent wysyła tylko dzisiejszą świecę, zaległe
+dni wstrzymuje z alarmem.*
 
 ### Dzień bez sesji a dziura w danych
 Giełda nie notuje w weekendy i święta, więc tych dni w danych brakuje i to

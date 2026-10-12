@@ -167,7 +167,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu (10.10)
+## Stan projektu (12.10)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 - **Źródło prawdy o wadach i kolejności napraw (od 08.10, decyzja Gracjana):**
@@ -297,25 +297,28 @@ Jak czytać rozjazd:
   Pythonie 3.9, na 3.14 więcej) i 1 linia wyniku (pandas 3.0.5). **Na EC2 na 3.14 niesprawdzone.**
 - **`PythonDeprecationWarning` w bloku** znaczy, że `cron` wrócił do starego `venv`.
 
-### Ostatnie liczby (bieg 09.10, sprawdzony 10.10)
+### Ostatnie liczby (bieg 12.10, sprawdzony 12.10)
 
-- Log: start w linii **1196**, `wc -l` **1223**.
-- Dane: 2 × `(2370, 3)`, `Kontrola: Dane 2370 wierszy`, pliki spółek **790 × 3**.
-- Zakładka **`2399 2399 0`**, `errors.log` **8**.
-- S3 `gold/`: **158692 B** i **338 B**, z `16:10:08` UTC.
-- Stróż: **#25**.
-- Ranking: CBF 200,00, SNT 344,00, XTB 139,72 — zgodne z GPW.
+- Log: start w linii **1280**, `wc -l` **1307** (bloki 10 i 11.10 od 1224 i 1252, zgodne).
+- Dane: 2 × `(2373, 3)`, `Kontrola: Dane 2373 wierszy`, pliki spółek **791 × 3**.
+- Zakładka **`2402 2402 0`**; `errors.log` 12.10 nieodczytany (09.10: **8**).
+- S3 `gold/`: **158869 B** (+177 B) i **337 B**, z `16:10:07` UTC.
+- Stróż: 12.10 nieodczytany (przewidziany #28; 09.10 #25).
+- Ranking: SNT 355,00 (+401,41%), XTB 135,90 (+258,20%), CBF 200,00 (+164,55%). Ceny 12.10 z Yahoo,
+  **z GPW jeszcze nie porównane** (archiwum o 19:00 puste). 09.10: CBF 200,00, SNT 344,00, XTB 139,72 —
+  zgodne z GPW.
 - Ceny w S3 porównane z archiwum GPW: 90, wszystkie zgodne co do grosza (66 z historii, 17, 18
   i 21.09 oraz 05–09.10).
 
 ### Przewidywania od 10.10
 
-Zapisane przed biegami: wiersze 10–16.10 dnia 08.10, a 17–25.10 dnia 10.10.
+Zapisane przed biegami: wiersze 10–16.10 dnia 08.10, a 17–25.10 dnia 10.10. **10, 11 i 12.10
+sprawdzone 12.10: zgodne co do liczby** (poza rozmiarem S3).
 - Blok ma 28 linii.
 - W październiku nie ma świąt. Gold daje `117`/`111` do końca miesiąca.
 - **Numery u stróża przesuwa każdy ręczny `control.py` ze `STROZ_URL`.**
-- S3 `dane_dzienne.csv` rośnie o ok. 193–218 B na dzień giełdowy (09.10: +193). `ranking.csv`
-  ma 330–370 B.
+- S3 `dane_dzienne.csv` rośnie o ok. 177–218 B na dzień giełdowy (09.10: +193, 12.10: +177).
+  `ranking.csv` ma 330–370 B.
 
 | Dzień | Start | `wc -l` po biegu | `Odebrano` | `Kontrola: Dane` | Zakładka | Pliki spółek | Stróż |
 |---|---|---|---|---|---|---|---|
@@ -344,23 +347,31 @@ zgłoszenie dalej ok. 18:30 polskiego.
 **Pełne opisy:** przegląd z 08.10. Decyzje Gracjana 08.10 (wszystkie w wariancie (a)), a 10.10
 zmieniona kolejność: duża dokumentacja przed naprawami 1 i 2.
 
-1. **Naprawa 1 — złe ceny Yahoo przy kilku nowych dniach naraz** (🔴 warunkowo).
-   - Dobrą cenę ma tylko ostatnia świeca. Wcześniejsze dni tygodnia mają zamknięcie
-     z poprzedniego piątku.
-   - Zakres zapytania nic nie zmienia (09.10, `3y` = `5d`).
-   - W piątek o 18:00 tydzień był jeszcze niepoprawiony (10.10).
-   - **Zostaje zbadać:** kiedy Yahoo poprawia tydzień. Odczyt pamięci (krok 16 kontroli) po
-     biegach 10, 11 i 12.10.
-   - Potem jedna notatka projektowa na naprawy 1 i 2, pełna instrukcja, kod Gracjana i wdrożenie.
-2. **Naprawa 2 — zapasowy adres brokera** w Producencie (`data_ingestion.py:16`). Brak
-   `KAFKA_BOOTSTRAP` ma być głośnym błędem. Konsument (`kafka_consumer.py:7`) ma ten sam adres —
-   do rozważenia w notatce.
+1. **Naprawa 1 — złe ceny Yahoo przy nadrabianiu dni** (🔴 warunkowo). **Notatka zatwierdzona 12.10:**
+   [`Notatka-2026-10-12-naprawy-1-i-2.md`](notatki/plany/Notatka-2026-10-12-naprawy-1-i-2.md), wariant (a).
+   **Kod od 13.10**, przed nim pełna instrukcja.
+   - Producent wysyła tylko dzisiejszą świecę (data polska, jak w `session.py`).
+   - Zaległe dni wstrzymuje: nie idą do Kafki ani do pamięci, więc następnego dnia znów są „nowe”.
+     W linii wyniku jest dopisek, a `control.py` daje przy nim awarię (`/fail` u stróża).
+   - Nadrabianie: ręczny bieg ze zmienną „nadrób” po sprawdzeniu cen z GPW. Zmienna tylko przed
+     komendą, nigdy w `crontab`.
+   - **Co wiemy o Yahoo (12.10):** dla **całej GPW** (nasze, PKO BP, Orlen; Apple w porządku) dobra
+     jest tylko cena z dnia odpowiedzi. Wcześniejsze dni tygodnia mają zamknięcie z piątku sprzed
+     tygodnia, a po weekendzie zepsuł się także piątek 09.10.
+   - To nie nasz błąd: surowa odpowiedź z laptopa (`range=1mo`) jest taka sama. Zjawisko zaczęło się
+     po 03.09.
+   - Poprawka tygodnia przychodzi między wtorkiem a piątkiem rano następnego tygodnia. Odczyty
+     pamięci (krok 16) wt–czw wieczorem zawężą dzień.
+2. **Naprawa 2 — zapasowy adres brokera: (a) zatwierdzone 12.10.** Bez zapasowego adresu
+   w `data_ingestion.py:16` i `kafka_consumer.py:7`; brak `KAFKA_BOOTSTRAP` = błąd z komunikatem.
+   Kod razem z naprawą 1.
 3. **Git w OneDrive:** zostawione (decyzja 4). Przy pytaniu `Deletion of directory … (y/n)` po
    commicie: Ctrl+C. Commit jest już zrobiony, potem `git push`. 10.10: 755 luźnych obiektów,
    wszystkie w paczkach. Repozytorium nie przenosić, bo dziennik ma jedyną kopię w chmurze
    w OneDrive.
-4. **Strona:** decyzje 06.10 niżej. Kod strony po naprawach 1 i 2, ustalenia wyglądu mogą iść
-   wcześniej.
+4. **Strona:** projektowana partiami od 10.10 (notatka `Notatka-2026-10-10-strona.md`, opis
+   niżej przy „Strona”). 12.10: partie 1–6 zamknięte (z partii 4 zostaje telefon), partia 7 czeka
+   na cztery odpowiedzi. Kod strony po naprawach 1 i 2.
 5. **Osobne decyzje, później:**
    - stary `venv` na EC2 (ok. 17.10);
    - aktualizacja Amazon Linux (nie w tygodniu 25.10);
@@ -382,6 +393,8 @@ zmieniona kolejność: duża dokumentacja przed naprawami 1 i 2.
 - brak testów reszty Producenta.
 
 **Niesprawdzone:**
+- ceny z 12.10 w archiwum GPW (z Yahoo: CBF 200,00, SNT 355,00, XTB 135,90);
+- czy warunki Yahoo pozwalają pokazywać dane na publicznej stronie (do partii 15 strony);
 - treść zgłoszenia #21 u stróża (polskie litery);
 - czy port 9092 brokera jest otwarty dla laptopa;
 - rozmiar `athena-results/`;
@@ -455,22 +468,24 @@ companies/errors.txt | tail -n N`, N = liczba dni) i porównać z tabelą „Prz
     potrzebna tylko do `od`/`do` albo przy rozjeździe.
 13. **[EC2, przez SSH]** `aws s3 ls s3://gpw-tracker-bucket/gold/ --recursive` — dwa pliki
     z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2; od 25.10 `17:10`). Rozmiar
-    `dane_dzienne.csv`: 158692 B na 2370 wierszy (09.10), rośnie o ok. 64–73 B na wiersz (ok.
-    +193–218 B na dzień giełdowy; krótkie ceny jak `200.0` dają mniej);
+    `dane_dzienne.csv`: 158869 B na 2373 wiersze (12.10), rośnie o ok. 59–73 B na wiersz (ok.
+    +177–218 B na dzień giełdowy; krótkie ceny jak `200.0` dają mniej);
     `ranking.csv` 330–370 B. **Lokalnego pliku do porównania rozmiaru nie ma od 21.09**
     (Harmonogram wyłączony).
 14. **[przeglądarka]** stróż: `Up`, ostatnie zgłoszenie ok. 18:30 (`Europe/Warsaw`), typ `GET`
     z `13.63.105.190`, `python-requests/2.34.2`, liczba zgłoszeń +1 na dzień (21.09: 3; 26.09
-    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24; 09.10 #25). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
+    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24; 09.10 #25; 12.10 przewidziany #28,
+    nieodczytany). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
     `DOWN` (mail przychodzi ok. 15 minut po zmianie stanu).
 15. **[EC2, przez SSH]** (od 22.09, po punkcie 6) `ls -a silver gold` — w każdym
     `.gitkeep` i pliki `.csv`; `git status --short` — pusty.
 16. **[EC2, przez SSH]** (od 09.10, na czas badania punktu 1.1 przeglądu z 08.10)
-    `tail -n 6 companies/*.WA.txt` — sześć ostatnich dni pamięci każdej spółki. Pamięć ma ceny
-    z odpowiedzi Yahoo z 18:00. Szukamy dnia, w którym dni bieżącego tygodnia przestaną mieć
-    piątkowe zamknięcie z poprzedniego tygodnia (08.10 i 09.10: za 05–08.10 CBF 201,0, SNT
-    341,6, XTB 138,56; prawdziwe zamknięcia w „Na następną sesję”, punkt 1, i w archiwum GPW,
-    adres w „Gdzie co jest”). Wynik zapisywać w dzienniku.
+    `tail -n N companies/*.WA.txt` — ostatnie dni pamięci każdej spółki, N tak, żeby objąć 05.10
+    (13.10: 7, 14.10: 8, 15.10: 9). Pamięć ma ceny z odpowiedzi Yahoo z 18:00 i **nadpisuje się przy
+    każdym biegu** — stan z danego dnia można odczytać tylko przed następnym biegiem. Szukamy dnia,
+    w którym tydzień 05–09.10 przestanie mieć zamknięcie z 02.10 (12.10 po biegu: 05–09.10 CBF 201,0,
+    SNT 341,6, XTB 138,56; 12.10 200,0 / 355,0 / 135,9). Prawdziwe zamknięcia w „Na następną sesję”,
+    punkt 2, i w archiwum GPW (adres w „Gdzie co jest”). Wynik zapisywać w dzienniku.
 
 Przy rozjeździe: wkleić wynik, porównać liczba po liczbie, niczego nie uruchamiać
 ponownie. To kontrola ręczna, która uzupełnia sygnał awarii, a go nie zastępuje: sygnał
@@ -490,19 +505,38 @@ Pięć otwartych pytań z Plan-06 (wątek 4) rozstrzygniętych 06.10, wszystkie 
 5. pierwsza wersja to **jedna strona**: kafelki (ostatnia cena, zmiana dzienna, data ostatniej
    świecy), wykres trzech spółek, ranking. Zakładki spółek i słownik później.
 
-Następny krok: notatka projektowa (zasada 10), po zatwierdzeniu pełna instrukcja (zasada 3);
-w niej instalacja Plotly w `.venv` i dopisanie do `requirements-lokalny.txt`. **Kod strony idzie
-po naprawach 1 i 2 z przeglądu z 08.10** (decyzja 7). Duża dokumentacja zrobiona 10.10, przed
-naprawami. Ustalenia wyglądu strony (bez kodu) mogą iść wcześniej — wybór Gracjana 10.10.
+**Od 10.10 strona projektowana partiami** — prośba Gracjana: każdy aspekt osobno, jedną partią na
+raz, ze szkicem (na jasnym i ciemnym tle przy wszystkim, co dotyczy wyglądu), żeby strona była jak
+najbardziej dopracowana. Notatka projektowa budowana po kawałku:
+[`notatki/plany/Notatka-2026-10-10-strona.md`](notatki/plany/Notatka-2026-10-10-strona.md) — lista
+16 partii i wszystkie decyzje. Szkice to obrazki i interaktywne podglądy w rozmowie, nie kod
+projektu. **Zmiany decyzji z 06.10:** JavaScript dopuszczony — jeden mały plik, pisze go Gracjan
+z pełną instrukcją (J1a, 10.10); wykres przerysowywany dla wybranego okresu, nie przybliżany.
+Kod strony po naprawach 1 i 2 (decyzja 7) i po zatwierdzeniu całej notatki; przed kodem pełna
+instrukcja (zasada 3) z instalacją Plotly w `.venv`.
+
+**Stan 12.10:** partie 1–6 zamknięte (z partii 4 zostaje zachowanie na telefonie — partia 8). Partia 7
+(kolory, czcionki, odstępy, ikonka) czeka na cztery odpowiedzi do szkicu całej strony. Rekomendacje
+Claude'a: paleta ze szkicu, IBM Plex Sans, odstępy jak na szkicu, ikonka „linia pulsu”. Potem partie
+8–11 (Gracjan chce domknąć ustalenia do partii 11).
+- **Szkice:** Artifact „GPW Pulse – szkice strony” (`https://claude.ai/artifact/S9wPRZj6DGugXQGXCR8Vr5`),
+  strony: kafelki i motyw, wykres – metki, ranking, cała strona.
+- **Po dodaniu nowej strony szkicu otworzyć go ponownie** (12.10 Gracjan nie widział rankingu).
+- **Claude szkiców nie widzi:** panel przeglądarki w aplikacji nie jest zalogowany do claude.ai,
+  a hasła Claude nie wpisuje. Zamiast oglądania kontrast jest liczony wzorem. Decyzje są prawdą
+  w notatce o stronie, nie w szkicu.
 
 ### Na następną sesję
 
-Stan 10.10 (sobota, w trakcie sesji).
+Stan 12.10 (poniedziałek, koniec sesji ok. 19:40).
 - **Zrobione:**
-  - kontrola biegu 09.10, zgodna;
-  - commit `5fa6098` (strażnik i dokumentacja 09.10), wypchnięty;
-  - duża dokumentacja: README, ten plik, `Historia-stanu.md`.
-- **Czeka:** odświeżone obrazki (bieg Gracjana na laptopie) i commit dużej dokumentacji.
+  - odczyt pamięci spółek przed biegiem (stan Yahoo z niedzieli);
+  - kontrola biegów 10–12.10 (zgodna, S3 +177 B);
+  - ustalenie, że złe ceny ma cała GPW w Yahoo i że to nie nasz błąd;
+  - notatka o naprawach 1 i 2 zatwierdzona (a, a);
+  - strona: partie 4 (bez telefonu), 5 i 6 zamknięte, szkic partii 7 gotowy.
+- **Czeka:** commit dokumentacji z 10 i 12.10 (komendy podane na koniec sesji). Na starcie sprawdzić,
+  czy jest i czy wypchnięty.
 - **Przed każdym kawałkiem kodu:** notatka projektowa (zasada 10) i pełna notatka-instrukcja
   (zasada 3). **Po każdej zmianie Gracjana:** opis każdej nowej linii (zasada 3).
 
@@ -511,26 +545,30 @@ Stan 10.10 (sobota, w trakcie sesji).
      GitHubem;
    - `date`;
    - lista sesji: czy po ostatniej była jakaś bez dziennika.
-1. **Kontrola biegów od 10.10** według tabeli „Przewidywania od 10.10”, **z krokiem 16** (pamięć
-   spółek). Pytanie: czy i kiedy Yahoo poprawiło 05–08.10. Prawdziwe zamknięcia z GPW:
-   - CBF 202,80 / 203,00 / 199,20 / 196,00;
-   - SNT 339,80 / 343,80 / 342,20 / 342,80;
-   - XTB 134,80 / 136,12 / 135,00 / 137,00.
+1. **Kod napraw 1 i 2 (decyzja Gracjana: od 13.10).** Najpierw pełna notatka-instrukcja (zasada 3):
+   - podział nowych dat na dzisiejszą i zaległe jako osobna funkcja z testami, jak `session.py`;
+   - pamięć bez wstrzymanych dat;
+   - dopisek w linii wyniku i awaria w `control.py` przy dopisku;
+   - zmienna „nadrób”;
+   - brak `KAFKA_BOOTSTRAP` = błąd w obu plikach;
+   - przypadki z wynikami sprawdzonymi uruchomieniem przykładu na innych danych.
 
-   Pamięć ma ceny z ostatniego biegu, więc odczyt w niedzielę nie odróżni soboty od niedzieli,
-   chyba że ktoś zajrzy w sobotę po 18:00.
-2. **Notatka projektowa na naprawy 1 i 2**, gdy będzie wiadomo, kiedy Yahoo poprawia tydzień.
-   Możliwości do opisania, między innymi:
-   - przy kilku nowych dniach wysłać tylko ostatni i dać alarm;
-   - starsze dni wstrzymać do poprawki;
-   - przed 17:55 nie wysyłać nic.
-3. **Strona — ustalenia wyglądu** (decyzje 06.10 niżej). Kod strony po naprawach 1 i 2.
+   Potem kod Gracjana, opis każdej linii i testy. Na końcu wdrożenie na EC2 (`git pull`, `crontab`
+   bez zmian) i pierwszy bieg z przewidywaniem.
+2. **Kontrola biegów** według tabeli „Przewidywania od 10.10”, **z krokiem 16**: dzień poprawki
+   tygodnia 05–09.10, odczyty wt–czw wieczorem. Do tego `errors.log` i stróż, nieodczytane 12.10.
+   Ceny z 12.10 porównać z archiwum GPW. Prawdziwe zamknięcia z GPW, 05 / 06 / 07 / 08 / 09.10:
+   - CBF 202,80 / 203,00 / 199,20 / 196,00 / 200,00;
+   - SNT 339,80 / 343,80 / 342,20 / 342,80 / 344,00;
+   - XTB 134,80 / 136,12 / 135,00 / 137,00 / 139,72.
+3. **Strona:** partia 7 — cztery pytania ze szkicu (paleta, czcionka, odstępy, ikonka), potem
+   partie 8–11.
 4. **ok. 17.10:** decyzja o starym `venv` na EC2.
 5. Terminy wyżej, w „Terminy”.
 
 **EC2 jest na `5676575` od 07.10 18:57 UTC.** Laptop i GitHub są dalej:
 - `5fa6098` — strażnik w `compaction.py`, który chodzi tylko z laptopa;
-- notatki i dokumentacja.
+- `f3f9fa5` i późniejsze — tylko dokumentacja i obrazki.
 
 Na EC2 nic z tego nie jest potrzebne, przyjdzie przy najbliższym wdrożeniu (naprawy 1 i 2).
 Poprzednio EC2 było na: `4aca12d` od 03.10, `fc6e262` od 26.09, `6af7b48` od 21.09.
@@ -550,7 +588,7 @@ nowe pomyłki idą do dziennika dnia. Tutaj zostają wnioski, które obowiązuj�
    weekend. Nigdy jedna liczba na „następny dzień giełdowy” (25.09, 03.10).
 5. **Przed rekomendacją naprawy otworzyć plik, którego dotyczy** (04.10). **Przed nazwaniem
    pojęcia „nowym” sprawdzić słownik** (26.09, 08.10). Przed stwierdzeniem, że plik nie istnieje,
-   sprawdzić (04.10).
+   sprawdzić (04.10). Przed napisaniem „nie sprawdzone” przeszukać przegląd i dziennik (12.10).
 6. **Dziwną liczbę najpierw szukać w źródle** (archiwum GPW), dopiero potem stawiać hipotezę
    (08.10). Wartości z wyszukiwarki, przy których nie domyka się arytmetyka, nie podawać nawet
    jako poszlaki (17.09).
@@ -566,6 +604,9 @@ nowe pomyłki idą do dziennika dnia. Tutaj zostają wnioski, które obowiązuj�
 11. **Bez form rodzajowych wobec Gracjana bez podstawy** (06.10).
 12. **Przy hipotezie o zachowaniu kodu przeczytać kod**, zanim się przewidzi wynik. Przykład:
     cena w pamięci, której linia 62 nadpisuje stare wartości (08.10).
+13. **Przewidywanie z kilkoma wariantami: sprawdzić, czy nie mają wspólnego założenia.** 12.10 oba
+    warianty zakładały dobry piątek i oba chybiły. **Zanim uznam błąd za nasz, sprawdzić źródło bez
+    naszego kodu** (surowa odpowiedź, inna maszyna, inna spółka).
 
 ### Kopie
 
@@ -636,7 +677,7 @@ w przeglądarce. Archiwum z dzisiejszego dnia o 18:48 jeszcze puste (08.10).
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`
 i `notatki/Slownik.md` **są śledzone**. Poza gitem, przez `.gitignore`, są
 `notatki/dziennik/` i `notatki/.obsidian/`. Znaczy to, że **wszystkie wpisy
-dziennika (51 plików na 10.10), czyli cały zapis nauki z tego projektu,
+dziennika (52 pliki na 12.10), czyli cały zapis nauki z tego projektu,
 istnieją wyłącznie na laptopie i w OneDrive, ani jeden nie jest
 w repozytorium**. **Decyzja Gracjana 06.10: zostaje tak** — dziennik tylko lokalnie (laptop
 i OneDrive), poza gitem. Świadomy koszt: jedna kopia, w zamian prywatność.
