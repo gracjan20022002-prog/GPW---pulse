@@ -12,12 +12,12 @@ chroni tylko dzień dzisiejszy, więc przy ręcznym biegu w ciągu dnia złe cen
 Do tego dwie mniejsze wady (strażnik kompakcji da się obejść, repozytorium w OneDrive
 z przerwanym sprzątaniem gita) i sporo nieaktualnych miejsc w README i CLAUDE.md.
 
-## Stan punktów (aktualizacja 12.10)
+## Stan punktów (aktualizacja 13.10)
 
 | Punkt | Stan |
 |---|---|
-| 1.1 złe ceny Yahoo (decyzja 1) | **notatka projektowa zatwierdzona 12.10, kod od 13.10.** 09.10: zakres (`3y`/`5d`) nic nie zmienia. 10.10: w piątek o 18:00 dni 05–08.10 dalej z ceną z 02.10. 12.10: w niedzielę o 18:00 zły także piątek 09.10, w poniedziałek o 18:00 cały tydzień dalej z ceną z 02.10; to samo PKO BP i Orlen, Apple w porządku — **cała GPW w Yahoo**; nie nasz błąd (surowa odpowiedź z laptopa, inny zakres). Poprawka między wtorkiem a piątkiem rano następnego tygodnia (odczyty wt–czw). Decyzja Gracjana: (a) tylko dzisiejsza świeca, zaległe dni wstrzymane z alarmem, nadrabianie ręczne — `Notatka-2026-10-12-naprawy-1-i-2.md` |
-| 1.1 punkt 2, adres brokera (decyzja 2) | **(a) zatwierdzone 12.10:** bez zapasowego adresu w `data_ingestion.py:16` i `kafka_consumer.py:7`; kod od 13.10 razem z 1.1 |
+| 1.1 złe ceny Yahoo (decyzja 1) | **notatka projektowa zatwierdzona 12.10, kod od 13.10.** 09.10: zakres (`3y`/`5d`) nic nie zmienia. 10.10: w piątek o 18:00 dni 05–08.10 dalej z ceną z 02.10. 12.10: w niedzielę o 18:00 zły także piątek 09.10, w poniedziałek o 18:00 cały tydzień dalej z ceną z 02.10; to samo PKO BP i Orlen, Apple w porządku — **cała GPW w Yahoo**; nie nasz błąd (surowa odpowiedź z laptopa, inny zakres). Poprawka między wtorkiem a piątkiem rano następnego tygodnia (odczyty wt–czw). Decyzja Gracjana: (a) tylko dzisiejsza świeca, zaległe dni wstrzymane z alarmem, nadrabianie ręczne — `Notatka-2026-10-12-naprawy-1-i-2.md`. **13.10: kod w toku** — instrukcja `Notatka-2026-10-13-jak-napisac-naprawy-1-i-2.md` (D1 a: dopisek z 5 ostatnimi datami i cenami; D2 a: `PRODUCENT_DATA` do testu na EC2), porcja 1 z 5 zrobiona (`podziel_daty` w `session.py`, 8 testów, `36 passed`), porcja 2 (Producent) od 14.10. Yahoo 13.10 o 18:00: tydzień 05–09.10 dalej zły, 12.10 dobry |
+| 1.1 punkt 2, adres brokera (decyzja 2) | **(a) zatwierdzone 12.10:** bez zapasowego adresu w `data_ingestion.py:16` i `kafka_consumer.py:7`; kod w porcjach 2 i 3 instrukcji z 13.10 |
 | 1.2 strażnik kompakcji (decyzja 3) | ✅ **09.10** (a)–(d): kod Gracjana, ścieżka błędu `403` → `Traceback` bez zmian w S3, próba generalna `783 → 783`, `Usunięto 0`; 10.10 `(2370, 3)` po próbie. (e) w README. Opis zawężony — sprostowanie w 1.2 |
 | 1.3 git w OneDrive (decyzja 4) | zostawione; Ctrl+C przy pytaniu o kasowanie katalogu |
 | 1.4 drobne | bez zmian |

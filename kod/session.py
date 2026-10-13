@@ -7,3 +7,11 @@ def dzien_do_pominiecia(teraz: datetime):
     if polska.time() < PROG:
         return polska.date()
     return None
+
+def podziel_daty(nowe_daty, dzis, nadrob):
+    if nadrob:
+        return sorted(nowe_daty), []
+    do_wyslania = [d for d in nowe_daty if d == dzis]
+    wstrzymane = sorted([d for d in nowe_daty if d != dzis])
+    return do_wyslania, wstrzymane
+

@@ -1512,6 +1512,10 @@ Lista, której nie da się zmienić po utworzeniu. Zapisuje się ją
 w nawiasach okrągłych zamiast kwadratowych. Elementy wyciąga się tak
 samo jak z listy, przez numer w nawiasie kwadratowym.
 *`wspolrzedne = (52.23, 21.01)`, potem `wspolrzedne[0]` daje `52.23`.*
+**Krotka z funkcji (13.10):** `return a, b` oddaje parę, a `x, y = f(...)` rozkłada ją na dwie
+zmienne (jak `data_str, cena_str = linia.split(", ")`). W teście porównuje się z krotką.
+*`podziel_daty({"2026-10-13"}, "2026-10-13", False)` → `(['2026-10-13'], [])`; `== (["2026-10-13"],
+[])` → `True`, a `== [["2026-10-13"], []]` (lista list) → `False`.*
 
 ### Martwy kod
 Linie, których program nigdy nie wykonuje: zakomentowane bloki, wypisy
@@ -1691,6 +1695,16 @@ startu nie było wcale.*
 ### Wycinek listy (`lista[a:]`)
 Wszystkie elementy od numeru `a` do końca.
 *`linie[28:]` z listy 56 linii to ostatnie 28.*
+**Od końca (13.10):** `lista[-5:]` to pięć ostatnich; gdy elementów jest mniej, Python bierze tyle,
+ile jest, bez błędu. Bez minusa `[5:]` znaczy „od szóstego do końca”.
+*`["01", "02", "03", "04", "05", "06", "07"][-5:]` → `['03', '04', '05', '06', '07']`;
+`["01", "02"][-5:]` → `['01', '02']`; `[][-5:]` → `[]`.*
+
+### `round(liczba, 2)`
+Zaokrągla do dwóch miejsc po kropce; zera na końcu znikają. Komputer nie zapisuje dokładnie każdego
+ułamka, stąd ceny w rodzaju `135.89999389648438`.
+*`round(28.000000001, 2)` → `28.0`; `round(12.345678, 2)` → `12.35`. W Producencie (od naprawy 1)
+tylko w dopisku o wstrzymanych dniach — do Kafki i pamięci idzie cena bez zaokrąglenia.*
 
 ### `\n` a `\N`
 `\n` w tekście to znak nowej linii. `\N` z wielkim N to początek specjalnego
@@ -1778,6 +1792,8 @@ jedynym argumentem funkcji, jego nawias zlewa się z nawiasem wywołania.
 Na **tekście** sprawdza fragment, na **liście** cały element, na **słowniku** klucz.
 *`"kaw" in "kawa"` → `True`; `"kaw" in ["lody", "kawa"]` → `False`; `"kawa" in
 {"kawa": 12.5}` → `True`, a `12.5 in {"kawa": 12.5}` → `False`.*
+**`not in` (13.10)** to odwrotność: `True`, gdy elementu **nie ma**.
+*`"2026-06-17" not in ["2026-06-17"]` → `False`; `"2026-06-18" not in ["2026-06-17"]` → `True`.*
 
 ### `.replace("a", "b")`
 Zwraca **kopię** tekstu z każdym `a` zamienionym na `b`; oryginał zostaje. Gdy `a` nie ma
@@ -1796,6 +1812,12 @@ lody` → nic.*
 Kończy program z **kodem wyjścia** 1 (0 = dobrze, inne = źle). `except Exception` go nie
 łapie, więc wyjście zostaje.
 *W `control.py`, gdy stróż odpowie czymś innym niż 200.*
+**Z tekstem (13.10):** `sys.exit("Brak zmiennej …")` wypisuje ten tekst na **stderr** (u nas do
+`errors.txt`, bo `2>&1`) i kończy z kodem 1. Bez `import sys` błąd `NameError: name 'sys' is not
+defined` wychodzi dopiero wtedy, gdy ta linia się wykona.
+*Lodziarnia bez zmiennej `ADRES_HURTOWNI`: `Brak zmiennej ADRES_HURTOWNI (adres hurtowni lodów).`,
+kod wyjścia 1; ze zmienną — `Łączę z …`, kod 0. Od naprawy 2: brak `KAFKA_BOOTSTRAP` w Producencie
+i Konsumencie.*
 
 ### `.weekday()`
 Metoda obiektu daty (`datetime`), zwraca numer dnia tygodnia: 0 = poniedziałek,
@@ -2187,6 +2209,17 @@ poniedziałek o 18:00 cały tydzień 05–09.10 dalej miał cenę z 02.10. To sa
 w porządku — zjawisko dotyczy całej GPW w Yahoo. Poprawka przychodzi między wtorkiem a piątkiem
 rano następnego tygodnia. Naprawa (12.10, 1a): Producent wysyła tylko dzisiejszą świecę, zaległe
 dni wstrzymuje z alarmem.*
+*13.10: we wtorek o 18:00 tydzień 05–09.10 dalej z ceną z 02.10, a poniedziałek 12.10 jeszcze dobry
+(równy GPW). Wcześniejszy dzień tygodnia nie psuje się więc od razu następnego dnia.*
+
+### Wstrzymanie i nadrabianie dnia (`NADROB=1`)
+**Wstrzymanie:** Producent (od naprawy 1) wysyła do Kafki tylko dzisiejszą świecę (data polska).
+Każdą inną nową datę zatrzymuje: nie wysyła i nie zapisuje do pamięci, więc następnego dnia znów
+jest „nowa”, a w logu przy spółce stoi dopisek `wstrzymane`, z którego kontrola robi awarię.
+**Nadrabianie:** po sprawdzeniu cen z archiwum GPW ręczny bieg Producenta z `NADROB=1` przed
+komendą wysyła także zaległe dni. Zmienna tylko przed komendą, nigdy w `crontab`.
+*Lodziarnia: zeszyt ma 15 i 16.06, raport 15–18.06, dziś 18.06 → wpisane 18.06, wstrzymane 17.06:
+`nowych dni: 2, wpisane: 1, wstrzymane: 1 (ostatnie: 2026-06-17 28.0)`.*
 
 ### Dzień bez sesji a dziura w danych
 Giełda nie notuje w weekendy i święta, więc tych dni w danych brakuje i to

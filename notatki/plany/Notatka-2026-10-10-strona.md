@@ -67,7 +67,10 @@ osobna partia.
     złe ceny Yahoo.
 16. Jak sprawdzimy: liczby na stronie = liczby w Athenie, przewidywane przed biegiem.
 
-**D. Później:** zakładki spółek, słownik, wersja angielska, ostrzeżenie o starych danych.
+**D. Później:** zakładki spółek, słownik, wersja angielska, ostrzeżenie o starych danych. Od 13.10
+(Gracjan): także zakładki z aktualnościami, danymi spółek i celem projektu, sekcje pod pierwszym
+ekranem (opcje, informacje, diagramy, wykresy) i przegląd wyglądu, żeby strona nie wyglądała „jak
+z AI”.
 
 ## Decyzje z partii
 
@@ -297,6 +300,31 @@ Przełącznik dla całej strony, w nagłówku po prawej (zmienia partię 2), nie
 - **T3 (a)** przeglądarka odwiedzającego zapamiętuje wybór na następne wejście.
 - Koszt: T2 i T3 to kilka linii JavaScriptu więcej w pliku Gracjana (odczyt ustawienia systemu,
   zapis i odczyt wyboru w przeglądarce). Nowe pojęcia wejdą do pełnej instrukcji przed kodem.
+
+### Partia 7 — kolory, czcionki, odstępy, ikonka (13.10)
+
+Szkic: strona „Cała strona – kolory, czcionki” w Artifact „GPW Pulse – szkice strony” (cała strona na
+obu tłach, trzy czcionki, trzy ikonki w 16, 32 i 64 px).
+- **7.1 (a)** kolory całej strony jak na szkicu (paleta zapisana w partii 3, „Paleta szkicu”, plus
+  znaczek z datą: jasny `#DCF3E2` / `#14622B`, ciemny `#183323` / `#7EE29A`; linki: jasny `#1D4F91`,
+  ciemny `#8AB4F8`, kontrast 8,1 i 7,6 : 1).
+- **7.2 (B) Source Sans 3** (wbrew rekomendacji IBM Plex Sans). Dodatkowo, prośba Gracjana: w kafelku
+  **mniejszy odstęp między wierszami** (cena a zmiana, nazwa a „względem”), kafelek bardziej zbity.
+  Szkic 13.10: wysokość wiersza 1,15 rozmiaru czcionki (wcześniej domyślna czcionki) i odstęp między
+  wierszami 2 px (wcześniej 5 px); porównanie „przed i po” na osobnej planszy. **Zatwierdzone 13.10**
+  („wydaje mi się, że jest ok”).
+
+**Partia 7 zamknięta 13.10.**
+- **7.3 (a)** odstępy 12 i 24 px, rogi 10–12 px, bez cieni.
+- **7.4 (A)** ikonka na karcie przeglądarki: linia pulsu.
+
+**Uwagi Gracjana 13.10 na później** (nie zmieniają partii 1–7, „wszystko w swoim czasie”):
+1. Strona będzie jeszcze modyfikowana, żeby **nie wyglądała „jak z AI”**, tylko bardziej naturalnie.
+   Ustalenia z partii 1–7 zostają jako punkt wyjścia.
+2. **Nie wszystko na jednym ekranie:** na pierwszym ekranie najważniejsze informacje (jak w 1.5), a niżej,
+   po przewinięciu, kolejne opcje, informacje, diagramy i wykresy.
+3. **Zakładki:** informacje o spółkach, aktualności, dane spółek, słownik, cel projektu i inne. Rozszerza
+   punkt D („Później”).
 
 ## Powiązane notatki
 
