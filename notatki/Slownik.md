@@ -225,6 +225,13 @@ który coś robi tylko przy konkretnej wartości.
 zmiennej → `None` → `False`; `1` → `True`; `0`, `tak`, ` 1` ze spacją →
 `False`. Ten sam `gold.py` na laptopie tylko pisze „Pominięto", a na EC2
 (zmienna w `crontab`) wysyła do S3.*
+**Drugi argument `get` i liczba zamiast tekstu (16.10).** `os.environ.get("NAZWA", "x")` daje `"x"`,
+gdy zmiennej nie ma — to **wartość domyślna**, dobra dla adresu albo daty (`PRODUCENT_DATA`), zła
+dla przełącznika. Niepusty tekst w `if` jest prawdą, także `"0"`. Zmienna jest zawsze tekstem, więc
+porównanie z liczbą `1` nigdy nie wychodzi.
+*Lodziarnia, `nowe_dni` 17 i 18.06, dziś 18.06: `get("NADROB", "1")` bez zmiennej → `'1'` →
+nadrabia zawsze, także przy `NADROB=0`; `get("NADROB") == 1` przy `NADROB=1` → `False` → nie
+nadrabia nigdy; `get("NADROB") == "1"` → `False` bez zmiennej, `True` przy `NADROB=1`.*
 
 ### `Where-Object`, `$_`, `-match`, `Out-String`, `ForEach-Object`, `Select-Object` (PowerShell)
 Potok w PowerShellu przekazuje **obiekty**, nie tekst. `Where-Object { warunek }`
@@ -1516,6 +1523,10 @@ samo jak z listy, przez numer w nawiasie kwadratowym.
 zmienne (jak `data_str, cena_str = linia.split(", ")`). W teście porównuje się z krotką.
 *`podziel_daty({"2026-10-13"}, "2026-10-13", False)` → `(['2026-10-13'], [])`; `== (["2026-10-13"],
 [])` → `True`, a `== [["2026-10-13"], []]` (lista list) → `False`.*
+**Rozpakowanie (16.10):** tak się nazywa rozłożenie krotki na kilka nazw. Idzie po kolei: pierwsza
+wartość do pierwszej nazwy. Zamienione nazwy nie dają błędu, tylko po cichu zamieniają wyniki.
+*`a, b = (["18.06"], ["17.06"])` → `a` = `["18.06"]`; `b, a = …` → `a` = `["17.06"]`; jedna nazwa
+→ cała krotka (`tuple`); trzy nazwy → `ValueError: not enough values to unpack (expected 3, got 2)`.*
 
 ### Martwy kod
 Linie, których program nigdy nie wykonuje: zakomentowane bloki, wypisy

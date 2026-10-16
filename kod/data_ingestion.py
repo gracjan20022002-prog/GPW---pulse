@@ -2,8 +2,9 @@ import requests
 from datetime import datetime
 import logging
 import os
+import sys
 from config import ticker
-from session import dzien_do_pominiecia, STREFA, PROG
+from session import dzien_do_pominiecia, STREFA, PROG, podziel_daty
 from kafka import KafkaProducer
 from json import dumps
 from kafka.errors import KafkaError
@@ -13,7 +14,9 @@ logging.basicConfig(
     level = logging.ERROR,
     format = "%(asctime)s - %(levelname)s - %(message)s"
 )
-BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "13.63.105.190:9092")
+BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP")
+if not BOOTSTRAP:
+    sys.exit("Brak zmiennej KAFKA_BOOTSTRAP (adres brokera Kafki)")
 try:
     producer = KafkaProducer(
         bootstrap_servers=[BOOTSTRAP],
@@ -25,6 +28,8 @@ except KafkaError:
 
 wynik = []
 pomin = dzien_do_pominiecia(datetime.now(STREFA))
+dzis = os.environ.get("PRODUCENT_DATA", str(datetime.now(STREFA).date()))
+nadrob = os.environ.get("NADROB") == "1"
 for tick in ticker:
     dane = {}
     pominiete = False         
@@ -60,14 +65,15 @@ for tick in ticker:
                         pominiete = True
                         continue
                     dane[str(data)] = c
-            posortowane = sorted(dane.keys())
             nowe_daty = set(dane.keys()) - stare_daty
+            do_wyslania, wstrzymane = podziel_daty(nowe_daty, dzis, nadrob)
+            posortowane = [d for d in sorted(dane.keys()) if d not in wstrzymane]
             wyslane = 0
             flaga = True
             if producer is None:
                 flaga = False
             else:
-                for data in nowe_daty:
+                for data in do_wyslania:
                     try:
                         producer.send('gpw_tracker', value={"spółka":f"{tick}", "data": f"{data} 17:00:00", "cena": dane[data]}).get(timeout=10)
                         wyslane += 1
@@ -82,6 +88,9 @@ for tick in ticker:
             wynik[-1] = f"{tick}: nowych dni: {len(nowe_daty)}, wysłane: {wyslane}, stan: {stan}"
             if pominiete:
                 wynik[-1] += f", dziś pominięte (przed {PROG.strftime('%H:%M')})"
+            if wstrzymane:
+                ostatnie = ", ".join([f"{d} {round(dane[d], 2)}" for d in wstrzymane[-5:]])
+                wynik[-1] += f", wstrzymane: {len(wstrzymane)} (ostatnie: {ostatnie})"
         else:
             logging.error(f"Wystąpił błąd przy pobieraniu danych spółki {tick}. Status błędu: {response.status_code}")
     except (requests.exceptions.RequestException, TypeError, KeyError):

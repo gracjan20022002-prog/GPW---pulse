@@ -175,7 +175,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu (13.10)
+## Stan projektu (16.10)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 - **Źródło prawdy o wadach i kolejności napraw (od 08.10, decyzja Gracjana):**
@@ -226,6 +226,11 @@ godzinie mówić, w jakiej jest strefie.
   z bieżącej odpowiedzi Yahoo** (linia 62). Do Kafki idą tylko nowe daty.
 - Błędy (`ERROR`) idą na stderr, czyli do `errors.txt`. Linia startu ma `flush=True`.
 - Linia 16 ma zapasowy adres brokera `13.63.105.190:9092`. Do usunięcia w naprawie 2.
+- **Na laptopie od 16.10 (porcja 2 napraw 1 i 2, na EC2 jeszcze nie):** bez zapasowego adresu
+  (brak `KAFKA_BOOTSTRAP` = `sys.exit`, linie 17–19), `dzis` z `PRODUCENT_DATA` i `nadrob`
+  (`NADROB` == `"1"`) w liniach 31–32, `podziel_daty` w linii 69, do Kafki tylko `do_wyslania`
+  (76), pamięć bez wstrzymanych dni (70), dopisek `, wstrzymane: N (ostatnie: …)` (91–93). Plik ma
+  101 linii. Do EC2 trafi w porcji 5.
 
 #### Konsument (`kafka_consumer.py`)
 
@@ -305,18 +310,19 @@ Jak czytać rozjazd:
   Pythonie 3.9, na 3.14 więcej) i 1 linia wyniku (pandas 3.0.5). **Na EC2 na 3.14 niesprawdzone.**
 - **`PythonDeprecationWarning` w bloku** znaczy, że `cron` wrócił do starego `venv`.
 
-### Ostatnie liczby (bieg 13.10, sprawdzony 13.10)
+### Ostatnie liczby (bieg 16.10, sprawdzony 16.10)
 
-- Log: start w linii **1308**, `wc -l` **1335**.
-- Dane: 2 × `(2376, 3)`, `Kontrola: Dane 2376 wierszy`, pliki spółek **792 × 3**.
-- Zakładka **`2405 2405 0`**; `errors.log` **8**.
-- S3 `gold/`: **159077 B** (+208 B) i **349 B**, z `16:10:07` UTC.
-- Stróż: 12 i 13.10 nieodczytany (przewidziane #28 i #29; 09.10 #25).
-- Ranking: SNT 347,60 (+390,96%), XTB 135,84 (+258,04%), CBF 198,00 (+161,90%). Ceny 13.10 z Yahoo
-  zgodne z archiwum GPW (odczyt o 19:05 tego samego dnia); 12.10 (CBF 200,00, SNT 355,00, XTB
-  135,90) też zgodne.
-- Ceny w S3 porównane z archiwum GPW: 96, wszystkie zgodne co do grosza (66 z historii, 17, 18
-  i 21.09, 05–09.10, 12 i 13.10).
+- Log: start w linii **1392**, `wc -l` **1419**.
+- Dane: 2 × `(2385, 3)`, `Kontrola: Dane 2385 wierszy`, pliki spółek **795 × 3**.
+- Zakładka **`2414 2414 0`**; `errors.log` **8**.
+- S3 `gold/`: **159708 B** (+426 B przez 15 i 16.10; 14.10: 159282 B, +205 B) i **350 B**, z
+  `16:10:07` UTC.
+- Stróż: 12–16.10 nieodczytany (przewidziane #28–#32; 09.10 #25).
+- Ranking: SNT 348,80 (+392,66%), XTB 147,82 (+289,62%), CBF 197,50 (+161,24%). Ceny 16.10 z Yahoo
+  zgodne z archiwum GPW (puste o 18:35, pełne o 19:01); 14.10 (198,20 / 338,40 / 136,50) i 15.10
+  (197,40 / 346,80 / 140,10) też zgodne.
+- Ceny w S3 porównane z archiwum GPW: 105, wszystkie zgodne co do grosza (66 z historii, 17, 18
+  i 21.09, 05–09.10, 12–16.10).
 
 ### Przewidywania od 10.10
 
@@ -326,9 +332,9 @@ sprawdzone 12.10: zgodne co do liczby** (poza rozmiarem S3).
 - W październiku nie ma świąt. Gold daje `117`/`111` do końca miesiąca.
 - **Numery u stróża przesuwa każdy ręczny `control.py` ze `STROZ_URL`.**
 - S3 `dane_dzienne.csv` rośnie o ok. 177–218 B na dzień giełdowy (09.10: +193, 12.10: +177,
-  13.10: +208).
-- **13.10 sprawdzone 13.10: zgodne co do liczby, także S3.**
-  `ranking.csv` ma 330–370 B.
+  13.10: +208, 14.10: +205, 15–16.10: +426 razem).
+- **13.10 sprawdzone 13.10, 14.10 sprawdzone 14.10, 15 i 16.10 sprawdzone 16.10: zgodne co do
+  liczby, także S3.** `ranking.csv` ma 330–370 B. Stróż od #28 nieodczytany.
 
 | Dzień | Start | `wc -l` po biegu | `Odebrano` | `Kontrola: Dane` | Zakładka | Pliki spółek | Stróż |
 |---|---|---|---|---|---|---|---|
@@ -365,9 +371,12 @@ zmieniona kolejność: duża dokumentacja przed naprawami 1 i 2.
    D2 (a) `PRODUCENT_DATA` (udawany „dziś”) do testu na EC2 w oknie 17:55–17:59.
    - **Porcja 1 z 5 zrobiona 13.10:** `podziel_daty(nowe_daty, dzis, nadrob)` w `kod/session.py`
      (linie 11–16), 8 testów w `kod/test_session.py` (linie 27–42), `pytest kod/ -v` → `36 passed`.
-     EC2 bez zmian — Producent jeszcze nie woła funkcji.
-   - **Dalej:** porcja 2 (Producent), 3 (Konsument, `control.py`, 2 testy → 38), 4 (laptop: bez
-     zmiennej, martwy broker), 5 (EC2 w dzień giełdowy).
+   - **Porcja 2 z 5 zrobiona 16.10:** Producent (`kod/data_ingestion.py`, `13 insertions(+),
+     4 deletions(-)`, `36 passed`). Linia 32 dopiero za trzecim razem: `get("NADROB", "1")` (każdy
+     bieg nadrabia), `== 1` (nigdy nie nadrabia), `== "1"` (dobrze). **W linii 19 brakuje kropki**
+     na końcu komunikatu — dopisać w porcji 3. Producenta nikt jeszcze nie uruchomił.
+   - **Dalej:** porcja 3 (Konsument, `control.py`, 2 testy → 38), 4 (laptop: bez zmiennej, martwy
+     broker), 5 (EC2 w dzień giełdowy, najwcześniej pon. 19.10, `git pull` przed 17:55).
    - Producent wysyła tylko dzisiejszą świecę (data polska, jak w `session.py`).
    - Zaległe dni wstrzymuje: nie idą do Kafki ani do pamięci, więc następnego dnia znów są „nowe”.
      W linii wyniku jest dopisek, a `control.py` daje przy nim awarię (`/fail` u stróża).
@@ -381,9 +390,13 @@ zmieniona kolejność: duża dokumentacja przed naprawami 1 i 2.
    - Poprawka tygodnia przychodzi między wtorkiem a piątkiem rano następnego tygodnia. Odczyty
      pamięci (krok 16) wt–czw wieczorem zawężą dzień. **13.10 (wt) 18:00:** 05–09.10 dalej zły,
      12.10 dobry — wcześniejszy dzień tygodnia nie psuje się od razu następnego dnia.
+   - **14.10 (śr) 18:00:** 05–13.10 wszystkie z zamknięciem z 02.10 (12.10 zepsuty po dwóch dniach,
+     13.10 po jednym). **16.10 (pt) 18:00:** 05–13.10 dalej z ceną z 02.10 — poprawka do piątku
+     tym razem nie przyszła; 14 i 15.10 dalej dobre. Przyczyny nie znamy.
 2. **Naprawa 2 — zapasowy adres brokera: (a) zatwierdzone 12.10.** Bez zapasowego adresu
    w `data_ingestion.py:16` i `kafka_consumer.py:7`; brak `KAFKA_BOOTSTRAP` = `sys.exit` z
-   komunikatem. Kod w porcjach 2 i 3 instrukcji z 13.10.
+   komunikatem. Kod w porcjach 2 i 3 instrukcji z 13.10. **16.10: Producent zrobiony** (porcja 2),
+   Konsument w porcji 3.
 3. **Git w OneDrive:** zostawione (decyzja 4). Przy pytaniu `Deletion of directory … (y/n)` po
    commicie: Ctrl+C. Commit jest już zrobiony, potem `git push`. 10.10: 755 luźnych obiektów,
    wszystkie w paczkach. Repozytorium nie przenosić, bo dziennik ma jedyną kopię w chmurze
@@ -412,7 +425,8 @@ zmieniona kolejność: duża dokumentacja przed naprawami 1 i 2.
 - brak testów reszty Producenta.
 
 **Niesprawdzone:**
-- stróż 12 i 13.10 (przewidziane #28 i #29, `GET`, bez `DOWN`);
+- stróż 12–16.10 (przewidziane #28–#32, `GET`, bez `DOWN`);
+- Producent po porcji 2 nie był jeszcze uruchomiony (porcja 4 laptop, porcja 5 EC2);
 - czy warunki Yahoo pozwalają pokazywać dane na publicznej stronie (do partii 15 strony);
 - treść zgłoszenia #21 u stróża (polskie litery);
 - czy port 9092 brokera jest otwarty dla laptopa;
@@ -487,25 +501,27 @@ companies/errors.txt | tail -n N`, N = liczba dni) i porównać z tabelą „Prz
     potrzebna tylko do `od`/`do` albo przy rozjeździe.
 13. **[EC2, przez SSH]** `aws s3 ls s3://gpw-tracker-bucket/gold/ --recursive` — dwa pliki
     z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2; od 25.10 `17:10`). Rozmiar
-    `dane_dzienne.csv`: 159077 B na 2376 wierszy (13.10), rośnie o ok. 59–73 B na wiersz (ok.
+    `dane_dzienne.csv`: 159708 B na 2385 wierszy (16.10), rośnie o ok. 59–73 B na wiersz (ok.
     +177–218 B na dzień giełdowy; krótkie ceny jak `200.0` dają mniej);
     `ranking.csv` 330–370 B. **Lokalnego pliku do porównania rozmiaru nie ma od 21.09**
     (Harmonogram wyłączony).
 14. **[przeglądarka]** stróż: `Up`, ostatnie zgłoszenie ok. 18:30 (`Europe/Warsaw`), typ `GET`
     z `13.63.105.190`, `python-requests/2.34.2`, liczba zgłoszeń +1 na dzień (21.09: 3; 26.09
-    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24; 09.10 #25; 12 i 13.10 przewidziane #28
-    i #29, nieodczytane). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
+    po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24; 09.10 #25; 12–16.10 przewidziane #28–#32,
+    nieodczytane; 17.10 #33). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
     `DOWN` (mail przychodzi ok. 15 minut po zmianie stanu).
 15. **[EC2, przez SSH]** (od 22.09, po punkcie 6) `ls -a silver gold` — w każdym
     `.gitkeep` i pliki `.csv`; `git status --short` — pusty.
 16. **[EC2, przez SSH]** (od 09.10, na czas badania punktu 1.1 przeglądu z 08.10)
     `tail -n N companies/*.WA.txt` — ostatnie dni pamięci każdej spółki, N tak, żeby objąć 05.10
-    (13.10: 7, 14.10: 8, 15.10: 9). Pamięć ma ceny z odpowiedzi Yahoo z 18:00 i **nadpisuje się przy
-    każdym biegu** — stan z danego dnia można odczytać tylko przed następnym biegiem. Szukamy dnia,
-    w którym tydzień 05–09.10 przestanie mieć zamknięcie z 02.10 (12.10 po biegu: 05–09.10 CBF 201,0,
-    SNT 341,6, XTB 138,56; 12.10 200,0 / 355,0 / 135,9; 13.10 po biegu: 05–12.10 bez zmian, 13.10
-    198,0 / 347,6 / 135,84). Prawdziwe zamknięcia w „Na następną sesję”,
-    punkt 2, i w archiwum GPW (adres w „Gdzie co jest”). Wynik zapisywać w dzienniku.
+    (16.10: 10; 17 i 18.10: 10; 19.10: 11; 20.10: 12). Pamięć ma ceny z odpowiedzi Yahoo z 18:00
+    i **nadpisuje się przy każdym biegu** — stan z danego dnia można odczytać tylko przed następnym
+    biegiem. Szukamy dnia, w którym dni 05–13.10 przestaną mieć zamknięcie z 02.10 (CBF 201,0, SNT
+    341,6, XTB 138,56), i patrzymy, czy dni od 14.10 zostają dobre (14.10 po biegu: 05–13.10 z ceną
+    z 02.10; 16.10 po biegu: 05–13.10 bez zmian, 14.10 198,2 / 338,4 / 136,5, 15.10 197,4 / 346,8 /
+    140,1, 16.10 197,5 / 348,8 / 147,82 — wszystkie trzy dobre). Prawdziwe zamknięcia w „Na
+    następną sesję”, punkt 4, i w archiwum GPW (adres w „Gdzie co jest”). Wynik zapisywać
+    w dzienniku.
 
 Przy rozjeździe: wkleić wynik, porównać liczba po liczbie, niczego nie uruchamiać
 ponownie. To kontrola ręczna, która uzupełnia sygnał awarii, a go nie zastępuje: sygnał
@@ -550,13 +566,16 @@ informacje, diagramy, wykresy); zakładki: spółki, aktualności, dane spółek
 
 ### Na następną sesję
 
-Stan 13.10 (wtorek, koniec sesji ok. 19:20).
-- **Zrobione:**
-  - strona: partia 7 zamknięta (Source Sans 3, ciaśniejszy kafelek), uwagi Gracjana na później;
-  - notatka-instrukcja do napraw 1 i 2 (druga, krótka wersja), decyzje D1 (a) i D2 (a);
-  - porcja 1: `podziel_daty` i 8 testów, `18 passed` / `36 passed`;
-  - kontrola biegu 13.10 zgodna (S3 +208 B); ceny 12 i 13.10 zgodne z GPW (96).
-- **Czeka:** commit z 13.10 (komendy podane na koniec sesji). Na starcie sprawdzić, czy jest i czy
+Stan 16.10 (piątek, koniec sesji ok. 19:10). Sesja 14.10 była bez dziennika — wpis dopisany 16.10
+z przebiegu rozmowy.
+- **Zrobione 14.10:** kontrola 14.10 zgodna (S3 +205 B, 99 cen zgodnych z GPW); Yahoo zepsuło 12
+  i 13.10; opis 8 testów `podziel_daty` (dwa razy, drugi z treścią każdego testu).
+- **Zrobione 16.10:**
+  - kontrola 15 i 16.10 zgodna (1392–1419, Dane 2385, S3 159708 B), 105 cen zgodnych z GPW;
+  - pamięć: 05–13.10 dalej z ceną z 02.10, 14–16.10 dobre;
+  - porcja 2 (Producent): `13 insertions(+), 4 deletions(-)`, `36 passed`, linia 32 dobra za
+    trzecim razem; w linii 19 brakuje kropki.
+- **Czeka:** commit z 16.10 (komendy podane na koniec sesji). Na starcie sprawdzić, czy jest i czy
   wypchnięty.
 - **Po każdej zmianie Gracjana:** opis każdej nowej linii (zasada 3).
 
@@ -565,27 +584,37 @@ Stan 13.10 (wtorek, koniec sesji ok. 19:20).
      GitHubem;
    - `date`;
    - lista sesji: czy po ostatniej była jakaś bez dziennika.
-1. **Opis każdego z 8 testów `podziel_daty`** (prośba Gracjana 13.10): czego dotyczy pojedynczy test,
-   jaką sytuację Producenta udaje i co by znaczyło, gdyby nie przeszedł.
-2. **Porcja 2 — Producent** według instrukcji z 13.10 (część 3, punkty 1–7), krok po kroku, od dołu
-   pliku, z numerami linii i wcięciami; po zmianie opis każdej linii; `pytest kod/ -v` → `36 passed`
-   (testy bez zmian). Potem porcja 3 (Konsument, `control.py`, 2 testy → `38 passed`), porcja 4
-   (laptop: bez `KAFKA_BOOTSTRAP` i z martwym brokerem), commit, porcja 5 (EC2 w dzień giełdowy,
-   `git pull` przed 17:55, ręczny bieg z `PRODUCENT_DATA` w oknie 17:55–17:59).
-3. **Kontrola biegów** według tabeli „Przewidywania od 10.10”, **z krokiem 16** (14.10:
-   `tail -n 8`). Do tego stróż (12 i 13.10 nieodczytany). Prawdziwe zamknięcia z GPW:
+1. **Dokładne wytłumaczenie Producenta** (prośba Gracjana 16.10: „jutro mi jeszcze wytłumaczysz
+   dokładnie co do czego służy”): cały `kod/data_ingestion.py` po porcji 2, część po części — do
+   czego służy każda linia i każdy blok, na wartościach z prawdziwego biegu (zwykły dzień, weekend,
+   zaległy dzień, nadrabianie, brak zmiennej, martwy broker).
+2. **Porcja 3** według instrukcji z 13.10: Konsument (`kafka_consumer.py:7` bez zapasowego adresu,
+   `sys.exit` z komunikatem), `control.py` (linia spółki ze słowem `wstrzymane` → błąd
+   `"<spółka>: wstrzymane dni"`), 2 testy w `test_control.py` → `38 passed`. Przy okazji kropka
+   w `data_ingestion.py:19`. Przy przełączniku i porównaniach pisać w kroku wprost operator
+   i cudzysłów (wniosek 15).
+3. **Porcja 4** (laptop: bez `KAFKA_BOOTSTRAP` i z martwym brokerem `localhost:9999`), commit,
+   **porcja 5** (EC2 w dzień giełdowy, najwcześniej pon. 19.10: `git pull` przed 17:55, ręczny bieg
+   z `PRODUCENT_DATA` = wczoraj w oknie 17:55–17:59, o 18:00 `cron`, po 18:32 kontrola `OK`).
+4. **Kontrola biegów** według tabeli „Przewidywania od 10.10”, **z krokiem 16** (17 i 18.10:
+   `tail -n 10`; 19.10: 11). Do tego stróż (#28–#33). Prawdziwe zamknięcia z GPW:
    - 05 / 06 / 07 / 08 / 09.10 — CBF 202,80 / 203,00 / 199,20 / 196,00 / 200,00; SNT 339,80 /
      343,80 / 342,20 / 342,80 / 344,00; XTB 134,80 / 136,12 / 135,00 / 137,00 / 139,72;
-   - 12.10 — 200,00 / 355,00 / 135,90; 13.10 — 198,00 / 347,60 / 135,84.
-4. **Strona:** partie 8–11 (telefon, liczby i daty po polsku, dostępność, HTML i CSS).
-5. **ok. 17.10:** decyzja o starym `venv` na EC2.
-6. Terminy wyżej, w „Terminy”.
+   - 12.10 — 200,00 / 355,00 / 135,90; 13.10 — 198,00 / 347,60 / 135,84;
+   - 14.10 — 198,20 / 338,40 / 136,50; 15.10 — 197,40 / 346,80 / 140,10; 16.10 — 197,50 / 348,80 /
+     147,82.
+5. **Strona:** partie 8–11 (telefon, liczby i daty po polsku, dostępność, HTML i CSS).
+6. **ok. 17.10:** decyzja o starym `venv` na EC2.
+7. Terminy wyżej, w „Terminy”.
 
 **EC2 jest na `5676575` od 07.10 18:57 UTC.** Laptop i GitHub są dalej:
 - `5fa6098` — strażnik w `compaction.py`, który chodzi tylko z laptopa;
-- `f3f9fa5` i późniejsze — tylko dokumentacja i obrazki.
+- `f3f9fa5` i późniejsze — dokumentacja i obrazki;
+- `7b38be8` (13.10) — `podziel_daty` w `session.py`, jeszcze bez użycia;
+- commit z 16.10 — Producent po porcji 2. **Na EC2 `git pull` dopiero w porcji 5**, razem
+  z Konsumentem i `control.py`.
 
-Na EC2 nic z tego nie jest potrzebne, przyjdzie przy najbliższym wdrożeniu (naprawy 1 i 2).
+Na EC2 nic z tego nie jest potrzebne przed wdrożeniem napraw 1 i 2 (porcja 5).
 Poprzednio EC2 było na: `4aca12d` od 03.10, `fc6e262` od 26.09, `6af7b48` od 21.09.
 
 ### Pomyłki Claude'a — wnioski
@@ -609,7 +638,7 @@ nowe pomyłki idą do dziennika dnia. Tutaj zostają wnioski, które obowiązuj�
    jako poszlaki (17.09).
 7. **Dziennik i CLAUDE.md pisać w dniu sesji, także gdy sesja się urwie.** Brak wpisu z dnia
    znaczy, że trzeba sprawdzić transkrypt (`list_events`), a nie zakładać, że nic się nie stało
-   (21.09, 24.09, 09.10).
+   (21.09, 24.09, 09.10, 14.10 — uzupełnione 16.10).
 8. **Claude czyta stan gita, ale go nie zmienia.** Także `git add -N` jest zmianą (04.10).
 9. **Zasady i nowe pojęcia podawać od razu, w pełnej instrukcji**, nie po kawałku przy ocenie
    kodu (23.09). Kroki krótkie, w kolejności, z PRZEŁĄCZENIEM i komendą w osobnym okienku
@@ -625,6 +654,10 @@ nowe pomyłki idą do dziennika dnia. Tutaj zostają wnioski, które obowiązuj�
 14. **Przed poprawką wyglądu zobaczyć to, co widzi Gracjan** (zrzut ekranu), nie zmieniać pliku na
     ślepo (13.10: wąską kolumnę tekstu ustalał panel aplikacji, nie plik). Szacunek czasu własnej
     pracy podawać ostrożnie i potem powiedzieć, ile wyszło (13.10: notatka 10 min zamiast 45–60).
+15. **Krok z przełącznikiem albo porównaniem pisać wprost: operator (`==`), wartość w cudzysłowie
+    (`"1"`) i czym linia różni się od sąsiedniej o podobnym kształcie** (16.10: krok 12 opisany
+    słowami obok linii 31 z drugim argumentem w `get` — linia 32 wyszła najpierw jako
+    `get("NADROB", "1")`, potem `== 1`). Testy tego nie złapią, łapie to dopiero czytanie `git diff`.
 
 ### Kopie
 
@@ -695,7 +728,7 @@ w przeglądarce. Archiwum z dzisiejszego dnia o 18:48 jeszcze puste (08.10).
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`
 i `notatki/Slownik.md` **są śledzone**. Poza gitem, przez `.gitignore`, są
 `notatki/dziennik/` i `notatki/.obsidian/`. Znaczy to, że **wszystkie wpisy
-dziennika (53 pliki na 13.10), czyli cały zapis nauki z tego projektu,
+dziennika (55 plików na 16.10), czyli cały zapis nauki z tego projektu,
 istnieją wyłącznie na laptopie i w OneDrive, ani jeden nie jest
 w repozytorium**. **Decyzja Gracjana 06.10: zostaje tak** — dziennik tylko lokalnie (laptop
 i OneDrive), poza gitem. Świadomy koszt: jedna kopia, w zamian prywatność.
