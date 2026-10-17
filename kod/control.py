@@ -13,6 +13,10 @@ def sprawdz_blok(blok, spolki, dzis):
     for spolka in spolki:
         if spolka not in zapisane:
             bledy.append(f"{spolka}: brak 'stan: zapisane'")
+    wstrzymane = [linia.split(":")[0] for linia in blok.splitlines() if "wstrzymane" in linia]
+    for spolka in spolki:
+        if spolka in wstrzymane:
+            bledy.append(f"{spolka}: wstrzymane dni")
     if "Odebrano" not in blok:
         bledy.append("Konsument nie ukończył zadania: Brak linii 'Odebrano'")
     ile = blok.count("S3: wysłano")

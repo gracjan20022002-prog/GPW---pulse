@@ -426,7 +426,8 @@ zmieniona kolejność: duża dokumentacja przed naprawami 1 i 2.
 
 **Niesprawdzone:**
 - stróż 12–16.10 (przewidziane #28–#32, `GET`, bez `DOWN`);
-- Producent po porcji 2 nie był jeszcze uruchomiony (porcja 4 laptop, porcja 5 EC2);
+- Producent po porcji 2 nie był jeszcze uruchomiony na prawdziwym Yahoo i Kafce (porcja 4 laptop,
+  porcja 5 EC2); 16.10 tylko kopia z udawanym Yahoo i Kafką w katalogu roboczym Claude'a;
 - czy warunki Yahoo pozwalają pokazywać dane na publicznej stronie (do partii 15 strony);
 - treść zgłoszenia #21 u stróża (polskie litery);
 - czy port 9092 brokera jest otwarty dla laptopa;
@@ -575,8 +576,9 @@ z przebiegu rozmowy.
   - pamięć: 05–13.10 dalej z ceną z 02.10, 14–16.10 dobre;
   - porcja 2 (Producent): `13 insertions(+), 4 deletions(-)`, `36 passed`, linia 32 dobra za
     trzecim razem; w linii 19 brakuje kropki.
-- **Czeka:** commit z 16.10 (komendy podane na koniec sesji). Na starcie sprawdzić, czy jest i czy
-  wypchnięty.
+- **Commit `e01acb0` (16.10, 19:14:08) wypchnięty**, `4 files changed, 113 insertions(+),
+  60 deletions(-)`. **Czeka:** drugi, mały commit z dopiskiem w CLAUDE.md (komendy podane na koniec
+  sesji). Na starcie sprawdzić, czy jest i czy wypchnięty.
 - **Po każdej zmianie Gracjana:** opis każdej nowej linii (zasada 3).
 
 0. **Na starcie:**
@@ -584,10 +586,10 @@ z przebiegu rozmowy.
      GitHubem;
    - `date`;
    - lista sesji: czy po ostatniej była jakaś bez dziennika.
-1. **Dokładne wytłumaczenie Producenta** (prośba Gracjana 16.10: „jutro mi jeszcze wytłumaczysz
-   dokładnie co do czego służy”): cały `kod/data_ingestion.py` po porcji 2, część po części — do
-   czego służy każda linia i każdy blok, na wartościach z prawdziwego biegu (zwykły dzień, weekend,
-   zaległy dzień, nadrabianie, brak zmiennej, martwy broker).
+1. **Wytłumaczenie nowego kodu zrobione 16.10 wieczorem** (Gracjan poprosił jeszcze tego samego
+   dnia): `podziel_daty` i 13 linii Producenta, każda z powodem kształtu, 8 testów, plus bieg kopii
+   Producenta z udawanym Yahoo i Kafką w 8 sytuacjach (tabela w dzienniku 16.10). Na starcie
+   zapytać, czy coś zostało niejasne.
 2. **Porcja 3** według instrukcji z 13.10: Konsument (`kafka_consumer.py:7` bez zapasowego adresu,
    `sys.exit` z komunikatem), `control.py` (linia spółki ze słowem `wstrzymane` → błąd
    `"<spółka>: wstrzymane dni"`), 2 testy w `test_control.py` → `38 passed`. Przy okazji kropka

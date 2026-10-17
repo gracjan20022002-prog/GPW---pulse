@@ -4,7 +4,10 @@ from datetime import datetime
 import boto3
 from config import BUCKET
 import os
-BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP", "13.63.105.190:9092")
+import sys
+BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP")
+if not BOOTSTRAP:
+    sys.exit("Brak zmiennej KAFKA_BOOTSTRAP (adres brokera Kafki).")
 consumer = KafkaConsumer(
     bootstrap_servers=[BOOTSTRAP],
     group_id='gpw_consumer',

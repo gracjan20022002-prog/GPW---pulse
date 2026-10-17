@@ -47,3 +47,12 @@ def test_powtorna_kontrola():
     assert len(wynik) == 1
 def test_bez_startu():
     assert wytnij_blok("jakaś linia\ndruga linia") == ""
+def test_wstrzymane_jedna_spolka():
+    blok = WZOR.replace("CBF.WA: nowych dni: 1, wysłane: 1, stan: zapisane", "CBF.WA: nowych dni: 2, wysłane: 1, stan: zapisane, wstrzymane: 1 (ostatnie: 2026-09-17 200.0)")
+    wynik = sprawdz_blok(blok, ticker, "2026-09-18")
+    assert len(wynik) == 1
+    assert "CBF.WA" in wynik[0]
+def test_wstrzymane_trzy_spolki():
+    blok = WZOR.replace("stan: zapisane", "stan: zapisane, wstrzymane: 1")
+    wynik = sprawdz_blok(blok, ticker, "2026-09-18")
+    assert len(wynik) == 3    

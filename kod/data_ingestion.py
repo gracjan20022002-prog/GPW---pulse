@@ -16,7 +16,7 @@ logging.basicConfig(
 )
 BOOTSTRAP = os.environ.get("KAFKA_BOOTSTRAP")
 if not BOOTSTRAP:
-    sys.exit("Brak zmiennej KAFKA_BOOTSTRAP (adres brokera Kafki)")
+    sys.exit("Brak zmiennej KAFKA_BOOTSTRAP (adres brokera Kafki).")
 try:
     producer = KafkaProducer(
         bootstrap_servers=[BOOTSTRAP],
