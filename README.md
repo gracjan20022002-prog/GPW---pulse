@@ -7,7 +7,8 @@ i pandas liczą z nich zmiany cen i ranking spółek. O 18:30 projekt sprawdza s
 i przy awarii wysyła e-mail.
 
 Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **10.10.2026** (dane do sesji
-09.10). Pełna lista wad i kolejność napraw:
+09.10), z dopiskami o naprawach wdrożonych na serwerze **20.10.2026** (ochrona przed złymi cenami
+Yahoo przy nadrabianiu dni i usunięty zapasowy adres brokera). Pełna lista wad i kolejność napraw:
 [`notatki/plany/Przeglad-2026-10-08-calosc.md`](notatki/plany/Przeglad-2026-10-08-calosc.md).
 
 ---
@@ -116,11 +117,12 @@ Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak 
   po zmianie stanu.
 - **Liczby przed biegiem.** Każdą zmianę sprawdza się porównaniem liczb zapisanych przed
   uruchomieniem (numer linii w logu, liczba wierszy, zakładka, rozmiar pliku) z wynikiem.
-- **Testy:** `pytest kod/ -v`, 28 testów. 11 sprawdza `control.py` na prawdziwym bloku logu
-  z 18.09 (`kod/dane_testowe/`), 7 sprawdza daty z `path.py` na zmyślonych danych, 10 sprawdza
-  granicę 17:55 z `session.py` (w tym godziny zimowe i letnie). Testy nie łączą się z AWS.
+- **Testy:** `pytest kod/ -v`, 38 testów (od 17.10). 13 sprawdza `control.py` na prawdziwym
+  bloku logu z 18.09 (`kod/dane_testowe/`), w tym alarm przy wstrzymanych dniach, 7 sprawdza daty
+  z `path.py` na zmyślonych danych, 18 sprawdza `session.py`: granicę 17:55 (w tym godziny zimowe
+  i letnie) i podział nowych dni na wysłane i wstrzymane. Testy nie łączą się z AWS.
 - **Ceny porównane z giełdą.** Punktem odniesienia jest archiwum notowań GPW, nie serwisy
-  pośrednie. 90 cen z S3 porównanych do 10.10 — wszystkie zgodne co do grosza.
+  pośrednie. 111 cen z S3 porównanych do 20.10 — wszystkie zgodne co do grosza.
 
 ---
 
@@ -150,15 +152,18 @@ działać (EC2); opis mówi też, czego nie ma.
   kasowaniem na nowym kodzie: początek listopada.
 
 **Czego nie ma i znane ograniczenia:**
-- **Yahoo podaje dobrą cenę tylko za ostatni dzień** (w naprawie). Wcześniejsze dni bieżącego
-  tygodnia mają w odpowiedzi Yahoo zamknięcie z poprzedniego piątku, a poprawiony tydzień
-  przychodzi dopiero po jego zakończeniu (zaobserwowane 08–10.10; w piątek o 18:00 jeszcze
-  niepoprawiony). Zwykły bieg wysyła jeden nowy dzień, czyli ostatni, więc S3 ma dobre ceny.
-  Groźny jest bieg z kilkoma nowymi dniami naraz, np. dzień po awarii: starsze dni poszłyby
-  z ceną z poprzedniego piątku, a kontrola tego nie zobaczy, bo daty się zgadzają.
-- **Producent ma zapasowy adres brokera** (w naprawie): bez zmiennej `KAFKA_BOOTSTRAP` łączy się
-  z brokerem na EC2. Bieg z laptopa bez tej zmiennej mógłby wysłać drugi raz dni, których pamięć
-  laptopa nie zna, a Silver przy dwóch różnych cenach tego samego dnia wybiera przypadkowo.
+- **Yahoo podaje dobrą cenę tylko za dzień odpowiedzi.** Wcześniejsze dni potrafią mieć
+  w odpowiedzi Yahoo zamknięcie sprzed tygodnia, a poprawka przychodzi po kilku dniach albo wcale
+  (zaobserwowane od 08.10 dla całej GPW; 05–06.10 dalej złe 20.10). **Od 20.10 Producent się
+  przed tym broni:** do Kafki wysyła tylko dzisiejszą świecę, a dni zaległe (np. po awarii)
+  wstrzymuje. Nie idą ani do Kafki, ani do pamięci, tylko do dopisku w linii wyniku
+  (`wstrzymane: N (ostatnie: data cena, …)`), a kontrola o 18:30 daje wtedy awarię i e-mail.
+  Nadrobienie to ręczny bieg z `NADROB=1` po porównaniu cen z archiwum GPW. Wstrzymanie i alarm
+  sprawdzone na serwerze 20.10 (ręczny bieg z udawanym „dziś”); nadrabiania na serwerze jeszcze
+  nikt nie uruchomił, było tylko na kopii z udawanym Yahoo.
+- **Bez zapasowego adresu brokera (od 20.10).** Producent i Konsument bez zmiennej
+  `KAFKA_BOOTSTRAP` kończą się komunikatem i kodem 1, zanim połączą się z brokerem. Wcześniej bieg
+  z laptopa bez tej zmiennej łączył się z brokerem na serwerze i mógł wysłać dni drugi raz.
 - Producent wysyła każdy dzień raz. Gdy Yahoo poprawi cenę dnia już wysłanego, S3 tej poprawki
   nie dostanie.
 - Gdy Yahoo spóźni się ze świecą, kontrola o 18:30 zgłosi jej brak, a Producent dociągnie
@@ -204,7 +209,7 @@ działać (EC2); opis mówi też, czego nie ma.
 | `compaction.py` | laptop, raz w miesiącu | przepisuje zakończone miesiące do `bronze/` (Parquet), ze strażnikiem liczby wierszy (kopia poprzedniego `bronze` pobierana najpierw, tylko `404` = nowa spółka), kasuje pokryte pliki z `live/` |
 | `wykresy.py` | laptop | ceny trzech spółek w czasie z `gold_dane_dzienne` → `wykresy/wykres3spolek.png` |
 | `ranking.py` | laptop | słupki zmiany za cały okres z `gold_ranking_spolek` → `wykresy/ranking.png` |
-| `test_control.py`, `test_path.py`, `test_session.py` | laptop | 28 testów (`pytest kod/ -v`) |
+| `test_control.py`, `test_path.py`, `test_session.py` | laptop | 38 testów (`pytest kod/ -v`) |
 | `dane_testowe/blok_2026-09-18.txt` | laptop | prawdziwy blok logu z 18.09, wzór do testów |
 | `pipeline.bat` | — | dawny lokalny bieg Silver+Gold z Harmonogramu Windows; zadanie wyłączone od 21.09, plik zostaje |
 

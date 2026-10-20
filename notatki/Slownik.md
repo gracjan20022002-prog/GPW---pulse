@@ -1116,6 +1116,13 @@ Skrypt, który łapie wszystkie swoje błędy w `try/except`, kończy zerem
 także wtedy, gdy nic nie zrobił — jak Producent z martwym brokerem.
 *`ls /nie-ma ; echo $?` wypisuje komunikat błędu i `2`.*
 
+### `$LASTEXITCODE` (PowerShell)
+Zmienna PowerShella z kodem wyjścia ostatniego programu (np. `python`). W bashu na EC2 tę liczbę daje
+`$?`, ale w PowerShellu `$?` daje tylko `True` albo `False` — liczbę daje dopiero `$LASTEXITCODE`.
+*`python -c "import sys; sys.exit('Brak lodów.')"`, potem `$LASTEXITCODE` → `Brak lodów.` i `1`;
+po `python -c "print('Są lody.')"` → `Są lody.` i `0`. 17.10 (porcja 4): Producent i Konsument bez
+`KAFKA_BOOTSTRAP` → `1`, Producent z martwym brokerem → `0`.*
+
 ### `;` i `&&`
 Dwa sposoby sklejenia komend w jednej linii. `A ; B` — wykonaj A, potem
 B, bez patrzenia na kod wyjścia A (lista zakupów: nie było mleka, i tak
@@ -2150,6 +2157,59 @@ linii są blisko siebie, plakietki rozsuwa się w pionie, a cienka kreska łącz
 linii.
 *12.10 (M2 A): „SNT 352,60 zł +28,4%” — skrót, cena na koniec wybranego okresu, zmiana w okresie.
 Tekst ciemny albo biały, zależnie od koloru plakietki, tak żeby kontrast był co najmniej 4,5 : 1.*
+
+### Twarda spacja
+Spacja, w której przeglądarka nie łamie linii. Zwykła spacja w `352,60 zł` pozwala, żeby `zł` spadło
+do następnej linii, twarda nie. W HTML zapisuje się ją jako `&nbsp;`, w Pythonie jako `" "`.
+*`print("352,60" + " " + "zł")` wypisuje `352,60 zł` — na ekranie jak zwykła spacja, ale linia
+nigdy się tu nie złamie. 17.10 (partia 9 strony): twarda spacja zawsze między liczbą a `zł`.*
+
+### Czytnik ekranu
+Program, który czyta stronę na głos (albo na monitor brajlowski) osobom niewidomym i słabowidzącym.
+Na Windowsie np. NVDA, na iPhonie VoiceOver. Czyta tekst, nazwy przycisków i ich stan, nagłówki
+i tabele; rysunku wykresu nie umie opisać sam.
+*Przycisk z samym znakiem `+` czytnik przeczyta „plus, przycisk” — nie wiadomo, co robi. 19.10
+(10.1): wykres dostaje ukryte zdanie z okresem, cenami i zmianą, a sam rysunek jest przed czytnikiem
+schowany.*
+
+### Fokus i obwódka fokusu (`:focus-visible`)
+**Fokus** to element, na którym jest się po naciśnięciu klawisza Tab (Enter albo spacja go wtedy
+„klika”). **Obwódka fokusu** pokazuje, który to element. `:focus-visible` w CSS rysuje ją tylko przy
+klawiaturze, po kliknięciu myszą jej nie ma.
+*Formularz zamówienia lodów: Tab → pole „Smak” (obwódka wokół pola) → Tab → przycisk „Zamów”
+(obwódka przechodzi na przycisk). 19.10 (10.4 a): obwódka 2 px w kolorze linków, 2 px od elementu.*
+
+### ARIA (`aria-label`, `aria-hidden`, `aria-pressed`)
+Dopiski w HTML przeznaczone tylko dla czytnika ekranu; na ekranie nic nie zmieniają.
+`aria-label` daje elementowi nazwę, `aria-hidden="true"` chowa element przed czytnikiem,
+`aria-pressed` mówi, czy przycisk jest wciśnięty.
+*Wejście: `<button aria-label="Dodaj gałkę waniliową">+</button>`. Wyjście (czytnik): „Dodaj gałkę
+waniliową, przycisk” zamiast „plus, przycisk”. W projekcie (10.1, 10.6): strzałki ▲▼ z `aria-hidden`,
+kafelki i przyciski legendy z `aria-pressed`.*
+
+### Suwak wbudowany (`<input type="range">`)
+Pole HTML, które przeglądarka rysuje jako suwak. Przeciąganie myszą i palcem, strzałki na klawiaturze
+i czytanie przez czytnik działają bez żadnego kodu; kod tylko odczytuje wartość. Wygląd (uchwyt, tor)
+zmienia się w CSS.
+*`<input type="range" min="0" max="10" value="3">` — suwak z uchwytem na 3; strzałka w prawo → 4.
+19.10 (10.5 a): suwak okresu z dwóch takich pól nałożonych na siebie (początek i koniec okresu).*
+
+### Próg szerokości (media query)
+Reguła CSS „poniżej N px szerokości okna użyj innego układu”. Działa bez JavaScriptu: przeglądarka
+sama przełącza układ, gdy okno się zwęża.
+*`@media (max-width: 1149px) { .kolumny { display: block } }` — w oknie 1200 px dwie kolumny obok
+siebie, w oknie 390 px (telefon) jedna pod drugą. 17.10 (8.1 a): próg 1150 px.*
+
+### `<details>` i `<summary>`
+Znaczniki HTML, które robią rozwijany fragment. `<summary>` to napis widoczny zawsze, reszta
+pokazuje się po kliknięciu albo dotknięciu. Przeglądarka robi to sama, bez JavaScriptu.
+*`<details><summary>Skład</summary>mleko, cukier</details>` pokazuje „▸ Skład”, a po kliknięciu
+„▾ Skład” i pod spodem „mleko, cukier”. 17.10 (8.9 b): 5 etapów „O projekcie” zwiniętych.*
+
+### Cel dotyku
+Obszar, który reaguje na palec. Zalecane minimum to ok. 44 × 44 px — mniejszy przycisk łatwo chybić.
+*Przycisk 24 px wysokości na telefonie: co któreś dotknięcie trafia obok. 17.10 (partia 8): każdy
+przycisk i pole co najmniej 44 px wysokości.*
 
 ---
 

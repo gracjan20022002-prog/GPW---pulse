@@ -167,6 +167,7 @@ na jasnym i ciemnym tle, linie nie „wąskie i bezwyrazowe”. Pokazane trzy st
   Tła w szkicu: jasne `#FFFFFF`, ciemne `#15171C`. Wszystkie pary rozróżnialne przy daltonizmie
   (sprawdzone wzorami narzędzia do palet, 10.10). **Świadomy koszt:** Cyber_Folks na jasnym tle ma
   kontrast 1,75 : 1, poniżej normy 3 : 1 dla linii; ratują go metka z ceną, legenda i dymek.
+  *Zmienione 19.10 w partii 10 (10.3 c): linia Cyber_Folks z grafitową obwódką `#404035`.*
 - **K3 (a)** czerwony XTB zostaje jako pasek i linia, nigdy jako kolor tekstu; spadek zawsze ze
   strzałką i minusem.
 - **J1 (a) JavaScript dopuszczony**: jeden mały, osobny plik, pisze go Gracjan z pełną instrukcją
@@ -221,7 +222,7 @@ wersje metek na obu tłach; działający dymek). Gracjan: „pełna zgoda” z r
 - **W1 (tak)** wysokość wykresu = wysokość prawej kolumny (kafelki + ranking), nie mniej niż ok.
   420 px (wynika z 1.5).
 
-**Partia 4 — co jeszcze otwarte:** zachowanie na telefonie (z partią 8).
+**Partia 4 — co jeszcze otwarte:** zachowanie na telefonie (z partią 8). *Zamknięte 17.10 w partii 8.*
 
 ### Partia 5 — ranking (12.10, zamknięta)
 
@@ -317,6 +318,105 @@ obu tłach, trzy czcionki, trzy ikonki w 16, 32 i 64 px).
 **Partia 7 zamknięta 13.10.**
 - **7.3 (a)** odstępy 12 i 24 px, rogi 10–12 px, bez cieni.
 - **7.4 (A)** ikonka na karcie przeglądarki: linia pulsu.
+
+### Partia 8 — telefon (17.10, zamknięta)
+
+Szkic: strona „Telefon” w Artifact „GPW Pulse – szkice strony” (cała strona 390 px na obu tłach, kafelki
+A i B, wykres z metkami A, B i C; kafelki i ranking z 12.10, wykres 18.03–18.09). Gracjan: wszystko
+według rekomendacji. Claude szkicu nie oglądał (panel przeglądarki niezalogowany do claude.ai).
+- **8.1 (a)** jedna kolumna poniżej 1150 px szerokości okna (próg szerokości w CSS, partia 11). Przy
+  1150 px prawa kolumna ma jeszcze co najmniej 360 px i ranking się mieści. Kolejność jak w 1.2:
+  nagłówek → kafelki → wykres → ranking → „O projekcie” → stopka.
+- **8.2 (A)** kafelki jeden pod drugim, jak na laptopie (pełne nazwy, „względem DD.MM”, zmiana w zł
+  i w %); ok. 230 px wysokości.
+- **8.3 (a)** nagłówek: tytuł i przełącznik motywu w jednym wierszu, pod nimi znaczek z datą
+  i podtytuł (2 linie).
+- **8.4 (a)** sterowanie wykresem jak na laptopie, w wierszach: legenda, 4 przyciski okresu na całą
+  szerokość, wykres, suwak, pola „Od” i „Do” (telefon otwiera własny kalendarz).
+- **8.5 (B)** na telefonie bez plakietek: cena i zmiana w okresie w legendzie nad wykresem (trzy
+  wiersze-przyciski), linie na prawie całą szerokość (ok. 280 px). Koszt: dwa sposoby pokazywania
+  metek; plik JavaScriptu sprawdza szerokość okna przy rysowaniu (kilka linii).
+- **8.6 (a)** przycisk powiększenia (P1) na telefonie ukryty.
+- **8.7 (a)** dotknięcie kafelka (3.6 b) przewija stronę do wykresu (jedna linia JavaScriptu).
+  Wybrany kafelek ma obwódkę — **na telefonie i na laptopie**.
+- **8.8 (a)** dymek na dotyk: dotknięcie pokazuje dzień, przesunięcie palcem w bok przesuwa dymek,
+  ruch w pionie przewija stronę, drugie dotknięcie w tym samym miejscu chowa. Szczegóły zachowania
+  Plotly na dotyk — sprawdzić przy kodzie.
+- **8.9 (b)** „O projekcie”: pierwszy akapit, link do README i łańcuch widoczne, 5 etapów zwiniętych
+  pod „Etapy przetwarzania danych (5)” (znaczniki HTML `<details>` i `<summary>`, bez
+  JavaScriptu). **Tak samo na laptopie** — zmienia wygląd sekcji z 6.1, tekst bez zmian.
+- Bez pytania: ranking bez zmian (mieści się w 358 px); marginesy 16 px zamiast 24; każdy przycisk
+  i pole co najmniej 44 px wysokości (cel dotyku); stopka w 3–5 liniach.
+
+### Partia 9 — liczby i daty po polsku (17.10, zamknięta)
+
+Szkic: strona „Liczby i daty – oś dat” w Artifact „GPW Pulse – szkice strony” (podpisy osi dat dla
+każdego okresu, laptop 780 px i telefon 290 px, obie tła). Formaty ustalone wcześniej (partie 2–8):
+`Dane z sesji: piątek, 09.10.2026`; kafelek `355,00 zł`, `+11,00 zł (+3,20%)`, `−3,82 zł (−2,73%)`,
+`0,00 zł (0,00%)`, `względem 09.10`; plakietka `SNT 352,60 zł +28,4%`; legenda na telefonie
+`352,60 zł ▲ +28,4%`; dymek `piątek, 18.09.2026`; oś cen bez „zł” (raz nad osią); ranking `+401,4%`,
+`zmiana od 14.08.2023`, `czerwiec 2025`; stopka `Strona wygenerowana: poniedziałek, 12.10.2026, 18:12`.
+- **9.1 (a)** zmiana dzienna z 2 miejscami po przecinku (`+3,20%`), zmiana w okresie i ranking z 1
+  (`+28,4%`).
+- **9.2 (a)** `%` bez spacji (`+3,20%`), jak GPW i portale giełdowe.
+- **9.3 (a)** prawdziwy znak minus `−` (U+2212), nie łącznik `-`. W Pythonie wpisany wprost. Którego
+  znaku używa Plotly — sprawdzić przy kodzie (na osi cen ujemnych liczb nie ma).
+- **9.4 (c)** **bez odstępu w tysiącach** (wybór Gracjana wbrew rekomendacji (a)): `1012,3%`. Dziś
+  żadna liczba na stronie nie ma 4 cyfr. W kodzie: Python `f"{x:.1f}".replace(".", ",")`, w Plotly
+  i JavaScripcie wyłączone grupowanie cyfr — sprawdzić przy kodzie.
+- **9.5 (C)** **oś dat przy „1 rok” i „Całość” w cyfrach: `01.2026`** (wybór Gracjana wbrew
+  rekomendacji (A)). Przy „1 mies.” `24.08` (co tydzień), przy „6 mies.” skróty miesięcy (O1).
+  Na telefonie przy „Całość” podpisy `01.2024` są ciasne (ok. 42 px przy odstępie ok. 47 px) —
+  w kodzie może być potrzebny rzadszy krok (np. co rok); szczegół w kodzie, jak w O1.
+- **9.6 (a)** skróty miesięcy małą literą, bez kropki: `sty lut mar kwi maj cze lip sie wrz paź lis
+  gru` (dziś tylko oś przy „6 mies.”). Jeśli Plotly ma polskie skróty wielką literą — własna lista.
+- **9.7 (a)** pola „Od” i „Do” wbudowane w przeglądarkę (kalendarz telefonu); format według
+  ustawień odwiedzającego (polski telefon `18.03.2026`, angielski np. `03/18/2026`).
+- Bez pytania: godzina zawsze polska (Europe/Warsaw), 24-godzinna (`18:12`), także gdy skrypt chodzi
+  w UTC (GitHub Actions, partia 14); twarda spacja między liczbą a `zł`; daty z zerem (`09.10`).
+- **Zasady formatu w dwóch miejscach:** Python (nagłówek, kafelki, ranking, stopka) i JavaScript
+  (legenda, plakietki, dymek, oś — zmieniają się z okresem). Do instrukcji przed kodem: jedna tabela
+  przykładów dla obu.
+
+### Partia 10 — dostępność (19.10, zamknięta)
+
+Szkic: strona „Dostępność” w Artifact „GPW Pulse – szkice strony” (plansza jasna i ciemna: kolor CBF A, B
+i C na wykresie, obwódka fokusu a, b i c, stany przycisków a, b i c, działający suwak z dwóch
+`<input type="range">`, ramki pól a i b, opis wykresu zmieniający się razem z suwakiem; dane wykresu
+18.03–18.09). Gracjan: wszystko według rekomendacji. Claude szkicu nie oglądał; kontrast liczony wzorem
+WCAG, odległość kolorów wzorem OKLab × 100 z udawanym daltonizmem (jak w słowniku, próg 8).
+- **10.1 (a)** opis wykresu dla czytnika ekranu: ukryte zdanie — okres, przy każdej spółce cena na
+  początku i na końcu okresu i zmiana, np. „Wykres kursów zamknięcia od 18.03.2026 do 18.09.2026.
+  Cyber_Folks: od 176,80 zł do 202,80 zł, +14,7%. …”. Odświeżane przy zmianie okresu i spółek, ale nie
+  ogłaszane samo przy każdej zmianie (przy przesuwaniu suwaka byłoby głośno). Rysunek Plotly ukryty
+  przed czytnikiem (`aria-hidden`). Liczby te same co w legendzie i plakietkach — w JavaScripcie Gracjana.
+- **10.2 (a)** bez tabeli danych w pierwszej wersji; pełne dane w zakładce „dane spółek” (punkt D).
+  Koszt: z samej klawiatury nie da się obejrzeć pojedynczych dni (dymek działa myszą i dotykiem).
+- **10.3 (c)** linia Cyber_Folks: żółty zostaje, z cienką grafitową obwódką `#404035` (drugi kolor z logo
+  CBF); obwódka na białym 10,5 : 1, odległość od XTB przy najczęstszym daltonizmie bez zmian (18,6).
+  Odrzucone (b) `#B8860B`: 3,25 : 1, ale odległość od XTB przy daltonizmie 2,1 (poniżej progu 8 — te
+  same kolory). Na ciemnym tle obwódka prawie niewidoczna (1,5 : 1), linia i tak ma 11,9 : 1. W Plotly:
+  linia CBF rysowana dwa razy (szersza grafitowa pod spodem, bez dymku) — sprawdzić przy kodzie. Zmienia
+  W2 („bez obwódki”) tylko dla CBF; pasek kafelka, kreska w rankingu i kropka legendy bez obwódki (obok
+  jest nazwa spółki).
+- **10.4 (a)** obwódka fokusu: 2 px w kolorze linków (`#1D4F91` / `#8AB4F8`), 2 px odstępu od elementu,
+  tylko przy klawiaturze (`:focus-visible`); kontrast 7,5–8,5 : 1 na obu tłach.
+- **10.5 (a)** suwak okresu z dwóch wbudowanych `<input type="range">` nałożonych na siebie: strzałki
+  i czytnik działają bez kodu, przeciąganie robi przeglądarka. Wygląd S1 w CSS (osobne reguły dla
+  Chrome, Edge i Safari oraz dla Firefoxa). Dla czytnika opisy „Początek okresu” i „Koniec okresu”,
+  a jako wartość data (`aria-valuetext`). W JavaScripcie Gracjana: początek nie może minąć końca.
+- **10.6 (a)** wybrany okres: szara ramka (`#555D6B`, 5,7 : 1 względem toru; na ciemnym `#A3AAB6`,
+  7,7 : 1). Wyłączona spółka w legendzie: pusta kropka (sam obrys w kolorze spółki) i szara nazwa
+  (6,6 : 1 / 6,9 : 1). Bez przygaszania (przygaszony napis miałby 2,5 : 1).
+- **10.7 (a)** ramka pól z datą `#858D9B` (3,3 : 1) na jasnym tle, `#6B7383` (3,4 : 1) na ciemnym. Ramki
+  kart bez zmian.
+- Bez pytania: `lang="pl"`; jeden `<h1>` „GPW Pulse” i `<h2>` sekcji (Wykres, Ranking, O projekcie);
+  ranking jako prawdziwa tabela (`<table>`, `<th>`); stan „wciśnięty” (`aria-pressed`) na kafelkach,
+  legendzie i przyciskach okresu; strzałki ukryte przed czytnikiem, zamiast nich słowo „wzrost” albo
+  „spadek”; kolejność przy Tab = kolejność w kodzie (1.2); Esc zamyka powiększenie (P1); bez animacji,
+  przewinięcie z 8.7 natychmiastowe przy „ogranicz ruch” w systemie (`prefers-reduced-motion`);
+  powiększenie tekstu do 200% bez przewijania w bok (z 8.1); przy kodzie tekst ≥ 4,5 : 1, elementy
+  graficzne ≥ 3 : 1, sprawdzane wzorem.
 
 **Uwagi Gracjana 13.10 na później** (nie zmieniają partii 1–7, „wszystko w swoim czasie”):
 1. Strona będzie jeszcze modyfikowana, żeby **nie wyglądała „jak z AI”**, tylko bardziej naturalnie.
