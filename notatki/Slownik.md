@@ -2303,6 +2303,44 @@ maja, Boże Ciało, 15.08, 1 i 11.11, 24–26.12, 31.12), a 810 − 35 = 775 —
 tyle wierszy ma każda spółka. Daty 24.12 i 31.12 znamy z pamięci, nie
 z kalendarza GPW.*
 
+### Mail przy zmianie stanu (stróż)
+Stróż (healthchecks.io) ma dwa stany: `up` i `down`. Mail wysyła tylko wtedy, gdy stan się
+**zmienia** — przy przejściu `up → down` i `down → up` — a nie przy każdym zgłoszeniu. Druga awaria
+z rzędu nie daje więc drugiego maila. Skutek: w czasie luki po wstrzymaniu dnia alarm przychodzi raz,
+potem log trzeba czytać codziennie.
+*23.10 o 17:25: dwa `/fail` z rzędu (#39, #40) → w dzienniku stróża jedno `up → down`, na Interii
+jeden mail `DOWN`; o 18:30 `GET` z `cron` (#41) → `down → up`.*
+
+### `pivot` (obrót tabeli)
+Zamienia długą tabelę (wiersz na parę dzień–miasto) w szeroką: wiersze wg jednej kolumny, kolumny
+wg drugiej, w środku wartości trzeciej. `tabela.pivot(index="dzien", columns="miasto", values="temp")`.
+*Wejście: `dzien` 20.10, 20.10, 21.10, 21.10; `miasto` KRK, GDA, KRK, GDA; `temp` 11.3, 10.2, 9.9, 8.7.
+Wyjście: wiersze `2026-10-20` i `2026-10-21`, kolumny `GDA` i `KRK`: `10.2 11.3` / `8.7 9.9`
+(uruchomione 23.10). W planie strony: z `dane_dzienne.csv` lista cen na spółkę ułożona według dat.*
+
+### `json.dumps(..., ensure_ascii=False)`
+`dumps` (znany z Producenta) zamienia słownik albo listę na tekst JSON. Bez dodatkowego argumentu
+polskie litery zamienia na kody, z `ensure_ascii=False` zostawia je jak są.
+*`json.dumps({"miasto": "Kraków"})` → `{"miasto": "Kraków"}`;
+`json.dumps({"miasto": "Kraków"}, ensure_ascii=False)` → `{"miasto": "Kraków"}` (uruchomione 23.10).
+Stąd w warstwie live klucz `"spółka"`.*
+
+### `abs()`
+Wartość liczby bez znaku. Przydaje się do różnicy „o ile procent”, niezależnie od kierunku.
+*`abs(-0.3)` → `0.3`; `abs(193.9 / 201.0 - 1)` → `0.0353…` (3,5%); `abs(1939 / 201.0 - 1)` →
+`8.646…` (literówka). Z instrukcji nadrabiania z 23.10 (odłożonej).*
+
+### Słownik z kluczem-krotką
+Kluczem w słowniku może być krotka, np. para (spółka, data). Kolejność w krotce ma znaczenie.
+*`c = {("CBF.WA", "2026-10-21"): 193.9}`; `("CBF.WA", "2026-10-21") in c` → `True`;
+`("2026-10-21", "CBF.WA") in c` → `False`; `[d for (s, d) in c if s == "CBF.WA"]` →
+`['2026-10-21']`.*
+
+### `split()` bez argumentu
+Dzieli tekst po dowolnej liczbie spacji i tabulatorów; `split(" ")` dzieli po każdej jednej spacji.
+*`"2026-10-21  CBF.WA 193,90".split()` → `['2026-10-21', 'CBF.WA', '193,90']`;
+`"a  b".split(" ")` → `['a', '', 'b']` (uruchomione 23.10).*
+
 ---
 
 ## Powiązane notatki

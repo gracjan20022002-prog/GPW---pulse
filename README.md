@@ -6,10 +6,9 @@ w AWS pobiera kursy zamknięcia z Yahoo Finance, przepuszcza je przez Kafkę do 
 i pandas liczą z nich zmiany cen i ranking spółek. O 18:30 projekt sprawdza sam siebie
 i przy awarii wysyła e-mail.
 
-Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **10.10.2026** (dane do sesji
-09.10), z dopiskami o naprawach wdrożonych na serwerze **20.10.2026** (ochrona przed złymi cenami
-Yahoo przy nadrabianiu dni i usunięty zapasowy adres brokera). Pełna lista wad i kolejność napraw:
-[`notatki/plany/Przeglad-2026-10-08-calosc.md`](notatki/plany/Przeglad-2026-10-08-calosc.md).
+Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **23.10.2026** (dane do sesji
+23.10). Pełna lista wad i kolejność napraw:
+[`notatki/plany/Przeglad-2026-10-23-calosc.md`](notatki/plany/Przeglad-2026-10-23-calosc.md).
 
 ---
 
@@ -19,9 +18,10 @@ Yahoo przy nadrabianiu dni i usunięty zapasowy adres brokera). Pełna lista wad
 
 ![Ranking: całkowita zmiana ceny](wykresy/ranking.png)
 
-Całkowita zmiana ceny od 14.08.2023 do 09.10.2026: **SNT +385,9%**, **XTB +268,3%**,
-**CBF +164,6%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
-z tabel w Athenie. Data w tytule to dzień ostatniej świecy, więc stary obrazek widać od razu.
+Całkowita zmiana ceny od 14.08.2023 do 23.10.2026: **SNT +372,0%**, **XTB +261,1%**,
+**CBF +154,0%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
+z tabel w Athenie; te w repozytorium mają stan na 09.10. Data w tytule to dzień ostatniej świecy,
+więc stary obrazek widać od razu.
 
 ---
 
@@ -90,8 +90,10 @@ Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak 
 ## Jak projekt pilnuje sam siebie
 
 - **Producent nie gubi dni.** Pamięć „co już wysłałem” (`companies/*.txt`) zapisuje dopiero
-  wtedy, gdy broker potwierdzi każdą wiadomość. Gdy broker nie odpowiada, dni polecą przy
-  następnym biegu, zamiast przepaść.
+  wtedy, gdy broker potwierdzi każdą wiadomość. Gdy broker nie odpowiada, pamięć zostaje
+  nietknięta i dzień nie przepada. Od 20.10 nie wraca jednak sam: następnego wieczoru jest
+  zaległy, więc Producent go wstrzymuje, a kontrola zgłasza awarię, aż ktoś go nadrobi (niżej,
+  w „Stan — uczciwie”).
 - **Producent nie bierze ceny z trwającej sesji.** Przed 17:55 czasu polskiego
   (`kod/session.py`, strefa `Europe/Warsaw`, więc także zimą) pomija dzisiejszą świecę i dopisuje
   to w logu. Dzień pójdzie przy biegu o 18:00. Sprawdzone na EC2 08.10: o 16:32 ręczny bieg
@@ -114,7 +116,7 @@ Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak 
 
   Wynik idzie do stróża (healthchecks.io): `OK` albo awaria z treścią. Brak zgłoszenia do
   19:00 (EC2 leży, `cron` nie ruszył) też kończy się alarmem. E-mail przychodzi ok. 15 minut
-  po zmianie stanu.
+  po **zmianie stanu** — tylko wtedy: dwie awarie z rzędu dają jeden mail (sprawdzone 23.10).
 - **Liczby przed biegiem.** Każdą zmianę sprawdza się porównaniem liczb zapisanych przed
   uruchomieniem (numer linii w logu, liczba wierszy, zakładka, rozmiar pliku) z wynikiem.
 - **Testy:** `pytest kod/ -v`, 38 testów (od 17.10). 13 sprawdza `control.py` na prawdziwym
@@ -122,7 +124,7 @@ Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak 
   z `path.py` na zmyślonych danych, 18 sprawdza `session.py`: granicę 17:55 (w tym godziny zimowe
   i letnie) i podział nowych dni na wysłane i wstrzymane. Testy nie łączą się z AWS.
 - **Ceny porównane z giełdą.** Punktem odniesienia jest archiwum notowań GPW, nie serwisy
-  pośrednie. 111 cen z S3 porównanych do 20.10 — wszystkie zgodne co do grosza.
+  pośrednie. 120 cen z S3 porównanych do 23.10 — wszystkie zgodne co do grosza.
 
 ---
 
@@ -133,14 +135,17 @@ sprawdzenie z liczbą policzoną przed biegiem; awaria jest głośna; działa ta
 działać (EC2); opis mówi też, czego nie ma.
 
 **Sprawdzone:**
-- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 09.10).
+- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 23.10).
 - Kontrola o 18:30 chodzi z `cron` od 21.09, a sprawdzenie danych w Athenie od 26.09.
   Wymuszone awarie (19.09 i 26.09) dały u stróża `Failure` i e-mail. 06.10 ta sama próba na
   Pythonie 3.14 dała `Failure` z treścią co do bajtu taką, jak policzona przed wysłaniem.
-- Dane: 790 dni notowań na spółkę, od 14.08.2023 do 09.10.2026 (2370 wierszy), te same daty
-  u wszystkich trzech. 90 cen z S3 porównanych z archiwum notowań GPW, wszystkie zgodne co do
+  23.10 awaria z dopiskiem `wstrzymane`, wysłana dwa razy z rzędu: dwa zgłoszenia, jedna zmiana
+  stanu, jeden e-mail; treść z polskimi literami doszła cała.
+- Dane: 800 dni notowań na spółkę, od 14.08.2023 do 23.10.2026 (2400 wierszy), te same daty
+  u wszystkich trzech. 120 cen z S3 porównanych z archiwum notowań GPW, wszystkie zgodne co do
   grosza: 66 z historii (w tym wszystkie podejrzane serie jednakowych cen i dni odzyskane
-  03.09), 17, 18 i 21.09 oraz każdy dzień od 05 do 09.10. Reszty historii nie porównywaliśmy.
+  03.09), 17, 18 i 21.09 oraz każdy dzień giełdowy od 05 do 23.10. Reszty historii nie
+  porównywaliśmy.
 - Od 03.10 EC2 liczy na Pythonie 3.14. Pliki Silvera i Golda z nowego i starego Pythona są
   identyczne co do bajtu, a pierwszy bieg (sobota) zgadza się co do linii. Pierwszy dzień
   giełdowy na nowym Pythonie (05.10) też: Kafka i zapis do S3 działają jak wcześniej.
@@ -159,15 +164,21 @@ działać (EC2); opis mówi też, czego nie ma.
   wstrzymuje. Nie idą ani do Kafki, ani do pamięci, tylko do dopisku w linii wyniku
   (`wstrzymane: N (ostatnie: data cena, …)`), a kontrola o 18:30 daje wtedy awarię i e-mail.
   Nadrobienie to ręczny bieg z `NADROB=1` po porównaniu cen z archiwum GPW. Wstrzymanie i alarm
-  sprawdzone na serwerze 20.10 (ręczny bieg z udawanym „dziś”); nadrabiania na serwerze jeszcze
-  nikt nie uruchomił, było tylko na kopii z udawanym Yahoo.
+  sprawdzone na serwerze 20.10 (ręczny bieg z udawanym „dziś”), wysyłka alarmu z dopiskiem 23.10;
+  nadrabiania na serwerze jeszcze nikt nie uruchomił, było tylko na kopii z udawanym Yahoo.
+- **Luka po wstrzymaniu trwa do ręcznego nadrobienia.** Dzień, który nie przyszedł o 18:00, od
+  następnego wieczoru czeka na `NADROB=1`. Ten wysyła cenę Yahoo z chwili biegu (nie wypisuje jej),
+  więc ma sens dopiero wtedy, gdy Yahoo podaje za ten dzień cenę zgodną z GPW — a złe ceny potrafią
+  wisieć tygodniami (CBF i SNT za 05–06.10 do dziś). Stróż wysyła jeden e-mail na początku luki,
+  dlatego w czasie luki log czyta się codziennie. Udawane „dziś” (`PRODUCENT_DATA`) służy tylko do
+  testów: z datą wstrzymaną wysłałoby ten dzień z ceną Yahoo, z pominięciem nadrabiania.
 - **Bez zapasowego adresu brokera (od 20.10).** Producent i Konsument bez zmiennej
   `KAFKA_BOOTSTRAP` kończą się komunikatem i kodem 1, zanim połączą się z brokerem. Wcześniej bieg
   z laptopa bez tej zmiennej łączył się z brokerem na serwerze i mógł wysłać dni drugi raz.
 - Producent wysyła każdy dzień raz. Gdy Yahoo poprawi cenę dnia już wysłanego, S3 tej poprawki
   nie dostanie.
-- Gdy Yahoo spóźni się ze świecą, kontrola o 18:30 zgłosi jej brak, a Producent dociągnie
-  dzień następnego wieczoru.
+- Gdy Yahoo spóźni się ze świecą, kontrola o 18:30 zgłosi jej brak. Od 20.10 następnego wieczoru
+  ten dzień jest zaległy, więc zostaje wstrzymany do ręcznego nadrobienia (punkt wyżej).
 - Kontrola nie wykryje złej ceny przy dobrej dacie ani dnia, którego brakuje wszystkim
   spółkom naraz. W święto przypadające w dzień roboczy daje fałszywy alarm (sprawdza dni od
   poniedziałku do piątku, nie kalendarz GPW).
@@ -190,7 +201,8 @@ działać (EC2); opis mówi też, czego nie ma.
     kolejności, więc dane są poprawne;
   - część Producenta poza `session.py` (scalanie pamięci z odpowiedzią Yahoo, wybór nowych dni)
     nie ma testów.
-- Strony internetowej z wynikiem jeszcze nie ma.
+- Strony internetowej z wynikiem jeszcze nie ma — jest szkic i zatwierdzony plan, jak dane z Golda
+  trafią na stronę ([`notatki/plany/Notatka-2026-10-23-dane-na-strone.md`](notatki/plany/Notatka-2026-10-23-dane-na-strone.md)).
 
 ---
 
@@ -199,8 +211,8 @@ działać (EC2); opis mówi też, czego nie ma.
 | Plik | Gdzie chodzi | Co robi |
 |---|---|---|
 | `config.py` | wszędzie | lista spółek, bucket, region, baza Atheny |
-| `data_ingestion.py` | EC2, 18:00 | Producent: pobiera 3 lata notowań z Yahoo, przed 17:55 pomija dzisiejszą świecę, wybiera dni, których jeszcze nie wysłał, wysyła je do Kafki z potwierdzeniem, zapisuje pamięć `companies/{spółka}.txt`. Wypisuje linię startu i po linii na spółkę (`nowych dni`, `wysłane`, `stan`, ewentualnie `dziś pominięte`) |
-| `session.py` | EC2 (przez `data_ingestion.py`) | `dzien_do_pominiecia(teraz)`: przed 17:55 czasu polskiego zwraca dzisiejszą datę, później nic |
+| `data_ingestion.py` | EC2, 18:00 | Producent: pobiera 3 lata notowań z Yahoo, przed 17:55 pomija dzisiejszą świecę, z dni, których jeszcze nie wysłał, wysyła do Kafki (z potwierdzeniem) tylko dzisiejszy, a zaległe wstrzymuje; zapisuje pamięć `companies/{spółka}.txt` bez wstrzymanych dni. Wypisuje linię startu i po linii na spółkę (`nowych dni`, `wysłane`, `stan`, ewentualnie `dziś pominięte`, `wstrzymane: N (ostatnie: …)`). `NADROB=1` (tylko ręcznie) wysyła też zaległe; `PRODUCENT_DATA` (tylko do testów) udaje inne „dziś” |
+| `session.py` | EC2 (przez `data_ingestion.py`) | `dzien_do_pominiecia(teraz)`: przed 17:55 czasu polskiego zwraca dzisiejszą datę, później nic; `podziel_daty(nowe_daty, dzis, nadrob)`: dzieli nowe dni na wysyłane i wstrzymane |
 | `kafka_consumer.py` | EC2, 18:00 | Konsument (grupa `gpw_consumer`): czyta do 5 s ciszy, zapisuje po pliku JSON na spółkę do `live/`, dopiero potem przesuwa zakładkę |
 | `silver.py` | EC2, 18:10 | pyta Athenę o `bronze UNION live`, poprawia typy, odsiewa powtórzone dni, zapisuje `silver/clean_data.csv` |
 | `gold.py` | EC2, 18:10 | zmiana procentowa dzień do dnia, zmiana za cały okres, najbardziej zmienny **pełny** miesiąc (bez pierwszego i ostatniego miesiąca historii i bez miesięcy poniżej 15 dni notowań); zapis na dysk, a przy `GOLD_DO_S3=1` także do S3 |
@@ -297,7 +309,7 @@ te same wersje, ale tylko to, czego potrzebuje potok.
 | `bronze/` | lokalne pliki Parquet z kompakcji — poza gitem |
 | `silver/`, `gold/` | wyniki biegu na EC2 — poza gitem, w repozytorium tylko pusty `.gitkeep` |
 | `wykresy/` | dwa obrazki i raport Power BI |
-| `notatki/plany/` | notatki projektowe (każdy mechanizm: co, po co, co może pójść źle, decyzje, wyniki), [przegląd z 08.10](notatki/plany/Przeglad-2026-10-08-calosc.md) (źródło prawdy o wadach; [przegląd z 08.09](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md) to już historia), [historia projektu](notatki/plany/Historia-projektu.md) (dawny README z datami), [historia stanu](notatki/plany/Historia-stanu.md) (codzienne sekcje stanu z CLAUDE.md, 12.09–10.10) |
+| `notatki/plany/` | notatki projektowe (każdy mechanizm: co, po co, co może pójść źle, decyzje, wyniki), [przegląd z 23.10](notatki/plany/Przeglad-2026-10-23-calosc.md) (źródło prawdy o wadach; przeglądy z [08.10](notatki/plany/Przeglad-2026-10-08-calosc.md) i [08.09](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md) to już historia), [historia projektu](notatki/plany/Historia-projektu.md) (dawny README z datami), [historia stanu](notatki/plany/Historia-stanu.md) (codzienne sekcje stanu z CLAUDE.md, 12.09–10.10) |
 | `notatki/Slownik.md` | pojęcia wyjaśnione prostym językiem, z przykładami |
 | `notatki/lekcje/`, `notatki/Zrodla.md` | materiały do nauki |
 | `notatki/dziennik/` | zapis każdej sesji — **prywatny, poza gitem** |

@@ -191,3 +191,39 @@ pobranie, bronze, silver, gold i kontrola. To jest praca Gracjana, nie strony.
   (1. klik początek, 2. koniec, 3. usuwa, 4. nowy), **Średnia 20 sesji** (szara, przerywana);
 - pod wykresem: **statystyki okresu**, **mapa miesięcy**; w kartach **„dziś na tle historii”**;
 - odrzucone: maks. i min.; wolumen — może w przyszłości (nowa droga danych Gracjana); WIG20 — nie teraz.
+
+---
+
+## 10. Decyzje Gracjana z 22–23.10: zakładka Projekt
+
+**Treść (22.10, „według Twoich rekomendacji”):** tekst „O projekcie” z 12.10 jako podstawa, z trzema
+poprawkami (własny rysunek zamiast Plotly; Producent wysyła tylko dzisiejszą świecę, zaległe dni
+wstrzymuje; „trzech spółek” zamiast nazw); 5 ograniczeń z linkiem do README; liczby z biegu 22.10
+wpisane na stałe. Sekcje: wstęp, schemat drogi danych z kartą, dzień biegu, warstwy danych, przy
+awarii, narzędzia, ograniczenia.
+
+**Układ (22.10): B — schemat i karta.** Schemat całej drogi (10 elementów w 5 etapach), kliknięcie
+elementu otwiera kartę: etap, opis, narzędzie, gdzie działa, kiedy, liczba z ostatniego biegu,
+„gdy coś pójdzie źle”, poprzedni / następny. Układy A (opowieść) i C (dokument) odrzucone.
+
+**Wygląd schematu (23.10): 1 — tor do wybranego**, po trzech rundach (wersje 27–29; odrzucone: ikony,
+karty 3D, etapy w kolumnach, lista z kartą obok, linia metra w trzech odmianach):
+- kafelki z numerem etapu, godziną, nazwą i rolą; numery etapów przed wybranym czerwone, wybrany
+  kafelek z cienką czerwoną obwódką, kafelki za nim przygaszone do 60%;
+- przewody przed wybranym jednolicie czerwone, bez płynących kresek i bez poświaty („za dużo się
+  dzieje”);
+- światło przechodzi raz po każdym wyborze, od Yahoo Finance do wybranego kafelka, 1,4–3,2 s,
+  z łagodnym startem i końcem, i znika;
+- od 700 px dwa rzędy po 5; na telefonie kafelki jeden pod drugim na całą szerokość, z krótkim
+  pionowym przewodem pod numerem etapu, światło z góry na dół;
+- kompakcja z przerywaną obwódką (ręcznie, raz w miesiącu).
+
+Przy okazji poprawiony tekst awarii przy Athenie (23.10), zgodnie z `kod/silver.py`: „Brak albo
+nadmiar spółki: program Silver przerywa pracę z błędem. Pustą cenę i powtórzony dzień usuwa bez
+komunikatu, a przy dwóch cenach z jednego dnia zostawia przypadkową.”
+
+**Wykresy i Start (23.10):**
+- kolumny „Najwyższa” i „Najniższa” w tabeli statystyk okresu **zostają** (są w szkicu);
+- siatka 3D na Start **zostaje od 18.03.2026** — jest tylko wizualizacją, nie ma dostarczać danych.
+
+Dalej: notatka projektowa o danych na stronę, `Notatka-2026-10-23-dane-na-strone.md`.

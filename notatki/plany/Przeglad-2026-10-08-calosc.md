@@ -1,5 +1,9 @@
 # Przegląd całości 08.10.2026 — co nie gra po zamknięciu listy z 08.09
 
+> **Status (23.10.2026): dokument historyczny.** Źródłem prawdy o wadach i kolejności napraw jest od
+> 23.10 [`Przeglad-2026-10-23-calosc.md`](Przeglad-2026-10-23-calosc.md) (decyzja 5 Gracjana).
+> Otwarte punkty stąd są w jego Części 2.
+
 Data: 2026-10-08 (czwartek), ok. 16:40–16:50. Przegląd według zasady 16: lista napraw z 08.09
 zamknięta 04.10, warunek sesji w Producencie na EC2 od 07.10, a przeglądu po tym nie było.
 

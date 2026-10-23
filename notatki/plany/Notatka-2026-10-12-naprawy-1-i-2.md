@@ -64,6 +64,9 @@ i 19.06: 28 — daty dobre, liczby złe, a nikt by tego nie zauważył.
   a człowiek i tak musi sprawdzić ceny. Koszt: zmiana w `data_ingestion.py` (podział dat, pamięć bez
   wstrzymanych dat, nowy dopisek w linii wyniku), w `control.py` (dopisek = awaria) i nowe testy.
   Luka w danych trwa do ręcznego nadrobienia, a stróż alarmuje codziennie, dopóki luka jest.
+  *Sprostowanie 23.10 (przegląd z 23.10, punkt 1.1): stróż wysyła mail tylko przy zmianie stanu —
+  dwa `/fail` z rzędu dały jeden mail. W czasie luki alarm przychodzi raz, potem log trzeba czytać
+  codziennie (zasada w CLAUDE.md przy kontroli).*
 - **(b) Jak (a), ale zaległe dni nadrabiane same po 7 dniach.** Mniej ręcznej pracy. Ryzyko: znamy
   jeden tydzień obserwacji; jeśli Yahoo kiedyś poprawi później, zła cena przejdzie po cichu.
 - **(c) Zaległe dni z drugiego źródła** (archiwum GPW albo inny serwis z notowaniami). Bez luki
