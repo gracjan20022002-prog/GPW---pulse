@@ -15,3 +15,5 @@ silver/*
 !silver/.gitkeep
 gold/*
 !gold/.gitkeep
+strona/dane.js
+strona/pobrane/

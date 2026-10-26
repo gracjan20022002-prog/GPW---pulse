@@ -2341,6 +2341,81 @@ Dzieli tekst po dowolnej liczbie spacji i tabulatorów; `split(" ")` dzieli po k
 *`"2026-10-21  CBF.WA 193,90".split()` → `['2026-10-21', 'CBF.WA', '193,90']`;
 `"a  b".split(" ")` → `['a', '', 'b']` (uruchomione 23.10).*
 
+### Skrypt danych strony (`kod/data_stream.py`) i plik `dane.js`
+Most między Goldem a stroną: pobiera dwa pliki Golda z S3, sprawdza je, obraca w listy cen według dat
+i zapisuje jeden plik `strona/dane.js`, który strona tylko czyta. Plik to jedna linia JavaScriptu
+`window.DANE = {…};` — w środku JSON. Uruchamiany ręcznie na laptopie po 18:15; przy problemie
+kończy się komunikatem i kodem 1, a stary `dane.js` zostaje.
+*26.10: `Strona: 801 sesji (2023-08-14 - 2026-10-26), poprzednio 800, ostatnie: CBF 194.8, XTB 141.38,
+SNT 334.8`.*
+
+### `@pytest.fixture` (własna fixture)
+Funkcja z tym napisem nad sobą robi dane do testów. Test dostaje je przez parametr o tej samej nazwie,
+a pytest woła fixture **osobno dla każdego testu** — każdy test ma świeżą tabelę. Stała na górze pliku
+to jedna tabela dla wszystkich: test, który ją zmienia, psuje następne.
+*Pogoda, 25.10: stała → `1 failed, 1 passed`; fixture → dwa razy „buduję świeżą tabelę” i `2 passed`.
+W projekcie: `dzienne()` i `ranking()` w `kod/test_data_stream.py`.*
+
+### Przypisanie łańcuchowe (`a = b = wartość`)
+Jedna linia z dwoma znakami `=` wpisuje tę samą wartość w dwa miejsca. W teście linia ze zmianą
+kolumny ma stać sama, a wywołanie funkcji osobno.
+*`wynik = dzienne["cena"] = [100.0, None, …]` → `wynik` to lista cen, funkcja wcale nie wołana (25.10).*
+
+### Okrągły nawias po nazwie tabeli
+`tabela("kol")` to **wywołanie** (jak funkcji), a nie wybór kolumny — kolumnę wybiera nawias
+kwadratowy `tabela["kol"]`.
+*`dzienne("cena")` → `TypeError: 'DataFrame' object is not callable` (25.10).*
+
+### `removeprefix` / `removesuffix`
+Odcina tekst z początku / z końca, jeśli tam jest; gdy go tam nie ma, oddaje tekst bez zmian i bez
+błędu.
+*`'window.POGODA = {"a": 1};'.removeprefix("window.POGODA = ").removesuffix(";")` → `'{"a": 1}'`;
+`"abc".removeprefix("x")` → `'abc'`. W `wczytaj_poprzednie` odcina `window.DANE = ` i `;`, żeby
+`json.loads` dostał sam JSON.*
+
+### `os.path.exists(ścieżka)`
+`True`, gdy plik jest, `False`, gdy go nie ma — bez błędu.
+*Pierwszy bieg skryptu strony: `dane.js` → `False` → `poprzednio 0` (26.10).*
+
+### `os.path.getsize(ścieżka)`
+Rozmiar pliku w bajtach (liczba całkowita). Gdy pliku nie ma — `FileNotFoundError`.
+*`pomiary.csv` z trzema liniami → `41` (uruchomione 26.10). W projekcie: rozmiar pobranego
+`dane_dzienne.csv` → `160966`, ta sama liczba co w `aws s3 ls`.*
+
+### `duplicated(subset=[...])`
+`True` przy każdym wierszu, którego para kolumn wystąpiła już wyżej; `.sum()` liczy takie wiersze.
+*`dzien` 20, 20, 21 przy tym samym mieście → `[False, True, False]`, `.sum()` → `1`. Łapie dzień
+powtórzony w miejsce brakującego — liczba wierszy się wtedy zgadza (25.10).*
+
+### Wczesny `return` i `return` w pętli
+`return` w środku funkcji kończy ją od razu; linie niżej się nie wykonają. Stąd przy obcej spółce
+tylko jeden problem. Cztery spacje decydują, czy `return` jest w pętli, czy za nią — w pętli funkcja
+kończy się po pierwszym obrocie, bez żadnego błędu, tylko z za małą ilością danych.
+*Lody, 25.10: `return` w pętli → `{'wanilia': 2}`, za pętlą → trzy smaki.*
+
+### `drop(index=0)`
+Usuwa **wiersz** o numerze 0 (jak `drop(columns=[...])` usuwa kolumnę); numery pozostałych wierszy
+zostają (1, 2, 3…).
+*Tabela 6 wierszy → 5, pierwszy ma numer 1 (test brakującego dnia, 24.10).*
+
+### `None` w kolumnie liczb → `NaN`
+`None` wpisany na listę do kolumny z liczbami pandas zamienia na `NaN`.
+*`pd.DataFrame({"cena": [100.0, None]})` → wiersz 1 ma `NaN`; `isna().sum()` → `1` (24.10).*
+
+### Końce linii: LF i CRLF
+Linux kończy linię jednym znakiem (`\n`, LF), Windows dwoma (`\r\n`, CRLF). Python i pytest tego
+nie widzą; git na laptopie zamienia końce linii przy commicie (stąd ostrzeżenie `LF will be replaced
+by CRLF`).
+*26.10: VS Code zapisał `kod/data_stream.py` z CRLF — `diff` pokazał wszystkie linie jako inne,
+`diff --strip-trailing-cr` → identyczne.*
+
+### Liczba na stronie i jej źródło
+Każda liczba na stronie bierze się z pliku (`dane.js`), z reguły liczonej w przeglądarce z pliku
+albo ma podpis z datą, z której jest. Gdy pliku z liczbą nie ma, strona pokazuje ostatnią znaną
+liczbę z jej datą, zamiast zmyślać nową.
+*Kafelek S3 26.10: bez klucza `rozmiar_dzienne` → „Ostatni bieg, 22.10.2026 · 160 554 B”; z kluczem
+→ „Stan na 26.10.2026 · 160 966 B”.*
+
 ---
 
 ## Powiązane notatki

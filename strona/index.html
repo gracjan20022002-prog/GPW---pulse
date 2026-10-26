@@ -1,0 +1,1627 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>GPW Pulse</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;500;600;700;800;900&family=Source+Code+Pro:wght@400;600&display=swap">
+<style>
+/* Układ: nawigacja z przełącznikiem animacji; pierwszy ekran (nagłówek z linią pulsu, „od ostatniej wizyty”, stos kart 3D); pasek notowań; karty notowań; siatka 3D z wyostrzaniem; słownik i projekt; stopka. Jeden motyw: czerń i czerwień. */
+:root{
+  --font:'Source Sans 3',system-ui,'Segoe UI',sans-serif;
+  --tlo:#0A0A0C;--tlo2:#07070A;--pow:#141417;--pow2:#1B1B20;--linia:#2A2A31;--linia2:#3A3A44;--tekst:#F3F3F5;--tekst2:#A6A6B0;
+  --akcent:#E5383B;--akcentPrz:#D62F33;--wzrost:#3DDC84;--spadek:#FF6B6B;
+  --cbf:#FECD01;--snt:#7AA2E3;--xtb:#FF5A64;--fokus:#8AB4F8;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--tlo);color:var(--tekst)}
+body{font-family:var(--font);font-size:16px;line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--fokus);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-variant-numeric:tabular-nums}
+.ukryte{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.zm-spadek{color:var(--spadek)}.zm-wzrost{color:var(--wzrost)}.zm-zero{color:var(--tekst2)}
+
+/* nawigacja */
+nav.glowna{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:rgba(10,10,12,.8);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--linia)}
+nav.glowna .wrap{display:flex;align-items:center;gap:24px;padding-block:10px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px;letter-spacing:-.01em;white-space:nowrap;text-decoration:none}
+.logo svg{color:var(--akcent)}
+.zakladki{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1 1 auto}
+.zakladki::-webkit-scrollbar{display:none}
+.zakladki a{position:relative;text-decoration:none;font-size:15px;font-weight:600;color:var(--tekst2);padding:11px 12px;white-space:nowrap;transition:color .2s}
+.zakladki a::after{content:"";position:absolute;left:12px;right:12px;bottom:3px;height:2px;border-radius:2px;background:var(--akcent);transform:scaleX(0);transform-origin:left;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.zakladki a:hover,.zakladki a[aria-current="page"]{color:var(--tekst)}
+.zakladki a:hover::after,.zakladki a[aria-current="page"]::after{transform:scaleX(1)}
+.ruch{display:inline-flex;align-items:center;gap:10px;min-height:40px;padding:0 12px;border:1px solid var(--linia);border-radius:999px;background:transparent;color:var(--tekst2);font:inherit;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap}
+.ruch:hover{color:var(--tekst);border-color:var(--linia2)}
+.ruch .tor{position:relative;width:30px;height:18px;border-radius:9px;background:var(--linia2);transition:background .25s}
+.ruch .galka{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#FFFFFF;transition:transform .25s cubic-bezier(.2,.8,.2,1)}
+.ruch[aria-pressed="true"] .tor{background:var(--akcentPrz)}
+.ruch[aria-pressed="true"] .galka{transform:translateX(12px)}
+
+/* pierwszy ekran */
+.hero{position:relative;overflow:hidden;border-bottom:1px solid var(--linia)}
+.hero::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:56px 56px;-webkit-mask-image:radial-gradient(ellipse 70% 80% at 70% 40%,#000 20%,transparent 75%);mask-image:radial-gradient(ellipse 70% 80% at 70% 40%,#000 20%,transparent 75%);pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:24px;align-items:center;padding-block:56px 64px}
+h1{font-size:clamp(48px,7vw,92px);line-height:.95;letter-spacing:-.04em;font-weight:900;margin:0;text-wrap:balance}
+h1 em{font-style:normal;color:var(--akcent)}
+.ekg{display:block;width:min(360px,80%);height:44px;margin:14px 0 18px;color:var(--akcent);overflow:visible}
+.ekg path{fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:420;stroke-dashoffset:0;filter:drop-shadow(0 0 6px rgba(229,56,59,.7))}
+.ekg .bieg{stroke:#FFFFFF;stroke-width:3;stroke-dasharray:28 420;stroke-dashoffset:448;filter:drop-shadow(0 0 8px rgba(255,255,255,.8));animation:bieg 2.8s cubic-bezier(.5,0,.3,1) infinite}
+@keyframes bieg{to{stroke-dashoffset:0}}
+.pod{font-size:20px;color:var(--tekst2);max-width:28em;margin:0 0 28px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.cta a{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 22px;border-radius:12px;font-weight:700;text-decoration:none;font-size:16px;transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s,box-shadow .25s}
+.cta .gl{background:var(--akcentPrz);color:#FFFFFF;box-shadow:0 10px 30px -12px rgba(229,56,59,.8)}
+.cta .gl:hover{transform:translateY(-2px);box-shadow:0 16px 40px -14px rgba(229,56,59,.9)}
+.cta .dr{border:1px solid var(--linia2);color:var(--tekst)}
+.cta .dr:hover{border-color:var(--tekst2)}
+.cta a span{transition:transform .25s}
+.cta a:hover span{transform:translateX(3px)}
+
+.wizyta{margin-top:32px;max-width:440px;border:1px solid var(--linia);border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.01));padding:14px 18px 10px}
+.wizyta .naglowek{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+.wizyta .naglowek b{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--akcent)}
+.wizyta .naglowek span{font-size:14px;color:var(--tekst2)}
+.wizyta .wiersz{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:baseline;padding:7px 0;border-top:1px solid var(--linia);font-size:15px}
+.wizyta .wiersz:first-of-type{border-top:0}
+.wizyta .kto{display:flex;align-items:center;gap:8px;font-weight:700;min-width:0}
+.wizyta .kto i{width:8px;height:8px;border-radius:50%;flex:none}
+.wizyta .ceny{color:var(--tekst2)}
+.wizyta .zm{font-weight:700;text-align:right;min-width:78px}
+.wizyta p{margin:4px 0 6px;color:var(--tekst2);font-size:15px}
+
+.scena{position:relative;height:500px;perspective:1300px;display:flex;align-items:center;justify-content:center;touch-action:pan-y}
+.poswiata{position:absolute;width:560px;height:560px;max-width:120%;border-radius:50%;background:radial-gradient(closest-side,rgba(229,56,59,.34),rgba(229,56,59,0));filter:blur(24px);animation:oddech 7s ease-in-out infinite;pointer-events:none}
+@keyframes oddech{0%,100%{transform:scale(.92);opacity:.75}50%{transform:scale(1.05);opacity:1}}
+.stos{position:relative;width:360px;height:250px;transform-style:preserve-3d;margin-right:120px;margin-top:90px}
+.karta{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:space-between;padding:20px 22px 14px;border-radius:20px;text-decoration:none;color:var(--tekst);cursor:pointer;
+  background:linear-gradient(160deg,#202027 0%,#141418 62%);border:1px solid rgba(255,255,255,.09);
+  box-shadow:0 1px 0 rgba(255,255,255,.07) inset,0 40px 80px -28px rgba(0,0,0,.85);overflow:hidden;backface-visibility:hidden}
+.karta::before{content:"";position:absolute;inset:0;background:radial-gradient(460px circle at var(--gx,20%) var(--gy,0%),rgba(255,255,255,.09),transparent 46%);pointer-events:none}
+.karta::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--kolor)}
+.karta .nz{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.karta .nz span{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px}
+.karta .nz i{width:11px;height:11px;border-radius:50%;background:var(--kolor);box-shadow:0 0 14px var(--kolor)}
+.karta .nz small{color:var(--tekst2);font-weight:600;font-size:15px}
+.karta .cena{font-size:46px;font-weight:900;letter-spacing:-.03em;line-height:1}
+.karta .zm{font-weight:700;font-size:16px;margin-top:6px}
+.karta svg{width:100%;height:60px;display:block;overflow:visible}
+
+/* pasek notowań */
+.pasek{border-bottom:1px solid var(--linia);background:var(--pow);overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
+.tasma{display:flex;gap:56px;width:max-content;padding:13px 0;animation:tasma 40s linear infinite}
+.tasma span{display:inline-flex;gap:10px;align-items:baseline;font-weight:600;white-space:nowrap}
+.tasma b{font-weight:800}
+@keyframes tasma{to{transform:translateX(-50%)}}
+.pasek:hover .tasma{animation-play-state:paused}
+
+/* karty notowań */
+section.s{padding-block:64px 24px}
+.s h2,.przestrzen h2{font-size:clamp(28px,3.2vw,38px);letter-spacing:-.025em;font-weight:900;margin:0 0 24px;line-height:1.05}
+.siatka3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.spolka{position:relative;overflow:hidden;background:var(--pow);border:1px solid var(--linia);border-radius:18px;padding:20px 20px 0;display:flex;flex-direction:column;gap:6px;text-decoration:none;color:var(--tekst);transition:transform .45s cubic-bezier(.2,.8,.2,1),border-color .35s,box-shadow .45s}
+.spolka::before{content:"";position:absolute;inset:0;background:radial-gradient(380px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.06),transparent 50%);opacity:0;transition:opacity .3s;pointer-events:none}
+.spolka:hover{transform:translateY(-4px);border-color:var(--linia2);box-shadow:0 28px 60px -34px rgba(229,56,59,.55)}
+.spolka:hover::before{opacity:1}
+.spolka .g{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.spolka .n{font-weight:700;font-size:17px;display:flex;align-items:center;gap:8px}
+.spolka .n i{width:10px;height:10px;border-radius:50%}
+.spolka .n small{color:var(--tekst2);font-weight:600;font-size:14px}
+.spolka .c{font-size:32px;font-weight:900;letter-spacing:-.025em}
+.spolka .z{font-weight:700}
+.spolka .wz{font-size:14px;color:var(--tekst2)}
+.spolka svg{width:calc(100% + 40px);margin:10px -20px 0;height:86px;display:block}
+
+/* siatka 3D */
+.przestrzen{position:relative;margin-top:48px;border-top:1px solid var(--linia);border-bottom:1px solid var(--linia);background:radial-gradient(ellipse 80% 70% at 50% 60%,#121216,var(--tlo2))}
+.przestrzen .wrap{position:relative;z-index:2;padding-block:48px 0;pointer-events:none}
+.przestrzen h2{margin:0;max-width:12em}
+.plotno{position:relative;height:580px;margin-top:-56px}
+.plotno canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair;outline-offset:-4px}
+.legenda{position:absolute;right:max(16px,env(safe-area-inset-right,0px));top:24px;display:flex;flex-direction:column;gap:6px;z-index:2;font-size:14px;font-weight:600;pointer-events:none}
+.legenda span{display:flex;align-items:center;gap:8px;justify-content:flex-end}
+.legenda i{width:18px;height:3px;border-radius:2px}
+.podpowiedz{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);z-index:2;display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;background:rgba(20,20,23,.85);border:1px solid var(--linia);font-size:14px;font-weight:600;color:var(--tekst);pointer-events:none;transition:opacity .6s}
+.podpowiedz i{width:8px;height:8px;border-radius:50%;background:var(--akcent);box-shadow:0 0 0 0 rgba(229,56,59,.7);animation:pulsuj 1.8s infinite}
+@keyframes pulsuj{0%{box-shadow:0 0 0 0 rgba(229,56,59,.7)}70%{box-shadow:0 0 0 10px rgba(229,56,59,0)}100%{box-shadow:0 0 0 0 rgba(229,56,59,0)}}
+.podpowiedz.schowana{opacity:0}
+
+/* słownik i projekt */
+.dwie{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:16px;padding-block:64px 72px}
+.panel{position:relative;overflow:hidden;background:var(--pow);border:1px solid var(--linia);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:12px;transition:border-color .35s}
+.panel:hover{border-color:var(--linia2)}
+.panel .etyk{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--akcent)}
+.panel h3{margin:0;font-size:26px;font-weight:900;letter-spacing:-.02em}
+.panel p{margin:0;color:var(--tekst2);max-width:34em;font-size:17px}
+.panel .dalej{margin-top:auto;padding-top:8px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:6px;color:var(--tekst)}
+.panel .dalej span{transition:transform .25s}
+.panel .dalej:hover span{transform:translateX(4px)}
+.droga{display:flex;flex-wrap:nowrap;align-items:center;gap:5px;font-size:14px;font-weight:600}
+.droga b{font-weight:600;padding:6px 11px;border-radius:999px;background-color:var(--pow2);border:1px solid var(--linia)}
+.droga i{font-style:normal;display:inline-block}
+.droga i{font-size:0;width:18px;height:2px;border-radius:1px;background-color:var(--linia2);flex:none}
+.droga b{white-space:nowrap;flex:none}
+@media (max-width:1149px){.dwie{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:680px){.droga{flex-wrap:wrap}}
+.droga b{border-color:transparent}
+
+.kal{position:relative;overflow:hidden;padding-block:48px 0;background:var(--tlo2)}
+.kal::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
+.kal::after{content:"";position:absolute;right:-120px;top:-180px;width:760px;height:520px;max-width:120%;border-radius:50%;background:radial-gradient(closest-side,rgba(229,56,59,.16),rgba(229,56,59,0));pointer-events:none}
+.kal>.wrap{position:relative;z-index:1}
+.kal h2{font-size:clamp(28px,3.2vw,38px);letter-spacing:-.025em;font-weight:900;margin:0 0 20px;line-height:1.05}
+.najblizsze{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:40px}
+.wyd{position:relative;overflow:hidden;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:16px;padding:16px 18px 14px;display:flex;flex-direction:column;gap:4px}
+.wyd::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--kolor,var(--linia2))}
+.wyd .kiedy{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.wyd .data{font-size:30px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.wyd .za{font-size:14px;font-weight:700;color:var(--akcent)}
+.wyd .dzien{font-size:14px;color:var(--tekst2)}
+.wyd .kto{display:flex;align-items:center;gap:8px;font-weight:700;margin-top:8px}
+.wyd .kto i{width:9px;height:9px;border-radius:50%;background:var(--kolor,var(--tekst2))}
+.wyd .co{font-size:15px;color:var(--tekst2)}
+.status{align-self:flex-start;margin-top:8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid var(--linia2);color:var(--tekst2)}
+.kal-tlo{position:relative;overflow:hidden;padding-block:8px 56px}
+.kal-tlo::after{content:"";position:absolute;left:50%;bottom:-260px;width:900px;height:520px;max-width:140%;transform:translateX(-50%);border-radius:50%;background:radial-gradient(closest-side,rgba(229,56,59,.22),rgba(229,56,59,0));pointer-events:none}
+.kal-tlo .wrap{position:relative;z-index:1}
+.kal-gora{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.kal-gora h3{margin:0;font-size:24px;font-weight:900;min-width:9em;text-align:center}
+.kal-gora button{min-width:44px;min-height:44px;border-radius:12px;border:1px solid var(--linia2);background:transparent;color:var(--tekst);font:inherit;font-size:18px;cursor:pointer}
+.kal-gora button:disabled{opacity:.35;cursor:default}
+.kal-dni,.kal-siatka{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.kal-dni span{font-size:13px;font-weight:700;color:var(--tekst2);text-transform:uppercase;letter-spacing:.06em;padding:0 8px 6px}
+.kal-tlo{--kafel:#26262C;--kafelW:#1E1E23;--kafelR:#3A3A44;--wpis:#34343C}
+.kal-tlo[data-odcien="b"]{--kafel:#272B33;--kafelW:#1F2229;--kafelR:#3B414D;--wpis:#333944}
+.kal-tlo[data-odcien="c"]{--kafel:rgba(255,255,255,.075);--kafelW:rgba(255,255,255,.04);--kafelR:rgba(255,255,255,.14);--wpis:rgba(255,255,255,.1)}
+.kal-tlo[data-odcien="d"]{--kafel:#2C2728;--kafelW:#231F20;--kafelR:#443A3B;--wpis:#3A3133}
+.dz{position:relative;min-height:104px;border-radius:12px;border:1px solid var(--kafelR);background:var(--kafel);padding:8px;display:flex;flex-direction:column;gap:5px;min-width:0;transition:border-color .2s,transform .2s}
+.kal-tlo[data-odcien="c"] .dz{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.dz.ma{cursor:pointer}.dz.ma:hover,.dz.ma:focus-visible{border-color:var(--tekst2);transform:translateY(-2px)}
+.dz.poza{opacity:.3}
+.dz.weekend{background:var(--kafelW)}
+.dz.dzis{border-color:var(--akcent);box-shadow:0 0 0 1px var(--akcent) inset}
+.dz.wolne{background:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 6px,transparent 6px 12px),var(--kafel)}
+.dz .nr{font-size:14px;font-weight:700;color:var(--tekst2)}
+.dz .wpis{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;line-height:1.2;padding:4px 6px;border-radius:8px;background:var(--wpis);border-left:3px solid var(--kolor,var(--linia2));min-width:0}
+.dz .wpis b{font-weight:800;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--tekst2)}
+.dz.minione .wpis{opacity:.7}
+.odcienie{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px;color:var(--tekst2);padding:8px 10px;border:1px dashed var(--linia2);border-radius:12px;margin-bottom:16px;width:fit-content;max-width:100%}
+.odcienie button{min-width:36px;min-height:32px;border-radius:8px;border:1px solid var(--linia);background:transparent;color:var(--tekst2);font:inherit;font-weight:700;cursor:pointer}
+.odcienie button[aria-pressed="true"]{border-color:var(--akcent);color:var(--tekst)}
+.odcienie output{margin-left:4px;color:var(--tekst)}
+.dymek{position:absolute;z-index:5;width:min(340px,calc(100vw - 32px));background:#1C1C21;border:1px solid var(--linia2);border-radius:14px;padding:14px 16px;box-shadow:0 24px 60px -20px rgba(0,0,0,.9);pointer-events:none;font-size:15px}
+.dymek h4{margin:0 0 8px;font-size:15px;font-weight:800}
+.dymek .poz{display:flex;flex-direction:column;gap:2px;padding:8px 0 8px 10px;border-top:1px solid var(--linia);border-left:3px solid var(--kolor,var(--linia2))}
+.dymek .poz:first-of-type{border-top:0}
+.dymek .poz strong{font-weight:700}
+.dymek .poz span{color:var(--tekst2);font-size:14px}
+.dymek .st{align-self:flex-start;margin-top:4px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:999px;border:1px solid var(--linia2);color:var(--tekst2)}
+.dz .wpis span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dz .wpis.szary{color:var(--tekst2);border-left-color:var(--linia2)}
+.kal-legenda{display:flex;flex-wrap:wrap;gap:16px;margin-top:16px;font-size:14px;color:var(--tekst2)}
+.kal-legenda span{display:inline-flex;align-items:center;gap:8px}
+.kal-legenda i{width:14px;height:14px;border-radius:4px}
+@media (max-width:980px){.najblizsze{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.dz{min-height:58px;padding:5px}.dz .wpis span{display:none}.dz .wpis{padding:3px;justify-content:center;min-height:10px}.kal-dni span{padding:0 2px 6px;font-size:11px}.kal-gora h3{min-width:0;flex:1}}
+@media (max-width:560px){.najblizsze{grid-template-columns:minmax(0,1fr)}}
+.wyk{position:relative;overflow:hidden;padding-block:40px 64px;background:var(--tlo2)}
+.wyk::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
+.wyk::after{content:"";position:absolute;left:-160px;top:-200px;width:780px;height:540px;max-width:120%;border-radius:50%;background:radial-gradient(closest-side,rgba(229,56,59,.14),rgba(229,56,59,0));pointer-events:none}
+.wyk>.wrap{position:relative;z-index:1}
+.wyk h2{font-size:clamp(28px,3.2vw,38px);letter-spacing:-.025em;font-weight:900;margin:0 0 20px;line-height:1.05}
+.wyk-karty{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:16px}
+.wk{position:relative;overflow:hidden;text-align:left;font:inherit;color:var(--tekst);cursor:pointer;background:rgba(255,255,255,.075);border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:16px;padding:14px 18px 16px;display:flex;flex-direction:column;gap:2px;transition:border-color .25s,transform .25s,opacity .25s}
+.wk::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--kolor)}
+.wk:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.28)}
+.wk[aria-pressed="true"]{border-color:var(--kolor);box-shadow:0 0 0 1px var(--kolor) inset}
+.wyk.wybor .wk[aria-pressed="false"]{opacity:.55}
+.wk .n{display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px}
+.wk .n i{width:10px;height:10px;border-radius:50%;background:var(--kolor)}
+.wk .c{font-size:30px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+.wk .z{font-weight:700;font-size:15px}
+.wk .wz{font-size:13px;color:var(--tekst2)}
+.wyk-panel{position:relative;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:14px 16px 16px}
+.wyk-gora{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;margin-bottom:8px}
+.leg{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 auto}
+.leg button,.grupa button,.powieksz{min-height:44px;border-radius:10px;border:1px solid var(--linia2);background:transparent;color:var(--tekst);font:inherit;font-size:15px;font-weight:600;cursor:pointer;padding:0 12px;display:inline-flex;align-items:center;gap:8px}
+.leg button i{width:10px;height:10px;border-radius:50%;background:var(--kolor);border:2px solid var(--kolor)}
+.leg button[aria-pressed="false"]{color:var(--tekst2)}
+.leg button[aria-pressed="false"] i{background:transparent}
+.leg .lc{color:var(--tekst2);font-weight:600;display:none}
+.grupa{display:inline-flex;gap:0;border:1px solid var(--linia2);border-radius:12px;padding:3px;background:rgba(0,0,0,.25)}
+.grupa button{border:1px solid transparent;min-height:38px;color:var(--tekst2)}
+.grupa button[aria-pressed="true"]{border-color:#A3AAB6;color:var(--tekst);background:rgba(255,255,255,.06)}
+.powieksz{width:44px;justify-content:center;padding:0}
+.wyk-rys{position:relative;height:clamp(420px,58vh,620px)}
+.wyk-panel.duzy{position:fixed;inset:0;z-index:60;border-radius:0;border:0;display:flex;flex-direction:column;background:var(--tlo2);padding:max(12px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(12px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.wyk-panel.duzy .wyk-rys{flex:1 1 auto;height:auto;min-height:0}
+.wyk.pelny>.wrap{z-index:auto}
+.wyk-rys svg{display:block;width:100%;height:100%;overflow:visible;touch-action:pan-y}
+.wyk-rys .os{fill:var(--tekst2);font-size:13px;font-family:var(--font)}
+.wyk-rys .siatka{stroke:rgba(255,255,255,.08);stroke-width:1}
+.wyk-rys .linia{fill:none;stroke-width:2.5;stroke-linejoin:round;stroke-linecap:round}
+.wyk-rys .plak text{font-size:15px;font-weight:800;font-family:var(--font);fill:#0E1014;letter-spacing:.01em}
+.dodatki{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:14px;color:var(--tekst2);margin:0 0 8px}
+.dodatki button{min-height:34px;border-radius:8px;border:1px solid var(--linia);background:transparent;color:var(--tekst2);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:0 10px}
+.dodatki button[aria-pressed="true"]{border-color:var(--akcent);color:var(--tekst);background:rgba(229,56,59,.1)}
+.wyk-rys .zn:hover rect{stroke:#FFFFFF;stroke-width:2}
+.wyk-rys.pomiar svg{cursor:crosshair}
+.numer{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:7px;background:rgba(229,56,59,.15);color:var(--akcent);font-size:13px;font-weight:800;margin-right:8px}
+.statystyki,.mapa{margin-top:24px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.12);border-radius:18px;padding:16px 18px;overflow-x:auto}
+.statystyki h3,.mapa h3{display:flex;align-items:center;margin:0 0 10px;font-size:20px;font-weight:900}
+.statystyki h3 small,.mapa h3 small{font-size:14px;font-weight:600;color:var(--tekst2);margin-left:10px}
+.statystyki table,.mapa table{border-collapse:collapse;font-size:15px;min-width:100%}
+.statystyki th,.mapa th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tekst2);padding:6px 10px;border-bottom:1px solid var(--linia2);white-space:nowrap}
+.statystyki td{padding:9px 10px;border-bottom:1px solid var(--linia);white-space:nowrap}
+.statystyki td small{color:var(--tekst2);margin-left:6px}
+.statystyki td.nazwa{font-weight:700;display:flex;align-items:center;gap:8px}
+.statystyki td.nazwa i{width:4px;height:18px;border-radius:2px;background:var(--kolor)}
+.mapa td{padding:4px}
+.mapa{overflow:visible}
+.mapa-gora{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;margin-bottom:10px}
+.mapa .mapa-gora h3{margin:0}
+.mapa-wybor{display:flex;align-items:center;gap:6px;margin-left:auto}
+.mapa-auto,.mapa-strz{min-height:40px;border-radius:10px;border:1px solid var(--linia2);background:transparent;color:var(--tekst2);font:inherit;font-size:14px;font-weight:700;cursor:pointer;padding:0 12px}
+.mapa-strz{width:40px;padding:0;font-size:18px;color:var(--tekst)}
+.mapa-auto[aria-pressed="true"]{border-color:#A3AAB6;color:var(--tekst);background:rgba(255,255,255,.06)}
+.mapa-auto:disabled,.mapa-strz:disabled{opacity:.35;cursor:default}
+.mapa-nazwa{display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;min-width:8.2em;padding:0 6px;font-weight:700;font-size:16px}
+.mapa-nazwa i{width:10px;height:10px;border-radius:50%;flex:none}
+.mapa-postep{height:2px;border-radius:1px;background:var(--linia);margin:0 0 10px;overflow:hidden}
+.mapa-postep i{display:block;height:100%;background:var(--akcent);transform-origin:left;transform:scaleX(0)}
+.mapa-postep.biegnie i{animation:postep 15s linear forwards}
+.mapa.pauza .mapa-postep i{animation-play-state:paused}
+@keyframes postep{to{transform:scaleX(1)}}
+.bez-ruchu .mapa-postep{visibility:hidden}
+#wyk-mapa{overflow-x:auto;transition:opacity .2s}
+.mapa table{table-layout:fixed;width:100%}
+.mapa thead th:first-child{width:58px}
+.mapa tbody th{border-bottom:0;padding:4px 10px 4px 0;font-size:14px;letter-spacing:0;text-transform:none;color:var(--tekst)}
+.mapa .k{display:flex;align-items:center;justify-content:center;height:40px;border-radius:8px;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mapa .k.pusty{background:rgba(255,255,255,.03)}
+.mapa p,.statystyki p{color:var(--tekst2);font-size:13px;margin:10px 0 0}
+.wk .tlo{font-size:13px;color:var(--tekst2);margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.1)}
+.wk .tlo .numer{min-width:20px;height:20px;font-size:11px;margin-right:6px}
+.wyk-dymek{position:absolute;z-index:3;min-width:190px;background:#1C1C21;border:1px solid var(--linia2);border-radius:12px;padding:10px 12px;font-size:14px;pointer-events:none;box-shadow:0 18px 40px -16px rgba(0,0,0,.9)}
+.wyk-dymek b{display:block;font-weight:700;margin-bottom:6px}
+.wyk-dymek div{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:2px 0}
+.wyk-dymek i{width:8px;height:8px;border-radius:50%}
+.wyk-dymek span{color:var(--tekst2)}
+.wyk-dol{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-top:10px}
+.suwak{position:relative;flex:1 1 320px;height:44px}
+.suwak .tor{position:absolute;left:0;right:0;top:20px;height:4px;border-radius:2px;background:var(--linia2)}
+.suwak .zakres{position:absolute;top:20px;height:4px;border-radius:2px;background:var(--akcent)}
+.suwak input{position:absolute;left:0;top:0;width:100%;height:44px;margin:0;background:none;pointer-events:none;-webkit-appearance:none;appearance:none}
+.suwak input::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;width:20px;height:20px;border-radius:50%;background:#FFFFFF;border:3px solid var(--akcent);cursor:pointer}
+.suwak input::-moz-range-thumb{pointer-events:auto;width:16px;height:16px;border-radius:50%;background:#FFFFFF;border:3px solid var(--akcent);cursor:pointer}
+.suwak input::-webkit-slider-runnable-track{background:none}
+.suwak input::-moz-range-track{background:none}
+.daty{display:flex;gap:12px;flex-wrap:wrap}
+.daty label{display:inline-flex;align-items:center;gap:8px;font-size:14px;color:var(--tekst2)}
+.daty input{min-height:44px;border-radius:10px;border:1px solid #6B7383;background:rgba(0,0,0,.3);color:var(--tekst);font:inherit;padding:0 10px}
+.ranking{margin-top:28px;max-width:720px}
+.ranking h3{display:flex;align-items:baseline;gap:12px;margin:0 0 10px;font-size:22px;font-weight:900}
+.ranking h3 small{font-size:14px;font-weight:600;color:var(--tekst2)}
+.ranking table{width:100%;border-collapse:collapse;font-size:16px}
+.ranking th{text-align:left;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tekst2);padding:8px 10px;border-bottom:1px solid var(--linia2)}
+.ranking td{padding:12px 10px;border-bottom:1px solid var(--linia)}
+.ranking td.nazwa{display:flex;align-items:center;gap:10px;font-weight:700}
+.ranking td.nazwa i{width:4px;height:20px;border-radius:2px;background:var(--kolor)}
+.ranking p{color:var(--tekst2);font-size:14px;margin:10px 0 0}
+@media (max-width:700px){.wyk-karty{grid-template-columns:minmax(0,1fr)}.leg .lc{display:inline}.powieksz{display:none}.wyk-rys{height:380px}}
+.slw{position:relative;overflow:clip;padding-block:40px 72px;background:var(--tlo2);min-height:80vh}
+.slw::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
+.slw::after{content:"";position:absolute;right:-140px;top:-200px;width:760px;height:520px;max-width:120%;border-radius:50%;background:radial-gradient(closest-side,rgba(229,56,59,.14),rgba(229,56,59,0));pointer-events:none}
+.slw>.wrap{position:relative;z-index:1}
+.slw-gora{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-bottom:22px}
+.slw h2{font-size:clamp(28px,3.2vw,38px);letter-spacing:-.025em;font-weight:900;margin:0;line-height:1.05}
+.slw-szukaj{position:relative;flex:1 1 280px;max-width:520px;display:block}
+.slw-szukaj svg{position:absolute;left:14px;top:50%;width:18px;height:18px;transform:translateY(-50%);fill:none;stroke:var(--tekst2);stroke-width:2;stroke-linecap:round;pointer-events:none}
+.slw-szukaj input{width:100%;min-height:46px;border-radius:12px;border:1px solid #6B7383;background:rgba(0,0,0,.35);color:var(--tekst);font:inherit;font-size:16px;padding:0 14px 0 42px}
+.slw-szukaj input::placeholder{color:#8A8A96}
+.slw-ile{color:var(--tekst2);font-size:14px}
+.slw-pusto{color:var(--tekst2);font-size:16px;padding:24px 0}
+.slw .d{margin:0;max-width:68ch;color:var(--tekst);font-size:16px;line-height:1.6}
+.slw .tu{margin:10px 0 0;font-size:14px;color:var(--tekst2)}
+.slw .tu a{color:var(--tekst);font-weight:700;text-decoration-color:var(--akcent);text-underline-offset:3px}
+.slw .zt{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
+.slw .zt span{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tekst2);margin-right:4px}
+.slw .zt button{min-height:34px;border-radius:999px;border:1px solid var(--linia2);background:transparent;color:var(--tekst);font:inherit;font-size:14px;font-weight:600;padding:0 12px;cursor:pointer}
+.slw .zt button:hover{border-color:var(--akcent)}
+.slw-c{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;align-items:start}
+.slw-lewa{position:sticky;top:calc(env(safe-area-inset-top,0px) + 78px);display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(20,20,23,.85)}
+.slw-chipy{display:flex;flex-wrap:wrap;gap:6px}
+.slw-chipy button{min-height:34px;border-radius:999px;border:1px solid var(--linia2);background:transparent;color:var(--tekst2);font:inherit;font-size:13px;font-weight:700;padding:0 12px;cursor:pointer}
+.slw-chipy button[aria-pressed="true"]{border-color:var(--akcent);color:var(--tekst);background:rgba(229,56,59,.12)}
+.slw-lista{position:relative;display:flex;flex-direction:column;min-height:240px;max-height:calc(100vh - 300px);overflow-y:auto;scrollbar-width:thin}
+.slw-lista .lit{position:sticky;top:0;z-index:1;padding:8px 10px 4px;background:#161619;font-size:12px;font-weight:800;letter-spacing:.08em;color:var(--akcent)}
+.slw-lista button{display:flex;justify-content:space-between;align-items:baseline;gap:10px;min-height:40px;padding:6px 10px;border-radius:10px;border:0;background:transparent;color:var(--tekst);font:inherit;font-size:15px;font-weight:600;text-align:left;cursor:pointer}
+.slw-lista button small{flex:none;font-size:12px;font-weight:600;color:var(--tekst2)}
+.slw-lista button:hover{background:rgba(255,255,255,.05)}
+.slw-lista button[aria-current="true"]{background:rgba(229,56,59,.14);box-shadow:inset 3px 0 0 var(--akcent)}
+.slw-karta{display:flex;flex-direction:column;gap:12px;min-height:380px;padding:28px 32px 24px;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.025))}
+.slw-karta .kat{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--akcent)}
+.slw-karta h3{margin:0;font-size:clamp(30px,4vw,46px);font-weight:900;letter-spacing:-.03em;line-height:1.02;text-wrap:balance}
+.slw-karta .d{font-size:19px;max-width:60ch;margin-top:4px}
+.slw-karta .nast{display:flex;justify-content:space-between;gap:10px;margin-top:auto;padding-top:16px;border-top:1px solid var(--linia)}
+.slw-karta .nast button,.slw-karta .wroc{min-height:44px;border-radius:10px;border:1px solid var(--linia2);background:transparent;color:var(--tekst);font:inherit;font-size:15px;font-weight:600;padding:0 14px;cursor:pointer}
+.slw-karta .wroc{display:none;align-self:flex-start}
+@media (max-width:860px){.slw-c{grid-template-columns:minmax(0,1fr)}.slw-lewa{position:static}.slw-lista{max-height:none}.slw-c .slw-karta{display:none}.slw-c.szczegol .slw-karta{display:flex}.slw-c.szczegol .slw-lewa{display:none}.slw-karta .wroc{display:inline-flex;align-items:center}.slw-karta{padding:20px 18px}.slw-karta .d{font-size:17px}.slw-karta .nast{flex-direction:column}}
+/* zakładka Projekt: wstęp, przełącznik układów (tylko w szkicu), układ A (opowieść), B (schemat i karta), C (dokument), sekcje wspólne */
+:root{--mono:'Source Code Pro',ui-monospace,Consolas,monospace;--w-live:#8E8E9A;--w-bronze:#B9814F;--w-silver:#AEB4C0;--w-gold:#D4AF37;--wybrany:#2B1619}
+.prj{position:relative;overflow:clip;padding-block:40px 72px;background:var(--tlo2);min-height:80vh}
+.prj::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:56px 56px;pointer-events:none}
+.prj::after{content:"";position:absolute;left:-160px;top:-200px;width:780px;height:540px;max-width:120%;border-radius:50%;background:radial-gradient(closest-side,rgba(229,56,59,.14),rgba(229,56,59,0));pointer-events:none}
+.prj>.wrap{position:relative;z-index:1}
+.prj h2{font-size:clamp(28px,3.2vw,38px);letter-spacing:-.025em;font-weight:900;margin:0 0 14px;line-height:1.05}
+.prj-wstep{margin:0;max-width:64ch;font-size:19px;line-height:1.55;color:var(--tekst)}
+.prj-meta{display:flex;flex-wrap:wrap;gap:4px 20px;margin:14px 0 20px;font-size:14px;color:var(--tekst2)}
+.prj-meta b{color:var(--tekst);font-weight:700}
+.prj-sek{margin-top:56px;min-width:0}
+.prj-h{font-size:26px;font-weight:900;letter-spacing:-.02em;line-height:1.1;margin:0 0 16px;text-wrap:balance;scroll-margin-top:96px}
+.prj-kod{display:block;margin:0;font:13px/1.5 var(--mono);color:var(--tekst);background:rgba(0,0,0,.4);border:1px solid var(--linia);border-radius:10px;padding:8px 10px;overflow-x:auto;white-space:pre}
+.prj-os{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;position:relative}
+.prj-os::before{content:"";position:absolute;left:8px;right:8px;top:7px;height:2px;background:var(--linia2)}
+.prj-os li{position:relative;display:flex;flex-direction:column;gap:4px;padding-top:30px;min-width:0}
+.prj-os li::before{content:"";position:absolute;left:0;top:0;width:12px;height:12px;border-radius:50%;background:var(--tlo2);border:2px solid var(--akcent)}
+.prj-os .g{font-size:28px;font-weight:900;letter-spacing:-.02em;line-height:1}
+.prj-os b{font-size:16px;font-weight:700}
+.prj-os .t{font-size:15px;color:var(--tekst2);line-height:1.45}
+@media (max-width:900px){.prj-os{grid-template-columns:minmax(0,1fr);gap:18px}.prj-os::before{left:7px;right:auto;top:8px;bottom:8px;width:2px;height:auto}.prj-os li{padding:0 0 0 32px}.prj-os li::before{top:4px}}
+.prj-warstwy{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.prj-warstwa{display:flex;flex-direction:column;gap:8px;min-width:0;padding:16px 16px 14px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:rgba(255,255,255,.045)}
+.prj-warstwa .gl{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:800}
+.prj-warstwa .gl i{width:12px;height:12px;border-radius:3px;background:var(--kolor);flex:none}
+.prj-warstwa .gl small{margin-left:auto;font:600 12px var(--mono);color:var(--tekst2);border:1px solid var(--linia2);border-radius:6px;padding:1px 6px}
+.prj-warstwa .gdzie{font:13px var(--mono);color:var(--tekst2);overflow-wrap:anywhere}
+.prj-warstwa p{margin:0;font-size:15px;color:var(--tekst);line-height:1.45}
+.prj-warstwa .prj-kod{margin-top:auto}
+@media (max-width:1100px){.prj-warstwy{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:600px){.prj-warstwy{grid-template-columns:minmax(0,1fr)}}
+.prj-awarie{display:flex;flex-direction:column;border-top:1px solid var(--linia2)}
+.prj-awarie div{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:6px 24px;padding:12px 0;border-bottom:1px solid var(--linia)}
+.prj-awarie b{font-weight:700;font-size:16px}
+.prj-awarie span{color:var(--tekst2);font-size:15px}
+@media (max-width:700px){.prj-awarie div{grid-template-columns:minmax(0,1fr);gap:4px}}
+.prj-narz{overflow-x:auto}
+.prj-narz table{width:100%;border-collapse:collapse;font-size:15px}
+.prj-narz th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--tekst2);padding:6px 10px;border-bottom:1px solid var(--linia2)}
+.prj-narz td{padding:10px;border-bottom:1px solid var(--linia);vertical-align:top}
+.prj-narz td:first-child{font-weight:700;white-space:nowrap}
+.prj-narz td:last-child{color:var(--tekst2)}
+@media (max-width:560px){.prj-narz td:first-child{white-space:normal}}
+.prj-ogr{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:8px;max-width:72ch;font-size:16px}
+.prj-ogr li::marker{color:var(--akcent)}
+.prj-readme{margin:16px 0 0;font-size:15px;color:var(--tekst2);max-width:72ch}
+.prj-readme a{color:var(--tekst);font-weight:700;text-decoration-color:var(--akcent);text-underline-offset:3px}
+/* układ B (wybrany 22.10): schemat całej drogi i karta wybranego elementu; schemat w wyglądzie 1, tor do wybranego (wybrany 23.10) */
+.prjB-schemat{padding:18px 16px;border:1px solid rgba(255,255,255,.12);border-radius:18px;background:rgba(255,255,255,.045)}
+/* wygląd 1: tor do wybranego — kafelki i przewody; światło przechodzi raz od źródła do wybranego kafelka (1,4–3,2 s); bez poświaty i bez płynących kresek */
+.prjB-droga{display:flex;flex-wrap:wrap;align-items:center;gap:12px 6px}
+.prjB-droga .wz{position:relative;z-index:1;display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:66px;padding:9px 14px 10px 12px;border:1px solid transparent;border-radius:14px;background:var(--pow2);color:var(--tekst);font:inherit;text-align:left;cursor:pointer;flex:none;transition:opacity .4s,transform .3s}
+.prjB-droga .wz:hover{transform:translateY(-2px)}
+.prjB-droga .wz .g{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--tekst2);white-space:nowrap}
+.prjB-droga .wz .g i{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--linia2);font-style:normal;font-size:11px;font-weight:800;color:var(--tekst);transition:background-color .3s,border-color .3s,color .3s}
+.prjB-droga .wz b{font-size:15px;font-weight:700;white-space:nowrap}
+.prjB-droga .wz .r{display:block;font-size:13px;line-height:1.3;color:var(--tekst2)}
+.prjB-droga .wz.przed .g i{border-color:rgba(229,56,59,.7);color:var(--akcent)}
+.prjB-droga .wz[aria-pressed="true"] .g{color:var(--tekst)}
+.prjB-droga .wz[aria-pressed="true"] .g i{background:var(--akcent);border-color:var(--akcent);color:#FFFFFF}
+.prjB-droga .wz.boczny{outline:1px dashed #55555F;outline-offset:3px}
+.prjB-droga .dalej{opacity:.6}
+.prjB-droga .prz{width:22px;height:2px;border-radius:1px;flex:none;transition:opacity .4s}
+@media (min-width:700px){
+  .prjB-droga{display:grid;grid-template-columns:repeat(4,minmax(0,1fr) 28px) minmax(0,1fr);gap:14px 4px;align-items:stretch}
+  .prjB-droga>.prz{align-self:center;width:auto}
+  .prjB-droga>:nth-child(10){display:none}
+  .prjB-droga .wz{width:auto;min-width:0}
+  .prjB-droga .wz b{white-space:normal}
+}
+/* na telefonie kafelki jeden pod drugim, na całą szerokość, z krótkim przewodem pod numerem etapu; światło biegnie z góry na dół */
+@media (max-width:699px){
+  .prjB-droga{flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:0}
+  .prjB-droga .wz{min-height:0;padding:10px 14px 11px 12px}
+  .prjB-droga .wz:hover{transform:none}
+  .prjB-droga .wz.boczny{outline-offset:-5px}
+  .prjB-droga .prz{width:2px;height:14px;margin-left:21px}
+}
+/* karta wybranego elementu */
+.prjB-karta{position:relative;margin-top:14px;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:20px 28px;padding:26px 28px 18px;border:1px solid rgba(255,255,255,.14);border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.075),rgba(255,255,255,.025))}
+.prjB-karta .tresc{display:contents}
+.prjB-karta .glowna{min-width:0}
+.prjB-karta .etap{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--akcent)}
+.prjB-karta .naz{display:flex;align-items:center;gap:14px;margin-top:6px}
+.prjB-karta h3{margin:0;font-size:clamp(30px,3.6vw,42px);font-weight:900;letter-spacing:-.03em;line-height:1.02;text-wrap:balance}
+.prjB-karta .rola{margin-top:2px;font-size:16px;color:var(--tekst2)}
+.prjB-karta p{margin:14px 0 0;max-width:60ch;font-size:18px;line-height:1.55}
+.prjB-karta dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;margin:16px 0 0;font-size:15px}
+.prjB-karta dt{color:var(--tekst2)}
+.prjB-karta dd{margin:0;font-weight:600}
+.prjB-karta .wskaznik{display:none;position:absolute;top:-8px;left:50%;width:14px;height:14px;transform:translateX(-50%) rotate(45deg);background:#19191C;border-left:1px solid var(--akcent);border-top:1px solid var(--akcent);transition:left .45s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.prjB-karta{border-top-color:var(--akcent)}
+.prjB-karta .wskaznik{display:block}
+@media (max-width:699px){.prjB-karta .wskaznik{display:none}}
+.prjB-bok{display:flex;flex-direction:column;gap:18px;padding-left:24px;border-left:1px solid var(--linia)}
+.prjB-bok .et{display:block;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--tekst2)}
+.prjB-bok .liczba{margin-top:6px;font-size:46px;font-weight:900;letter-spacing:-.03em;line-height:1}
+.prjB-bok .opis{margin-top:4px;font-size:15px;color:var(--tekst2)}
+.prjB-bok .awaria{margin-top:6px;font-size:15px;line-height:1.5}
+.prjB-nast{grid-column:1/-1;display:flex;justify-content:space-between;gap:10px;padding-top:14px;border-top:1px solid var(--linia)}
+.prjB-nast button{min-height:44px;border-radius:10px;border:1px solid var(--linia2);background:transparent;color:var(--tekst);font:inherit;font-size:15px;font-weight:600;padding:0 14px;cursor:pointer}
+.prjB-nast button:hover{border-color:var(--akcent)}
+.prjB-nast button:disabled{visibility:hidden}
+@media (max-width:860px){.prjB-karta{grid-template-columns:minmax(0,1fr);padding:20px 18px 16px}.prjB-bok{padding:16px 0 0;border-left:0;border-top:1px solid var(--linia)}.prjB-karta p{font-size:17px}}
+.bez-ruchu .prjB-droga .wz,.bez-ruchu .prjB-droga .prz,.bez-ruchu .prjB-karta .wskaznik{transition:none}
+footer{border-top:1px solid var(--linia);padding-block:24px 32px;color:var(--tekst2);font-size:14px}
+footer .wrap{display:flex;flex-direction:column;gap:4px}
+
+@media (max-width:980px){
+  .hero .wrap{grid-template-columns:minmax(0,1fr);padding-block:36px 24px}
+  .scena{height:360px}
+  .stos{width:270px;height:196px;margin-right:90px;margin-top:70px}
+  .karta{padding:15px 17px 10px;border-radius:16px}
+  .karta .cena{font-size:34px}
+  .karta .nz span{font-size:16px}
+  .karta svg{height:42px}
+  .siatka3,.dwie{grid-template-columns:minmax(0,1fr)}
+  .plotno{height:420px;margin-top:-40px}
+  .legenda{top:12px}
+}
+@media (max-width:560px){
+  nav.glowna .wrap{gap:10px}
+  .ruch .napis{display:none}
+  .wizyta .wiersz{grid-template-columns:minmax(0,1fr) auto}
+  .wizyta .ceny{display:none}
+}
+.bez-ruchu .tasma,.bez-ruchu .poswiata,.bez-ruchu .podpowiedz i,.bez-ruchu .ekg .bieg{animation:none}
+.bez-ruchu .ekg .bieg{opacity:0}
+.bez-ruchu .spolka,.bez-ruchu .cta a,.bez-ruchu .zakladki a::after{transition:none}
+/* brak pliku dane.js: zamiast stron komunikat */
+.brak{padding-block:96px 120px}
+.brak h2{font-size:clamp(28px,3.2vw,38px);letter-spacing:-.025em;font-weight:900;margin:0 0 12px;line-height:1.05}
+.brak p{margin:0;max-width:60ch;font-size:18px;color:var(--tekst2)}
+.brak code{font-family:var(--mono);color:var(--tekst)}
+</style>
+
+<nav class="glowna" aria-label="Zakładki">
+  <div class="wrap">
+    <a class="logo" href="#start"><svg width="30" height="20" viewBox="0 0 30 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 11h6l3-8 5 15 4-11 2 4h8"/></svg>GPW Pulse</a>
+    <div class="zakladki">
+      <a href="#start" aria-current="page">Start</a><a href="#wykresy">Wykresy</a><a href="#kalendarz">Kalendarz</a><a href="#slownik">Słownik</a><a href="#projekt">Projekt</a>
+    </div>
+    <button type="button" class="ruch" id="ruch" aria-pressed="true"><span class="tor" aria-hidden="true"><span class="galka"></span></span><span class="napis">Animacje</span><span class="ukryte"> (włącz albo wyłącz ruch na stronie)</span></button>
+  </div>
+</nav>
+
+<header class="hero" id="start">
+  <div class="wrap">
+    <div>
+      <h1>Wyczuj <em>puls</em><br>giełdy.</h1>
+      <svg class="ekg" viewBox="0 0 360 44" aria-hidden="true"><path d="M0 26 H120 L134 26 L146 6 L160 42 L172 14 L182 26 H360"/><path class="bieg" d="M0 26 H120 L134 26 L146 6 L160 42 L172 14 L182 26 H360"/></svg>
+      <p class="pod">Notowania, zmiany i wykresy wybranych spółek z&nbsp;GPW, sesja po sesji.</p>
+      <div class="cta"><a class="gl" href="#wykresy">Zobacz wykresy <span aria-hidden="true">→</span></a><a class="dr" href="#projekt">O projekcie</a></div>
+      <div class="wizyta" id="wizyta" aria-live="polite"></div>
+    </div>
+    <div class="scena" id="scena">
+      <div class="poswiata" aria-hidden="true"></div>
+      <div class="stos" id="stos"></div>
+    </div>
+  </div>
+</header>
+
+<div class="pasek" aria-label="Notowania">
+  <div class="tasma num" id="tasma"></div>
+</div>
+
+<main>
+  <section class="s wrap" id="notowania">
+    <h2>Notowania</h2>
+    <div class="siatka3" id="karty"></div>
+  </section>
+
+  <section class="przestrzen" id="przestrzen" aria-labelledby="przestrzen-t">
+    <div class="wrap"><h2 id="przestrzen-t">Wszystkie sesje w&nbsp;jednej przestrzeni</h2></div>
+    <div class="plotno">
+      <canvas id="siatka3d" tabindex="0" role="img" aria-label="Trójwymiarowa siatka z liniami kursów trzech spółek, sesja po sesji. Kliknięcie albo strzałki na klawiaturze przesuwają miejsce wyostrzenia."></canvas>
+      <div class="legenda" id="legenda" aria-hidden="true"></div>
+      <span class="podpowiedz" id="podpowiedz"><i aria-hidden="true"></i>Kliknij, aby wyostrzyć</span>
+    </div>
+  </section>
+
+  <div class="wrap dwie">
+    <section class="panel" id="pojecie-dnia" aria-labelledby="pd-t">
+      <span class="etyk">Pojęcie dnia</span>
+      <h3 id="pd-t">Kurs zamknięcia</h3>
+      <p id="pd-d">Kurs zamknięcia to cena akcji ustalona w aukcji na koniec sesji.</p>
+      <a class="dalej" id="pd-link" href="#slownik">Cały słownik <span aria-hidden="true">→</span></a>
+    </section>
+    <section class="panel" id="projekt-skrot" aria-labelledby="projekt-t">
+      <span class="etyk">Projekt</span>
+      <h3 id="projekt-t">Jak powstaje ta strona</h3>
+      <p>Po każdej sesji notowania przechodzą przez potok danych w chmurze, a strona składa się z jego wyniku.</p>
+      <div class="droga" id="droga"><b>Yahoo Finance</b><i aria-hidden="true">→</i><b>Kafka</b><i aria-hidden="true">→</i><b>Amazon S3</b><i aria-hidden="true">→</i><b>Athena</b><i aria-hidden="true">→</i><b>pandas</b><i aria-hidden="true">→</i><b>Strona</b></div>
+      <a class="dalej" href="#projekt">Przejdź przez cały proces <span aria-hidden="true">→</span></a>
+    </section>
+  </div>
+</main>
+
+<section class="wyk" id="wykresy" aria-labelledby="wyk-t" hidden>
+  <div class="wrap">
+    <h2 id="wyk-t">Wykresy</h2>
+    <div class="wyk-karty" id="wyk-karty"></div>
+    <div class="wyk-panel" id="wyk-panel">
+      <div class="wyk-gora">
+        <div class="leg" id="wyk-leg" role="group" aria-label="Spółki na wykresie"></div>
+        <div class="grupa" id="wyk-okresy" role="group" aria-label="Okres"><button type="button" data-o="1">1 mies.</button><button type="button" data-o="6">6 mies.</button><button type="button" data-o="12">1 rok</button><button type="button" data-o="0">Całość</button></div>
+        <div class="grupa" id="wyk-tryb" role="group" aria-label="Rodzaj wykresu"><button type="button" data-t="cena" aria-pressed="true">Cena</button><button type="button" data-t="proc" aria-pressed="false">Zmiana %</button></div>
+        <button type="button" class="powieksz" id="wyk-pow" aria-label="Powiększ wykres" aria-pressed="false">⤢</button>
+      </div>
+      <div class="dodatki" id="wyk-dod" role="group" aria-label="Na wykresie">Na wykresie: <button type="button" data-d="wyd">Wydarzenia</button><button type="button" data-d="pom">Pomiar</button><button type="button" data-d="sr">Średnia 20 sesji</button></div>
+      <div class="wyk-rys" id="wyk-rys"><svg id="wyk-svg" aria-hidden="true"></svg><div class="wyk-dymek" id="wyk-dymek" hidden></div><p class="ukryte" id="wyk-opis" aria-live="polite"></p></div>
+      <div class="wyk-dol">
+        <div class="suwak"><span class="tor"></span><span class="zakres" id="wyk-zakres"></span><input type="range" id="wyk-s-od" aria-label="Początek okresu"><input type="range" id="wyk-s-do" aria-label="Koniec okresu"></div>
+        <div class="daty"><label>Od <input type="date" id="wyk-d-od"></label><label>Do <input type="date" id="wyk-d-do"></label></div>
+      </div>
+    </div>
+    <section class="statystyki" aria-labelledby="stat-t"><h3 id="stat-t">Statystyki okresu <small id="stat-okres"></small></h3><div id="wyk-stat"></div></section>
+    <section class="mapa" id="mapa" aria-labelledby="mapa-t">
+      <div class="mapa-gora"><h3 id="mapa-t">Mapa miesięcy <small>zmiana kursu w każdym miesiącu</small></h3><div class="mapa-wybor" role="group" aria-label="Spółka na mapie"><button type="button" class="mapa-auto" id="mapa-auto" aria-pressed="true">Wszystkie</button><span class="mapa-nazwa" id="mapa-nazwa" aria-live="off"></span><button type="button" class="mapa-strz" id="mapa-wstecz" aria-label="Poprzednia spółka">←</button><button type="button" class="mapa-strz" id="mapa-dalej" aria-label="Następna spółka">→</button></div></div>
+      <div class="mapa-postep" id="mapa-postep" aria-hidden="true"><i></i></div>
+      <div id="wyk-mapa"></div><p>* niepełny miesiąc: dane od <span class="d-od">…</span>, ostatnia sesja <span class="d-ost">…</span>.</p></section>
+    <section class="ranking" aria-labelledby="rank-t">
+      <h3 id="rank-t">Ranking <small><span class="d-od">…</span> – <span class="d-ost">…</span></small></h3>
+      <table><thead><tr><th scope="col">#</th><th scope="col">Spółka</th><th scope="col" class="num">Zmiana przez cały okres</th><th scope="col">Najbardziej zmienny miesiąc</th></tr></thead><tbody id="rank"></tbody></table>
+      <p>Zmiana przez cały okres: od pierwszego notowania w danych (<span class="d-od">…</span>) do ostatniej sesji (<span class="d-ost">…</span>). Najbardziej zmienny miesiąc: pełny miesiąc, w którym dzienne zmiany ceny były najbardziej rozrzucone (odchylenie standardowe).</p>
+    </section>
+  </div>
+</section>
+
+<section class="kal" id="kalendarz" aria-labelledby="kal-t" hidden>
+  <div class="wrap">
+    <h2 id="kal-t">Najbliższe wydarzenia</h2>
+    <div class="najblizsze" id="najblizsze"></div>
+  </div>
+  <div class="kal-tlo" data-odcien="c">
+    <div class="wrap">
+      <div class="kal-gora"><button type="button" id="kal-wstecz" aria-label="Poprzedni miesiąc">←</button><h3 id="kal-miesiac" aria-live="polite"></h3><button type="button" id="kal-dalej" aria-label="Następny miesiąc">→</button></div>
+      <div class="kal-dni" aria-hidden="true"><span>pon</span><span>wt</span><span>śr</span><span>czw</span><span>pt</span><span>sob</span><span>niedz</span></div>
+      <div class="kal-siatka" id="kal-siatka"></div>
+      <div class="dymek" id="dymek" role="tooltip" hidden></div>
+      <div class="kal-legenda"><span><i style="background:var(--cbf)"></i>Cyber_Folks</span><span><i style="background:var(--snt)"></i>Synektik</span><span><i style="background:var(--xtb)"></i>XTB</span><span><i style="background:repeating-linear-gradient(135deg,rgba(255,255,255,.25) 0 3px,transparent 3px 6px)"></i>brak sesji</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="slw" id="slownik" aria-labelledby="slw-t" hidden>
+  <div class="wrap">
+    <div class="slw-gora">
+      <h2 id="slw-t">Słownik</h2>
+      <label class="slw-szukaj"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5"/><path d="M12.8 12.8l4.4 4.4"/></svg><span class="ukryte">Szukaj w słowniku</span><input type="search" id="slw-q" placeholder="Szukaj pojęcia, na przykład dywidenda" autocomplete="off"></label>
+      <span class="slw-ile num" id="slw-ile" aria-live="polite"></span>
+    </div>
+    <div id="slw-widok"></div>
+  </div>
+</section>
+
+<section class="prj" id="projekt" aria-labelledby="prj-t" hidden>
+  <div class="wrap">
+    <h2 id="prj-t">Projekt</h2>
+    <p class="prj-wstep">GPW Pulse jest projektem edukacyjnym z&nbsp;zakresu inżynierii danych. Strona prezentuje kursy zamknięcia trzech spółek notowanych na Giełdzie Papierów Wartościowych w&nbsp;Warszawie od 14&nbsp;sierpnia 2023&nbsp;r. Dane są aktualizowane w&nbsp;każdy dzień sesji, w&nbsp;pięciu etapach opisanych niżej.</p>
+    <p class="prj-meta"><span>Ostatnia sesja: <b id="prj-ost">…</b></span><span><b class="num" id="prj-sesje">…</b> sesji na spółkę</span><span>Plik danych: <b id="prj-plik">…</b></span><span>Godziny według czasu polskiego</span></p>
+    <div id="prj-widok"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Dane: Yahoo Finance. To nie jest porada inwestycyjna. Dane mogą zawierać błędy i opóźnienia.</span>
+    <span>Kod: <a href="https://github.com/gracjan20022002-prog/GPW---pulse">GitHub (gracjan20022002-prog)</a></span>
+  </div>
+</footer>
+
+<script src="dane.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+// ---------- dane: z pliku dane.js obok strony (robi go kod/data_stream.py); bez pliku komunikat „Brak danych” ----------
+var D=window.DANE;
+function brakDanych(){
+  [].forEach.call(document.querySelectorAll('header.hero,.pasek,main,section.wyk,section.kal,section.slw,section.prj'),function(e){e.hidden=true;});
+  var s=document.createElement('section');s.className='brak';
+  s.innerHTML='<div class="wrap"><h2>Brak danych</h2><p>Strona nie znalazła pliku z notowaniami <code>dane.js</code> albo plik jest niepełny. Plik robi skrypt <code>kod/data_stream.py</code>.</p></div>';
+  document.body.insertBefore(s,document.querySelector('footer'));
+}
+if(!D||!D.daty||D.daty.length<2||!D.ceny||!D.ranking){brakDanych();return;}
+var DATY=D.daty,C=D.ceny;
+var N=DATY.length,OST=N-1;
+var SP=[{t:'CBF',nazwa:'Cyber_Folks'},{t:'SNT',nazwa:'Synektik'},{t:'XTB',nazwa:'XTB'}];
+SP.forEach(function(s){s.dane=C[s.t];s.cena=s.dane[OST];s.poprz=s.dane[OST-1];s.zl=s.cena-s.poprz;s.pr=(s.cena/s.poprz-1)*100;s.kol='var(--'+s.t.toLowerCase()+')';});
+
+// ---------- pomocnicze ----------
+var NB=' ',DNI=['niedziela','poniedziałek','wtorek','środa','czwartek','piątek','sobota'];
+function fmt(x){return Math.abs(x).toFixed(2).replace('.',',');}
+function fmt1(x){return Math.abs(x).toFixed(1).replace('.',',');}
+function znak(x){return x>0.004?'+':(x<-0.004?'−':'');}
+function strz(x){return x>0.004?'▲':(x<-0.004?'▼':'→');}
+function slowo(x){return x>0.004?'wzrost':(x<-0.004?'spadek':'bez zmiany');}
+function kl(x){return x>0.004?'zm-wzrost':(x<-0.004?'zm-spadek':'zm-zero');}
+function ddmm(iso){return iso.slice(8,10)+'.'+iso.slice(5,7);}
+function dzien(iso){var d=new Date(iso+'T12:00:00');return DNI[d.getDay()]+', '+ddmm(iso);}
+function sesje(x){if(x===1)return 'sesja';var j=x%10,d=x%100;return(j>=2&&j<=4&&(d<12||d>14))?'sesje':'sesji';}
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim();}
+function easeOut(x){return 1-Math.pow(1-x,3);}
+function zakres(arr,od){var a=arr.slice(od),mn=Math.min.apply(null,a),mx=Math.max.apply(null,a);return {a:a,mn:mn,mx:mx};}
+function punkty(arr,od,w,h,g){var z=zakres(arr,od),p=[];for(var i=0;i<z.a.length;i++){p.push([(i/(z.a.length-1)*w),(h-g-(z.a[i]-z.mn)/(z.mx-z.mn)*(h-2*g))]);}return p;}
+function linia(p){return p.map(function(q){return q[0].toFixed(1)+','+q[1].toFixed(1);}).join(' ');}
+
+// ---------- daty i liczby z pliku w tekstach strony ----------
+function pelna(iso){return ddmm(iso)+'.'+iso.slice(0,4);}
+[].forEach.call(document.querySelectorAll('.d-od'),function(e){e.textContent=pelna(DATY[0]);});
+[].forEach.call(document.querySelectorAll('.d-ost'),function(e){e.textContent=pelna(DATY[OST]);});
+document.getElementById('prj-ost').textContent=dzien(DATY[OST])+'.'+DATY[OST].slice(0,4);
+document.getElementById('prj-sesje').textContent=N;
+document.getElementById('prj-plik').textContent=D.wygenerowano?pelna(D.wygenerowano.slice(0,10))+', '+D.wygenerowano.slice(11):'brak';
+
+// ---------- ruch: domyślnie włączony (decyzja 20.10), przełącznik na stronie go wyłącza ----------
+var wybor=null;try{wybor=localStorage.getItem('gpwpulse-ruch');}catch(e){}
+var ruch=wybor!==null?wybor==='1':true;
+var przycisk=document.getElementById('ruch'),sluchacze=[];
+function pokazRuch(){document.documentElement.classList.toggle('bez-ruchu',!ruch);przycisk.setAttribute('aria-pressed',ruch?'true':'false');}
+przycisk.addEventListener('click',function(){ruch=!ruch;try{localStorage.setItem('gpwpulse-ruch',ruch?'1':'0');}catch(e){}pokazRuch();sluchacze.forEach(function(f){f();});});
+pokazRuch();
+
+// ---------- pasek notowań ----------
+(function(){
+  var t='';
+  for(var r=0;r<3;r++){SP.forEach(function(s){t+='<span><b>'+s.t+'</b>'+fmt(s.cena)+NB+'zł <span class="'+kl(s.pr)+'"><span aria-hidden="true">'+strz(s.pr)+'</span> '+znak(s.pr)+fmt(s.pr)+'%</span></span>';});}
+  document.getElementById('tasma').innerHTML=t+t;
+})();
+
+// ---------- od ostatniej wizyty ----------
+// Strona pamięta ostatnią sesję, którą widz już widział. Są od tamtej pory nowe sesje: zmiana od nich.
+// Pierwsza wizyta albo kolejna bez nowej sesji (np. drugi raz tego samego dnia): ostatnia sesja względem poprzedniej.
+(function(){
+  var KLUCZ='gpwpulse-wizyta',el=document.getElementById('wizyta');
+  function wiersze(idx){
+    return SP.map(function(s){
+      var a=s.dane[idx],b=s.cena,p=(b/a-1)*100;
+      return '<div class="wiersz num"><span class="kto"><i style="background:'+s.kol+'"></i>'+s.t+'</span><span class="ceny">'+fmt(a)+' → '+fmt(b)+NB+'zł</span><span class="zm '+kl(p)+'"><span aria-hidden="true">'+strz(p)+' </span><span class="ukryte">'+slowo(p)+' </span>'+znak(p)+fmt1(p)+'%</span></div>';
+    }).join('');
+  }
+  function pokaz(poprz){
+    var idx=-1;
+    if(poprz&&/^\d{4}-\d{2}-\d{2}$/.test(poprz)){for(var i=0;i<N;i++){if(DATY[i]<=poprz)idx=i;}}
+    if(idx>=0&&idx<OST){
+      var ile=OST-idx;
+      el.innerHTML='<div class="naglowek"><b>Od ostatniej wizyty</b><span>'+dzien(DATY[idx])+' · '+ile+' '+sesje(ile)+'</span></div>'+wiersze(idx);
+    }else{
+      el.innerHTML='<div class="naglowek"><b>Ostatnia sesja</b><span>'+dzien(DATY[OST])+' · względem '+ddmm(DATY[OST-1])+'</span></div>'+wiersze(OST-1);
+    }
+  }
+  var poprz=null;try{poprz=localStorage.getItem(KLUCZ);}catch(e){}
+  pokaz(poprz);
+  try{localStorage.setItem(KLUCZ,DATY[OST]);}catch(e){}
+})();
+
+
+// ---------- karty notowań ----------
+(function(){
+  var OD=N-64,w=300,h=86;
+  document.getElementById('karty').innerHTML=SP.map(function(s){
+    var p=punkty(s.dane,OD,w,h,10),ost=p[p.length-1];
+    var pole='M0,'+h+' L'+linia(p).split(' ').join(' L')+' L'+w+','+h+' Z';
+    return '<a class="spolka" href="#notowania"><div class="g"><span class="n"><i style="background:'+s.kol+'"></i>'+s.nazwa+(s.t!=='XTB'?' <small>'+s.t+'</small>':'')+'</span><span class="c num">'+fmt(s.cena)+NB+'zł</span></div>'+
+      '<div class="g"><span class="wz">względem '+ddmm(DATY[OST-1])+'</span><span class="z num '+kl(s.pr)+'"><span aria-hidden="true">'+strz(s.pr)+'</span><span class="ukryte">'+slowo(s.pr)+'</span> '+znak(s.zl)+fmt(s.zl)+NB+'zł ('+znak(s.pr)+fmt(s.pr)+'%)</span></div>'+
+      '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="g-'+s.t+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:'+s.kol+';stop-opacity:.28"/><stop offset="1" style="stop-color:'+s.kol+';stop-opacity:0"/></linearGradient></defs>'+
+      '<path d="'+pole+'" style="fill:url(#g-'+s.t+')"/><polyline points="'+linia(p)+'" fill="none" style="stroke:'+s.kol+'" stroke-width="2.2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg></a>';
+  }).join('');
+  [].forEach.call(document.querySelectorAll('.spolka'),function(k){
+    k.addEventListener('pointermove',function(e){var b=k.getBoundingClientRect();k.style.setProperty('--mx',(e.clientX-b.left)+'px');k.style.setProperty('--my',(e.clientY-b.top)+'px');});
+  });
+})();
+
+// ---------- stos kart 3D (ostre napisy w spoczynku) ----------
+(function(){
+  var stos=document.getElementById('stos'),scena=document.getElementById('scena'),OD=N-40;
+  stos.innerHTML=SP.map(function(s,i){
+    return '<a class="karta" href="#notowania" data-i="'+i+'" style="--kolor:'+s.kol+'" aria-label="'+s.nazwa+', '+fmt(s.cena)+' zł, '+slowo(s.pr)+' '+fmt(s.pr)+'%">'+
+      '<div class="nz"><span><i></i>'+s.nazwa+'</span><small class="num">'+s.t+'</small></div>'+
+      '<div><div class="cena num">'+fmt(s.cena)+NB+'zł</div><div class="zm num '+kl(s.pr)+'" aria-hidden="true">'+strz(s.pr)+' '+znak(s.pr)+fmt(s.pr)+'%</div></div>'+
+      '<svg viewBox="0 0 300 60" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+linia(punkty(s.dane,OD,300,60,6))+'" fill="none" style="stroke:'+s.kol+'" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg></a>';
+  }).join('');
+  var karty=[].slice.call(stos.querySelectorAll('.karta'));
+  var ceny=karty.map(function(k){return k.querySelector('.cena');});
+  var linie=karty.map(function(k){var p=k.querySelector('polyline'),L=1000;try{L=p.getTotalLength()*1.15;}catch(e){}return {p:p,L:L};});
+  var kolejnosc=[0,1,2];                       // kolejnosc[miejsce] = numer karty; miejsce 0 = z przodu
+  var stan=karty.map(function(){return {x:0,y:0,z:0,o:1,ry:0};});
+  var rot={x:0,y:0,tx:0,ty:0},roz={v:0,t:0},ost={x:50,y:20};
+  var start=0,biegnie=false,wejscie=ruch;
+
+  function cel(miejsce,r){return {x:miejsce*(46+64*r),y:-miejsce*(34+22*r),z:-miejsce*(90+40*r),ry:-miejsce*(4+3*r)};}
+  function ustawKarte(i,s){
+    var k=karty[i];
+    k.style.transform=(Math.abs(s.x)<0.05&&Math.abs(s.y)<0.05&&Math.abs(s.z)<0.05&&Math.abs(s.ry)<0.01)?'none':
+      'translate3d('+s.x.toFixed(2)+'px,'+s.y.toFixed(2)+'px,'+s.z.toFixed(2)+'px) rotateY('+s.ry.toFixed(3)+'deg)';
+    k.style.opacity=s.o>=0.999?'':s.o.toFixed(3);
+    k.style.zIndex=String(3-kolejnosc.indexOf(i));
+  }
+  function klatka(czas){
+    biegnie=false;
+    var gotowe=true,f=ruch?0.085:1;
+    rot.x+=(rot.tx-rot.x)*f;rot.y+=(rot.ty-rot.y)*f;roz.v+=(roz.t-roz.v)*f*0.8;
+    if(Math.abs(rot.tx-rot.x)>0.01||Math.abs(rot.ty-rot.y)>0.01||Math.abs(roz.t-roz.v)>0.002)gotowe=false;
+    var spoczynek=Math.abs(rot.x)<0.01&&Math.abs(rot.y)<0.01;
+    stos.style.transform=spoczynek?'none':'rotateX('+rot.x.toFixed(3)+'deg) rotateY('+rot.y.toFixed(3)+'deg)';
+    kolejnosc.forEach(function(nr,miejsce){
+      var c=cel(miejsce,roz.v),s=stan[nr],wej=1;
+      if(wejscie){var t=(czas-start-miejsce*150)/900;wej=easeOut(Math.max(0,Math.min(1,t)));if(t<1)gotowe=false;}
+      var cy=c.y+(1-wej)*80;
+      s.x+=(c.x-s.x)*f;s.y+=(cy-s.y)*(wejscie?1:f);s.z+=(c.z-s.z)*f;s.ry+=(c.ry-s.ry)*f;s.o=wejscie?wej:1;
+      if(Math.abs(c.x-s.x)>0.05||Math.abs(cy-s.y)>0.05||Math.abs(c.z-s.z)>0.05)gotowe=false;
+      ustawKarte(nr,s);
+      if(wejscie){var t2=Math.max(0,Math.min(1,(czas-start-250-miejsce*150)/1100));linie[nr].p.style.strokeDashoffset=(linie[nr].L*(1-easeOut(t2))).toFixed(1);}
+    });
+    karty.forEach(function(k){k.style.setProperty('--gx',ost.x.toFixed(1)+'%');k.style.setProperty('--gy',ost.y.toFixed(1)+'%');});
+    if(gotowe){
+      if(wejscie){wejscie=false;linie.forEach(function(l){l.p.style.strokeDasharray='none';l.p.style.strokeDashoffset='0';});}
+      kolejnosc.forEach(function(nr,miejsce){var c=cel(miejsce,roz.v),s=stan[nr];s.x=c.x;s.y=c.y;s.z=c.z;s.ry=c.ry;s.o=1;ustawKarte(nr,s);});
+      return;
+    }
+    if(ruch){biegnie=true;requestAnimationFrame(klatka);}else{klatka(czas+10000);}
+  }
+  function popchnij(){if(!biegnie){biegnie=true;requestAnimationFrame(klatka);}}
+  if(ruch){linie.forEach(function(l){l.p.style.strokeDasharray=l.L;l.p.style.strokeDashoffset=l.L;});karty.forEach(function(k){k.style.opacity='0';});}
+
+  scena.addEventListener('pointermove',function(e){
+    var b=scena.getBoundingClientRect(),px=(e.clientX-b.left)/b.width-0.5,py=(e.clientY-b.top)/b.height-0.5;
+    ost.x=(px+0.5)*100;ost.y=(py+0.5)*100;
+    if(!ruch)return;
+    rot.tx=-py*12;rot.ty=px*20;roz.t=1;popchnij();
+  });
+  scena.addEventListener('pointerleave',function(){rot.tx=0;rot.ty=0;roz.t=0;popchnij();});
+  karty.forEach(function(k,i){
+    k.addEventListener('click',function(e){
+      if(kolejnosc[0]!==i){e.preventDefault();kolejnosc.splice(kolejnosc.indexOf(i),1);kolejnosc.unshift(i);popchnij();}
+    });
+  });
+  sluchacze.push(function(){if(!ruch){rot.tx=0;rot.ty=0;roz.t=0;}popchnij();});
+  requestAnimationFrame(function(t){start=t;klatka(t);});
+  setTimeout(function(){if(wejscie){start=performance.now()-100000;popchnij();}},2500);
+})();
+
+// ---------- siatka 3D z wyostrzaniem ----------
+(function(){
+  var sek=document.getElementById('przestrzen'),cv=document.getElementById('siatka3d'),podp=document.getElementById('podpowiedz');
+  document.getElementById('legenda').innerHTML=SP.map(function(s){return '<span>'+s.nazwa+' <i style="background:'+s.kol+'"></i></span>';}).join('');
+  if(!window.THREE){sek.hidden=true;return;}
+  var r;try{r=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});}catch(e){sek.hidden=true;return;}
+  var PR=Math.min(window.devicePixelRatio||1,2);r.setPixelRatio(PR);
+  var sc=new THREE.Scene(),cam=new THREE.PerspectiveCamera(34,1,0.1,100);
+  var SX=17,SZ=9,NX=104,NZ=56,RZ=[-2.6,0,2.6];
+  var pos=[],roz=[],kol=[];
+  var szary=new THREE.Color('#5F5F6B'),jasny=new THREE.Color('#B9B9C4');
+  for(var j=0;j<NZ;j++){for(var i=0;i<NX;i++){
+    var x=-SX/2+i/(NX-1)*SX,z=-SZ/2+j/(NZ-1)*SZ,gl=(i%13===0)||(j%11===0);
+    pos.push(x,0,z);roz.push(gl?2.0:1.15);var c=gl?jasny:szary;kol.push(c.r,c.g,c.b);
+  }}
+  var linieCen=[];
+  // siatka pokazuje sesje od 18.03.2026, tak jak przed dołożeniem pełnej historii (Start zamknięta 20.10)
+  var P3=DATY.indexOf('2026-03-18'),N3=N-P3;
+  SP.forEach(function(s,k){
+    var d3=s.dane.slice(P3),mn=Math.min.apply(null,d3),mx=Math.max.apply(null,d3),c=new THREE.Color(css('--'+s.t.toLowerCase())),lp=[],lk=[];
+    for(var i=0;i<N3;i++){
+      var x=-SX/2+0.6+i/(N3-1)*(SX-1.2),y=0.45+(d3[i]-mn)/(mx-mn)*2.7,z=RZ[k];
+      lp.push(x,y,z);lk.push(c.r,c.g,c.b);
+      if(i%3===0||i===N3-1){pos.push(x,y,z);roz.push(i===N3-1?8.0:3.2);kol.push(c.r,c.g,c.b);}
+    }
+    linieCen.push({p:lp,k:lk});
+  });
+  var U={uFok:{value:new THREE.Vector3(SX/2-1.2,0,0)},uPR:{value:PR},uCzas:{value:0},uFala:{value:ruch?1:0},uZasieg:{value:4.6},uWzrost:{value:ruch?0:1}};
+  var FALA='float fala(vec3 p){return uFala*0.2*sin(p.x*0.5+uCzas*0.7)*cos(p.z*0.62+uCzas*0.45);}';
+  var WSP='uniform vec3 uFok;uniform float uPR;uniform float uCzas;uniform float uFala;uniform float uZasieg;uniform float uWzrost;';
+  var gP=new THREE.BufferGeometry();
+  gP.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  gP.setAttribute('aRoz',new THREE.Float32BufferAttribute(roz,1));
+  gP.setAttribute('aKol',new THREE.Float32BufferAttribute(kol,3));
+  var mP=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,
+    vertexShader:'attribute float aRoz;attribute vec3 aKol;'+WSP+'varying float vR;varying vec3 vK;'+FALA+
+      'void main(){vec3 p=position;p.y=p.y*uWzrost+fala(p);vec4 mv=modelViewMatrix*vec4(p,1.0);float d=distance(p.xz,uFok.xz);vR=smoothstep(0.7,uZasieg,d);vK=aKol;gl_PointSize=aRoz*uPR*(1.0+vR*2.6)*(15.0/-mv.z);gl_Position=projectionMatrix*mv;}',
+    fragmentShader:'varying float vR;varying vec3 vK;void main(){vec2 c=gl_PointCoord-0.5;float r=length(c);float m=mix(0.07,0.5,vR);float a=1.0-smoothstep(0.5-m,0.5,r);a*=mix(1.0,0.16,vR);if(a<0.015)discard;gl_FragColor=vec4(vK*mix(1.12,0.85,vR),a);}'});
+  sc.add(new THREE.Points(gP,mP));
+  function matLinii(alfa){
+    var u={uFok:U.uFok,uPR:U.uPR,uCzas:U.uCzas,uFala:U.uFala,uZasieg:U.uZasieg,uWzrost:U.uWzrost,uAlfa:{value:alfa}};
+    return new THREE.ShaderMaterial({uniforms:u,transparent:true,depthWrite:false,
+      vertexShader:'attribute vec3 aKol;'+WSP+'uniform float uAlfa;varying float vA;varying vec3 vK;'+FALA+
+        'void main(){vec3 p=position;p.y=p.y*uWzrost+fala(p);float d=distance(p.xz,uFok.xz);vA=uAlfa*mix(1.0,0.22,smoothstep(0.7,uZasieg,d));vK=aKol;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.0);}',
+      fragmentShader:'varying float vA;varying vec3 vK;void main(){gl_FragColor=vec4(vK,vA);}'});
+  }
+  // główne linie siatki
+  var gs=[],gk=[];
+  function seg(x1,z1,x2,z2){gs.push(x1,0,z1,x2,0,z2);gk.push(jasny.r,jasny.g,jasny.b,jasny.r,jasny.g,jasny.b);}
+  for(var j2=0;j2<NZ;j2+=11){var zz=-SZ/2+j2/(NZ-1)*SZ;for(var i2=0;i2<NX-1;i2++){seg(-SX/2+i2/(NX-1)*SX,zz,-SX/2+(i2+1)/(NX-1)*SX,zz);}}
+  for(var i3=0;i3<NX;i3+=13){var xx=-SX/2+i3/(NX-1)*SX;for(var j3=0;j3<NZ-1;j3++){seg(xx,-SZ/2+j3/(NZ-1)*SZ,xx,-SZ/2+(j3+1)/(NZ-1)*SZ);}}
+  var gL=new THREE.BufferGeometry();gL.setAttribute('position',new THREE.Float32BufferAttribute(gs,3));gL.setAttribute('aKol',new THREE.Float32BufferAttribute(gk,3));
+  sc.add(new THREE.LineSegments(gL,matLinii(0.16)));
+  linieCen.forEach(function(l){
+    var g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(l.p,3));g.setAttribute('aKol',new THREE.Float32BufferAttribute(l.k,3));
+    sc.add(new THREE.Line(g,matLinii(0.85)));
+  });
+  // znacznik miejsca wyostrzenia
+  var pier=new THREE.Mesh(new THREE.RingGeometry(0.34,0.4,48),new THREE.MeshBasicMaterial({color:new THREE.Color(css('--akcent')),transparent:true,opacity:0.75,side:THREE.DoubleSide,depthWrite:false}));
+  pier.rotation.x=-Math.PI/2;sc.add(pier);
+
+  var cel=U.uFok.value.clone(),kam={x:0,y:6.4},bazaY=6.4,biegnie=false,widoczna=false,t0=performance.now(),wz=ruch?0:1;
+  cam.position.set(0,bazaY,12.5);
+  function rozmiar(){var b=cv.getBoundingClientRect();if(b.width<1)return;r.setSize(b.width,b.height,false);cam.aspect=b.width/b.height;cam.fov=b.width<700?48:34;cam.updateProjectionMatrix();}
+  function klatka(){
+    biegnie=false;
+    var t=(performance.now()-t0)/1000;
+    if(ruch){U.uCzas.value=t;}
+    U.uFala.value=ruch?U.uFala.value+(1-U.uFala.value)*0.05:0;
+    U.uFok.value.lerp(cel,ruch?0.14:1);
+    if(widoczna){wz+=(1-wz)*(ruch?0.025:1);}
+    U.uWzrost.value=ruch?easeOut(Math.min(1,wz*1.02)):1;
+    cam.position.x+=(kam.x-cam.position.x)*(ruch?0.05:1);cam.position.y+=(kam.y-cam.position.y)*(ruch?0.05:1);
+    cam.lookAt(0,1.7,0);
+    pier.position.set(U.uFok.value.x,0.03,U.uFok.value.z);
+    var s=1+(ruch?Math.sin(t*3)*0.06:0);pier.scale.set(s,s,s);
+    r.render(sc,cam);
+    if(ruch&&widoczna){biegnie=true;requestAnimationFrame(klatka);}
+  }
+  function popchnij(){if(!biegnie){biegnie=true;requestAnimationFrame(klatka);}}
+  var rc=new THREE.Raycaster(),mysz=new THREE.Vector2(),pl=new THREE.Plane(new THREE.Vector3(0,1,0),0),pk=new THREE.Vector3(),kamCel=new THREE.PerspectiveCamera();
+  function ogr(v,a,b){return Math.max(a,Math.min(b,v));}
+  function ukryjPodp(){podp.classList.add('schowana');}
+  cv.addEventListener('click',function(e){
+    var b=cv.getBoundingClientRect();mysz.set((e.clientX-b.left)/b.width*2-1,-((e.clientY-b.top)/b.height*2-1));
+    // promień z kamery ustawionej tam, dokąd dojeżdża: po zatrzymaniu kamery pierścień stoi dokładnie pod kursorem
+    kamCel.copy(cam);kamCel.position.set(kam.x,kam.y,cam.position.z);kamCel.lookAt(0,1.7,0);kamCel.updateMatrixWorld();
+    rc.setFromCamera(mysz,kamCel);
+    if(rc.ray.intersectPlane(pl,pk)){cel.set(ogr(pk.x,-SX/2,SX/2),0,ogr(pk.z,-SZ/2,SZ/2));ukryjPodp();popchnij();}
+  });
+  cv.addEventListener('pointermove',function(e){var b=cv.getBoundingClientRect();if(!ruch||e.pointerType!=='mouse')return;kam.x=((e.clientX-b.left)/b.width-0.5)*3;kam.y=bazaY-((e.clientY-b.top)/b.height-0.5)*1.6;popchnij();});
+  cv.addEventListener('pointerleave',function(){kam.x=0;kam.y=bazaY;popchnij();});
+  cv.addEventListener('keydown',function(e){
+    var d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+    if(!d)return;e.preventDefault();cel.set(ogr(cel.x+d[0]*0.8,-SX/2,SX/2),0,ogr(cel.z+d[1]*0.8,-SZ/2,SZ/2));ukryjPodp();popchnij();
+  });
+  if('IntersectionObserver' in window){
+    new IntersectionObserver(function(w){widoczna=w[0].isIntersecting;if(widoczna)popchnij();},{threshold:0.15}).observe(cv);
+  }else{widoczna=true;}
+  window.addEventListener('resize',function(){rozmiar();popchnij();});
+  sluchacze.push(function(){if(!ruch){kam.x=0;kam.y=bazaY;}popchnij();});
+  rozmiar();popchnij();
+})();
+
+// ---------- droga danych w panelu Projekt: czerwone światło płynie bez przerwy po obwódkach i przewodzie ----------
+// Droga liczona w kolejności czytania (etap, przewód, etap…), więc światło przechodzi też przez zawinięte wiersze.
+(function(){
+  var droga=document.getElementById('droga'),el=[].slice.call(droga.children);
+  var V=90,T=150;                               // tempo w px na sekundę, długość srebrnej smugi w px
+  var poz=[],dl=0,t0=performance.now(),biegnie=false,widoczna=true;
+  function mierz(){var s=0,gap=parseFloat(getComputedStyle(droga).columnGap)||5;poz=el.map(function(e){var q={s:s,w:e.offsetWidth};s+=q.w+gap;return q;});dl=s-gap;}
+  // x: położenie czerwonego czoła względem lewej krawędzi elementu (px); za czołem srebrna smuga
+  function warstwa(x){
+    return 'linear-gradient(90deg,transparent '+(x-T).toFixed(1)+'px,rgba(196,200,214,.10) '+(x-T*0.6).toFixed(1)+'px,rgba(214,217,230,.32) '+(x-30).toFixed(1)+'px,rgba(229,56,59,.65) '+(x-10).toFixed(1)+'px,rgba(255,74,76,1) '+(x-2).toFixed(1)+'px,transparent '+(x+3).toFixed(1)+'px)';
+  }
+  function rysuj(teraz,statycznie){
+    var h=statycznie?-1e9:((teraz-t0)/1000*V)%(dl+T+20);
+    el.forEach(function(e,k){
+      var q=poz[k],x=h-q.s,wars=(x-T<q.w&&x+3>0)?[warstwa(x)]:[];
+      if(e.tagName==='B'){
+        e.style.background='linear-gradient(var(--pow2),var(--pow2)) padding-box,'+wars.map(function(z){return z+' border-box';}).concat(['linear-gradient(var(--linia2),var(--linia2)) border-box']).join(',');
+      }else{
+        e.style.backgroundImage=wars.concat(['linear-gradient(var(--linia2),var(--linia2))']).join(',');
+      }
+    });
+  }
+  function klatka(teraz){biegnie=false;rysuj(teraz,false);if(ruch&&widoczna){biegnie=true;requestAnimationFrame(klatka);}}
+  function popchnij(){if(!ruch){rysuj(performance.now(),true);return;}if(!biegnie){biegnie=true;requestAnimationFrame(klatka);}}
+  if('IntersectionObserver' in window){new IntersectionObserver(function(x){widoczna=x[0].isIntersecting;if(widoczna)popchnij();},{threshold:0}).observe(droga);}
+  window.addEventListener('resize',function(){mierz();popchnij();});
+  if(document.fonts&&document.fonts.ready){document.fonts.ready.then(function(){mierz();popchnij();});}
+  sluchacze.push(popchnij);
+  mierz();popchnij();
+})();
+
+// ---------- zakładka Wykresy (szkic): własny rysunek SVG ----------
+var rysujWykres=(function(){
+  var MSK=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+  var svg=document.getElementById('wyk-svg'),rys=document.getElementById('wyk-rys'),dym=document.getElementById('wyk-dymek'),opis=document.getElementById('wyk-opis');
+  var sek=document.getElementById('wykresy'),panel=document.getElementById('wyk-panel');
+  var sOd=document.getElementById('wyk-s-od'),sDo=document.getElementById('wyk-s-do'),zakres=document.getElementById('wyk-zakres'),dOd=document.getElementById('wyk-d-od'),dDo=document.getElementById('wyk-d-do');
+  var st={od:0,do:OST,on:{CBF:true,SNT:true,XTB:true},tryb:'cena',okres:6,anim:true};
+  var NS='http://www.w3.org/2000/svg';
+  function zl(x){return x.toFixed(2).replace('.',',')+NB+'zł';}
+  function kolorT(t){return 'var(--'+t.toLowerCase()+')';}
+  function pr(x){return znak(x)+Math.abs(x).toFixed(1).replace('.',',')+'%';}
+  // karty spółek
+  var KZ={CBF:'Cyber_Folks',SNT:'Synektik',XTB:'XTB'};
+  document.getElementById('wyk-karty').innerHTML=SP.map(function(s){
+    return '<button type="button" class="wk" data-t="'+s.t+'" aria-pressed="false" style="--kolor:'+s.kol+'"><span class="n"><i></i>'+s.nazwa+'</span><span class="c num">'+zl(s.cena)+'</span><span class="z num '+kl(s.pr)+'"><span aria-hidden="true">'+strz(s.pr)+'</span><span class="ukryte">'+slowo(s.pr)+'</span> '+znak(s.zl)+fmt(s.zl)+NB+'zł ('+znak(s.pr)+fmt(s.pr)+'%)</span><span class="wz">względem '+ddmm(DATY[OST-1])+'</span></button>';
+  }).join('');
+  var karty=[].slice.call(document.querySelectorAll('.wk'));
+  var wyb={};
+  function tylkoTa(t){
+    wyb[t]=!wyb[t];
+    var ile=Object.keys(wyb).filter(function(x){return wyb[x];}).length;
+    Object.keys(st.on).forEach(function(x){st.on[x]=ile===0?true:!!wyb[x];});
+    odswiez(true);
+  }
+  karty.forEach(function(k){k.addEventListener('click',function(){tylkoTa(k.getAttribute('data-t'));});});
+  // legenda
+  var leg=document.getElementById('wyk-leg');
+  leg.innerHTML=SP.map(function(s){return '<button type="button" data-t="'+s.t+'" aria-pressed="true" style="--kolor:'+s.kol+'"><i aria-hidden="true"></i>'+s.nazwa+' <span class="lc num"></span></button>';}).join('');
+  var legB=[].slice.call(leg.querySelectorAll('button'));
+  legB.forEach(function(b){b.addEventListener('click',function(){tylkoTa(b.getAttribute('data-t'));});});
+  // okresy
+  var okB=[].slice.call(document.querySelectorAll('#wyk-okresy button'));
+  function odDlaMiesiecy(m){if(!m)return 0;var d=data0(DATY[st.do]);d.setMonth(d.getMonth()-m);var g=iso0(d);for(var i=0;i<=st.do;i++){if(DATY[i]>=g)return i;}return 0;}
+  function data0(x){return new Date(x+'T12:00:00');}
+  function iso0(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  okB.forEach(function(b){b.addEventListener('click',function(){st.okres=+b.getAttribute('data-o');st.do=OST;st.od=odDlaMiesiecy(st.okres);st.pa=null;st.pb=null;odswiez(true);});});
+  // cena albo zmiana %
+  var trB=[].slice.call(document.querySelectorAll('#wyk-tryb button'));
+  trB.forEach(function(b){b.addEventListener('click',function(){st.tryb=b.getAttribute('data-t');odswiez(true);});});
+  // suwak i pola dat
+  [sOd,sDo].forEach(function(x){x.min=0;x.max=OST;x.step=1;});
+  dOd.min=dDo.min=DATY[0];dOd.max=dDo.max=DATY[OST];
+  function zSuwaka(){var a=+sOd.value,b=+sDo.value;if(b-a<5){if(this===sOd)a=b-5;else b=a+5;}st.od=Math.max(0,a);st.do=Math.min(OST,b);st.okres=-1;odswiez(false);}
+  sOd.addEventListener('input',zSuwaka);sDo.addEventListener('input',zSuwaka);
+  function indeks(x){for(var i=0;i<N;i++){if(DATY[i]>=x)return i;}return OST;}
+  dOd.addEventListener('change',function(){if(!dOd.value)return;st.od=Math.min(indeks(dOd.value),st.do-5);st.okres=-1;odswiez(true);});
+  dDo.addEventListener('change',function(){if(!dDo.value)return;var i=indeks(dDo.value);if(DATY[i]>dDo.value)i--;st.do=Math.max(i,st.od+5);st.okres=-1;odswiez(true);});
+  // powiększenie
+  var pow=document.getElementById('wyk-pow');
+  pow.addEventListener('click',function(){var d=!panel.classList.contains('duzy');panel.classList.toggle('duzy',d);sek.classList.toggle('pelny',d);document.documentElement.style.overflow=d?'hidden':'';pow.textContent=d?'✕':'⤢';pow.setAttribute('aria-pressed',d?'true':'false');pow.setAttribute('aria-label',d?'Zamknij pełny ekran':'Pokaż wykres na całe okno');requestAnimationFrame(function(){odswiez(false);});});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&panel.classList.contains('duzy'))pow.click();});
+
+  function wartosci(s){var a=s.dane.slice(st.od,st.do+1);if(st.tryb==='proc'){var b=a[0];return a.map(function(v){return (v/b-1)*100;});}return a;}
+  function krok(zakr){var c=[0.5,1,2,2.5,5,10,20,25,50,100,200];for(var i=0;i<c.length;i++){if(zakr/c[i]<=6)return c[i];}return 500;}
+  function el(n,a,txt){var e=document.createElementNS(NS,n);for(var k in a)e.setAttribute(k,a[k]);if(txt!=null)e.textContent=txt;return e;}
+  var geo=null;
+  function rysuj(anim){
+    var W=rys.clientWidth,H=rys.clientHeight;if(W<10)return;
+    var waski=W<640,mL=46,mR=waski?14:206,mT=30,tory=st.dod.wyd?SP.filter(function(s){return st.on[s.t];}).length:0,eh=tory?tory*20+8:0,mB=34+eh,pw=W-mL-mR,ph=H-mT-mB,yEv=mT+ph+16,yDat=mT+ph+eh+22;
+    while(svg.firstChild)svg.removeChild(svg.firstChild);
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    var wid=SP.filter(function(s){return st.on[s.t];}),ser=wid.map(function(s){return {s:s,v:wartosci(s)};});
+    var mn=Infinity,mx=-Infinity;ser.forEach(function(x){x.v.forEach(function(v){mn=Math.min(mn,v);mx=Math.max(mx,v);});});
+    var k=krok(mx-mn),y0=Math.floor(mn/k)*k,y1=Math.ceil(mx/k)*k;if(y1===y0)y1=y0+k;
+    var n=st.do-st.od;
+    function X(i){return mL+(n?i/n:0)*pw;}
+    function Y(v){return mT+(1-(v-y0)/(y1-y0))*ph;}
+    // siatka i oś cen
+    for(var v=y0;v<=y1+1e-9;v+=k){svg.appendChild(el('line',{x1:mL,x2:mL+pw,y1:Y(v),y2:Y(v),'class':'siatka'}));svg.appendChild(el('text',{x:mL-8,y:Y(v)+4,'text-anchor':'end','class':'os num'},(st.tryb==='proc'?znak(v):'')+String(+Math.abs(v).toFixed(2)).replace('.',',')));}
+    svg.appendChild(el('text',{x:mL-8,y:mT-12,'text-anchor':'end','class':'os'},st.tryb==='proc'?'%':'zł'));
+    // oś dat: do 30 sesji poniedziałki; dłużej początki miesięcy ze stałym krokiem (co 1, 2, 3, 6 albo 12 miesięcy),
+    // tak żeby napisy stały równo co najmniej 70 px od siebie; styczeń podpisany rokiem
+    var co=1,naMies=pw*21/Math.max(n,1);[1,2,3,6,12].some(function(c){co=c;return naMies*c>=70;});
+    var poprzM=null,ostX=-1e9;
+    for(var i=0;i<=n;i++){
+      var d=DATY[st.od+i],m=d.slice(5,7),lab=null;
+      if(n<=30){var dd=data0(d);if(i===0||dd.getDay()===1)lab=ddmm(d);}
+      else if(m!==poprzM&&i>0&&(+m-1)%co===0){lab=m==='01'?d.slice(0,4):MSK[+m-1];}
+      poprzM=m;
+      if(lab&&X(i)-ostX>40){svg.appendChild(el('text',{x:X(i),y:yDat,'text-anchor':'middle','class':'os num'},lab));ostX=X(i);}
+    }
+    // linie
+    var konce=[];
+    ser.forEach(function(x,j){
+      var pts=x.v.map(function(v,i){return X(i).toFixed(1)+','+Y(v).toFixed(1);}).join(' ');
+      var li=el('polyline',{points:pts,'class':'linia',style:'stroke:'+x.s.kol});svg.appendChild(li);
+      if(anim&&ruch){var L=li.getTotalLength();li.style.strokeDasharray=L;li.style.strokeDashoffset=L;li.getBoundingClientRect();li.style.transition='stroke-dashoffset .9s cubic-bezier(.2,.8,.2,1) '+(j*0.08)+'s';li.style.strokeDashoffset=0;}
+      var ost=x.v[x.v.length-1];konce.push({s:x.s,y:Y(ost),v:ost,zm:st.tryb==='proc'?ost:(ost/x.v[0]-1)*100});
+    });
+
+    // ---- dodatki: średnia 20 sesji, wydarzenia, pomiar ----
+    if(st.dod.sr){ser.forEach(function(x){var pts=[];for(var i=0;i<=n;i++){var g=st.od+i;if(g<19)continue;var sum=0;for(var q=g-19;q<=g;q++)sum+=x.s.dane[q];var m=sum/20;if(st.tryb==='proc')m=(m/x.s.dane[st.od]-1)*100;pts.push(X(i).toFixed(1)+','+Y(m).toFixed(1));}if(pts.length>1)svg.appendChild(el('polyline',{points:pts.join(' '),fill:'none',style:'stroke:#8A8A96','stroke-width':1.6,'stroke-dasharray':'6 5'}));});}
+    // wydarzenia: osobny tor pod wykresem dla każdej spółki; znaczki bliżej niż 20 px łączą się w jeden z liczbą wydarzeń.
+    // Pionowe linie do wykresu tylko przy okresie do ok. 6 miesięcy; dłużej linia pojawia się po najechaniu na znaczek.
+    var znl=null;
+    if(st.dod.wyd&&window.WYD_ALL){
+      var LIT={raport:'R',wstepne:'R',wz:'W',dyw:'D'},od=DATY[st.od],doo=DATY[st.do],dlugi=n>130;
+      znl=el('line',{y1:mT,y2:mT+ph,stroke:'rgba(255,255,255,.45)','stroke-dasharray':'2 4',style:'display:none;pointer-events:none'});svg.appendChild(znl);
+      wid.forEach(function(sp,tor){
+        var yT=yEv+tor*20,grupy=[];
+        window.WYD_ALL.forEach(function(w,wi){
+          if(w.typ==='wolne'||w.t!==sp.t||w.d<od||w.d>doo)return;
+          var i=-1;for(var q=st.od;q<=st.do;q++){if(DATY[q]>=w.d){i=q;break;}}if(i<0)return;
+          var xx=X(i-st.od),g=grupy[grupy.length-1];
+          if(!dlugi)svg.appendChild(el('line',{x1:xx,x2:xx,y1:mT,y2:mT+ph,style:'stroke:'+sp.kol+';pointer-events:none','stroke-opacity':.3,'stroke-dasharray':'2 4'}));
+          if(g&&xx-g.x<20)g.ind.push(wi);else grupy.push({x:xx,ind:[wi]});
+        });
+        grupy.forEach(function(g){
+          var ile=g.ind.length,zg=el('g',{'class':'zn','data-i':g.ind.join(','),'data-x':g.x.toFixed(1),style:'cursor:pointer'});
+          zg.appendChild(el('rect',{x:g.x-9,y:yT-9,width:18,height:18,rx:5,style:'fill:'+sp.kol}));
+          zg.appendChild(el('text',{x:g.x,y:yT+4,'text-anchor':'middle',style:'font-size:'+(ile>1?11:12)+'px;font-weight:800;fill:#0E1014;font-family:var(--font)'},ile>1?String(ile):LIT[window.WYD_ALL[g.ind[0]].typ]));
+          svg.appendChild(zg);
+        });
+      });
+    }
+    if(st.dod.pom&&st.pa!=null&&st.pa>=st.od&&st.pa<=st.do){
+      var xa=X(st.pa-st.od);svg.appendChild(el('line',{x1:xa,x2:xa,y1:mT,y2:mT+ph,stroke:'#FFFFFF','stroke-width':1.5}));
+      if(st.pb!=null&&st.pb>=st.od&&st.pb<=st.do){
+        var a0=Math.min(st.pa,st.pb),b0=Math.max(st.pa,st.pb),x1=X(a0-st.od),x2=X(b0-st.od);
+        svg.insertBefore(el('rect',{x:x1,y:mT,width:Math.max(1,x2-x1),height:ph,fill:'rgba(255,255,255,.07)'}),svg.firstChild);
+        svg.appendChild(el('line',{x1:X(st.pb-st.od),x2:X(st.pb-st.od),y1:mT,y2:mT+ph,stroke:'#FFFFFF','stroke-width':1.5}));
+        var linie=[ddmm(DATY[a0])+' → '+ddmm(DATY[b0])+' · '+(b0-a0)+' '+sesje(b0-a0)].concat(ser.map(function(x){var a=x.s.dane[a0],b=x.s.dane[b0];return x.s.t+' '+pr((b/a-1)*100)+' ('+znak(b-a)+fmt(b-a)+NB+'zł)';}));
+        var gp=el('g',{});var bx=Math.min(Math.max((x1+x2)/2-110,mL),mL+pw-220);var rr=el('rect',{x:bx,y:mT+6,width:220,height:linie.length*20+12,rx:10,fill:'#1C1C21',stroke:'#3A3A44'});gp.appendChild(rr);
+        linie.forEach(function(t,k){gp.appendChild(el('text',{x:bx+12,y:mT+26+k*20,style:'font-size:14px;font-weight:'+(k?700:600)+';fill:'+(k?'#F3F3F5':'#A6A6B0')+';font-family:var(--font)'},t));});
+        svg.appendChild(gp);
+      }
+    }
+    // plakietki: rozsunięte w pionie, gdy końce linii są bliżej niż 32 px
+    konce.sort(function(a,b){return a.y-b.y;});
+    for(var q=1;q<konce.length;q++){var pop=konce[q-1].py||konce[q-1].y;if(konce[q].y-pop<32)konce[q].py=pop+32;}
+    konce.forEach(function(kk){kk.py=kk.py||kk.y;});
+    var g2=el('g',{'class':'plaki'});
+    konce.forEach(function(kk){
+      g2.appendChild(el('circle',{cx:X(n),cy:kk.y,r:5,style:'fill:'+kk.s.kol+';stroke:#0A0A0C;stroke-width:2'}));
+      if(!waski){
+        var tekst=kk.s.t+' '+(st.tryb==='proc'?pr(kk.v):zl(kk.v)+' '+pr(kk.zm));
+        var gr=el('g',{'class':'plak'});var t=el('text',{x:X(n)+24,y:kk.py+5},tekst);gr.appendChild(t);g2.appendChild(gr);
+        svg.appendChild(g2);var bw=t.getComputedTextLength();
+        gr.insertBefore(el('rect',{x:X(n)+14,y:kk.py-14,width:bw+20,height:28,rx:7,style:'fill:'+kk.s.kol}),t);
+        g2.insertBefore(el('line',{x1:X(n)+5,y1:kk.y,x2:X(n)+14,y2:kk.py,style:'stroke:'+kk.s.kol,'stroke-width':1.5}),gr);
+      }
+    });
+    svg.appendChild(g2);
+    if(anim&&ruch){g2.style.opacity=0;g2.getBoundingClientRect();g2.style.transition='opacity .5s ease .6s';g2.style.opacity=1;}
+    // znacznik kursora
+    var kur=el('g',{'class':'kursor',style:'display:none'});kur.appendChild(el('line',{y1:mT,y2:mT+ph,stroke:'rgba(255,255,255,.35)','stroke-dasharray':'4 4'}));
+    ser.forEach(function(x){kur.appendChild(el('circle',{r:4.5,style:'fill:'+x.s.kol+';stroke:#0A0A0C;stroke-width:2'}));});
+    svg.appendChild(kur);
+    geo={X:X,Y:Y,n:n,mL:mL,pw:pw,ser:ser,kur:kur,W:W,znl:znl};
+    // legenda na telefonie: cena i zmiana; opis dla czytnika
+    legB.forEach(function(b){var t=b.getAttribute('data-t'),x=ser.filter(function(z){return z.s.t===t;})[0],lc=b.querySelector('.lc');lc.textContent=x?(st.tryb==='proc'?pr(x.v[x.v.length-1]):zl(x.v[x.v.length-1])+' '+pr((x.v[x.v.length-1]/x.v[0]-1)*100)):'';});
+    opis.textContent='Wykres '+(st.tryb==='proc'?'zmiany procentowej':'kursów zamknięcia')+' od '+ddmm(DATY[st.od])+'.'+DATY[st.od].slice(0,4)+' do '+ddmm(DATY[st.do])+'.'+DATY[st.do].slice(0,4)+'. '+ser.map(function(x){var a=x.s.dane[st.od],b=x.s.dane[st.do];return x.s.nazwa+': od '+zl(a)+' do '+zl(b)+', '+pr((b/a-1)*100)+'.';}).join(' ');
+  }
+  function pokazDymek(e){
+    if(!geo)return;var b=svg.getBoundingClientRect(),x=e.clientX-b.left;
+    var zn=e.target&&e.target.closest?e.target.closest('.zn'):null;
+    if(zn){var tu=zn.getAttribute('data-i').split(',').map(function(k){return window.WYD_ALL[+k];}),d0=tu[0].d,wiele=tu.some(function(w){return w.d!==d0;});
+      if(geo.znl){var zx=zn.getAttribute('data-x');geo.znl.setAttribute('x1',zx);geo.znl.setAttribute('x2',zx);geo.znl.style.display='';}
+      dym.innerHTML=(wiele?'<b>'+KZ[tu[0].t]+' · '+tu.length+' '+wydarzen(tu.length)+'</b>':'<b>'+DNI[data0(d0).getDay()]+', '+ddmm(d0)+'.'+d0.slice(0,4)+'</b>')+tu.map(function(w){return '<div style="grid-template-columns:auto 1fr"><i style="background:'+kolorT(w.t)+'"></i>'+(wiele?ddmm(w.d)+'.'+w.d.slice(0,4)+' · ':KZ[w.t]+': ')+w.tyt+'</div><div style="display:block;color:var(--tekst2)">'+w.op+(w.szcz?'. '+w.szcz:'')+'</div>';}).join('');
+      dym.hidden=false;var w0=dym.offsetWidth,lw=x+16;if(lw+w0>geo.W-8)lw=x-16-w0;dym.style.left=Math.max(0,lw)+'px';dym.style.top='36px';geo.kur.style.display='none';return;}
+    if(geo.znl)geo.znl.style.display='none';
+    var i=Math.round((x-geo.mL)/geo.pw*geo.n);if(i<0||i>geo.n){schowajDymek();return;}
+    var X=geo.X(i),kur=geo.kur;kur.style.display='';var c=kur.querySelectorAll('circle');kur.firstChild.setAttribute('x1',X);kur.firstChild.setAttribute('x2',X);
+    geo.ser.forEach(function(z,j){c[j].setAttribute('cx',X);c[j].setAttribute('cy',geo.Y(z.v[i]));});
+    var d=DATY[st.od+i];
+    dym.innerHTML='<b>'+DNI[data0(d).getDay()]+', '+ddmm(d)+'.'+d.slice(0,4)+'</b>'+geo.ser.slice().sort(function(a,b){return a.s.nazwa.localeCompare(b.s.nazwa);}).map(function(z){var cena=z.s.dane[st.od+i];return '<div><i style="background:'+z.s.kol+'"></i>'+z.s.nazwa+'<span class="num">'+(st.tryb==='proc'?pr(z.v[i]):zl(cena))+'</span></div>';}).join('');
+    dym.hidden=false;var w=dym.offsetWidth,lewo=X+16;if(lewo+w>geo.W-8)lewo=X-16-w;dym.style.left=Math.max(0,lewo)+'px';dym.style.top='36px';
+  }
+  function schowajDymek(){dym.hidden=true;if(geo){geo.kur.style.display='none';if(geo.znl)geo.znl.style.display='none';}}
+  function wydarzen(x){if(x===1)return 'wydarzenie';var j=x%10,d=x%100;return(j>=2&&j<=4&&(d<12||d>14))?'wydarzenia':'wydarzeń';}
+  svg.addEventListener('click',function(e){
+    if(!st.dod.pom||!geo)return;var b=svg.getBoundingClientRect(),i=Math.round((e.clientX-b.left-geo.mL)/geo.pw*geo.n);if(i<0||i>geo.n)return;
+    var g=st.od+i;if(st.pa!=null&&st.pb!=null){st.pa=null;st.pb=null;}else if(st.pa==null){st.pa=g;}else{st.pb=g;}rysuj(false);
+  });
+  svg.addEventListener('pointermove',pokazDymek);svg.addEventListener('pointerdown',pokazDymek);svg.addEventListener('pointerleave',schowajDymek);
+  function odswiez(anim){
+    st.anim=anim;
+    var ile=Object.keys(st.on).filter(function(x){return st.on[x];}).length;
+    var wybrane=Object.keys(wyb).filter(function(x){return wyb[x];}).length;
+    sek.classList.toggle('wybor',wybrane>0&&wybrane<3);
+    karty.forEach(function(k){k.setAttribute('aria-pressed',wyb[k.getAttribute('data-t')]?'true':'false');});
+    legB.forEach(function(b){b.setAttribute('aria-pressed',st.on[b.getAttribute('data-t')]?'true':'false');});
+    okB.forEach(function(b){b.setAttribute('aria-pressed',(+b.getAttribute('data-o')===st.okres)?'true':'false');});
+    trB.forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-t')===st.tryb?'true':'false');});
+    sOd.value=st.od;sDo.value=st.do;dOd.value=DATY[st.od];dDo.value=DATY[st.do];
+    zakres.style.left=(st.od/OST*100)+'%';zakres.style.width=((st.do-st.od)/OST*100)+'%';
+    schowajDymek();rysuj(anim);statystyki();if(mapa)mapa.odswiez();
+  }
+  // ranking z Golda (dane.js: kolejność, zmiana za cały okres i najbardziej zmienny pełny miesiąc jak w ranking.csv); strona go nie liczy, żeby pokazywała liczby sprawdzane przez kontrolę
+  var MIES=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+  var MIESIAC={};D.ranking.forEach(function(r){MIESIAC[r.spolka]=MIES[+r.miesiac.slice(5,7)-1]+' '+r.miesiac.slice(0,4);});
+  document.getElementById('rank').innerHTML=D.ranking.map(function(r){return {s:SP.filter(function(s){return s.t===r.spolka;})[0],z:r.zmiana};}).map(function(r,i){
+    return '<tr><td class="num">'+(i+1)+'</td><td class="nazwa" style="--kolor:'+r.s.kol+'"><i aria-hidden="true"></i>'+r.s.nazwa+'</td><td class="num '+kl(r.z)+'">'+znak(r.z)+Math.abs(r.z).toFixed(1).replace('.',',')+'%</td><td>'+MIESIAC[r.s.t]+'</td></tr>';
+  }).join('');
+  st.dod={wyd:true,pom:false,sr:false};st.pa=null;st.pb=null;
+  var dodB=[].slice.call(document.querySelectorAll('#wyk-dod button'));
+  function pokazDod(){dodB.forEach(function(b){b.setAttribute('aria-pressed',st.dod[b.getAttribute('data-d')]?'true':'false');});rys.classList.toggle('pomiar',st.dod.pom);}
+  dodB.forEach(function(b){b.addEventListener('click',function(){var k=b.getAttribute('data-d');st.dod[k]=!st.dod[k];if(k==='pom'){st.pa=null;st.pb=null;}pokazDod();rysuj(false);});});
+  pokazDod();
+  // statystyki okresu
+  function statystyki(){
+    document.getElementById('stat-okres').textContent=ddmm(DATY[st.od])+'.'+DATY[st.od].slice(0,4)+' – '+ddmm(DATY[st.do])+'.'+DATY[st.do].slice(0,4);
+    var w=SP.filter(function(s){return st.on[s.t];}).map(function(s){
+      var iMax=st.od,iMin=st.od,iL=-1,iG=-1,best=-1e9,worst=1e9,up=0,dn=0;
+      for(var i=st.od;i<=st.do;i++){if(s.dane[i]>s.dane[iMax])iMax=i;if(s.dane[i]<s.dane[iMin])iMin=i;if(i>st.od){var z=(s.dane[i]/s.dane[i-1]-1)*100;if(z>best){best=z;iL=i;}if(z<worst){worst=z;iG=i;}if(z>0.004)up++;else if(z<-0.004)dn++;}}
+      return '<tr><td class="nazwa" style="--kolor:'+s.kol+'"><i aria-hidden="true"></i>'+s.nazwa+'</td><td class="num">'+zl(s.dane[iMax])+'<small>'+pelna(DATY[iMax])+'</small></td><td class="num">'+zl(s.dane[iMin])+'<small>'+pelna(DATY[iMin])+'</small></td><td class="num zm-wzrost">'+pr(best)+'<small>'+pelna(DATY[iL])+'</small></td><td class="num zm-spadek">'+pr(worst)+'<small>'+pelna(DATY[iG])+'</small></td><td class="num">'+up+' / '+dn+'</td></tr>';
+    }).join('');
+    document.getElementById('wyk-stat').innerHTML='<table><thead><tr><th>Spółka</th><th>Najwyższa</th><th>Najniższa</th><th>Najlepszy dzień</th><th>Najgorszy dzień</th><th>Sesje ze wzrostem / spadkiem</th></tr></thead><tbody>'+w+'</tbody></table>';
+  }
+  // mapa miesięcy: jedna spółka naraz, wiersz na rok (na wąskim ekranie wiersz na miesiąc).
+  // „Wszystkie” zmienia spółkę co 15 s (przerwa, gdy kursor albo fokus jest nad mapą); strzałki wybierają ręcznie.
+  // Pokazuje tylko spółki wybrane kartami nad wykresem (nic nie wybrane = trzy).
+  var mapa=(function(){
+    var MIES=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'],CO_MS=15000;
+    var sekM=document.getElementById('mapa'),cel=document.getElementById('wyk-mapa'),nazwa=document.getElementById('mapa-nazwa'),postep=document.getElementById('mapa-postep');
+    var bAuto=document.getElementById('mapa-auto'),bWstecz=document.getElementById('mapa-wstecz'),bDalej=document.getElementById('mapa-dalej');
+    // zmiana w miesiącu: od ostatniej sesji poprzedniego miesiąca do ostatniej sesji tego miesiąca (pierwszy miesiąc od pierwszej sesji)
+    var mies=[];DATY.forEach(function(d,i){var m=d.slice(0,7);if(!mies.length||mies[mies.length-1].m!==m)mies.push({m:m,od:i,do:i});else mies[mies.length-1].do=i;});
+    var lata=[];mies.forEach(function(x){var r=x.m.slice(0,4);if(lata.indexOf(r)<0)lata.push(r);});
+    var ZM={};SP.forEach(function(s){ZM[s.t]={};mies.forEach(function(x,j){var a=j?s.dane[mies[j-1].do]:s.dane[x.od];ZM[s.t][x.m]={z:(s.dane[x.do]/a-1)*100,niepelny:j===0||j===mies.length-1};});});
+    var auto=true,biez=SP[0].t,timer=null,zostalo=CO_MS,startT=0,pauza=false;
+    function zbior(){return SP.filter(function(s){return st.on[s.t];});}
+    function kafel(s,rok,k){
+      var x=ZM[s.t][rok+'-'+String(k+1).padStart(2,'0')];
+      if(!x)return '<td><div class="k pusty"></div></td>';
+      var al=Math.min(.85,.12+Math.abs(x.z)/18*.73),c=x.z>=0?'61,220,132':'255,107,107';
+      return '<td><div class="k" style="background:rgba('+c+','+al.toFixed(2)+');color:'+(al>.5?'#0E1014':'#F3F3F5')+'">'+pr(x.z)+(x.niepelny?'*':'')+'</div></td>';
+    }
+    function tabela(s){
+      var pion=cel.clientWidth<800,h='<table class="'+(pion?'pion':'poziom')+'" aria-label="Zmiana kursu: '+s.nazwa+', każdy miesiąc">';
+      if(!pion){
+        h+='<thead><tr><th scope="col">Rok</th>'+MIES.map(function(m){return '<th scope="col">'+m+'</th>';}).join('')+'</tr></thead><tbody>';
+        lata.forEach(function(r){h+='<tr><th scope="row">'+r+'</th>';for(var k=0;k<12;k++)h+=kafel(s,r,k);h+='</tr>';});
+      }else{
+        h+='<thead><tr><th scope="col">Mies.</th>'+lata.map(function(r){return '<th scope="col">'+r+'</th>';}).join('')+'</tr></thead><tbody>';
+        MIES.forEach(function(m,k){h+='<tr><th scope="row">'+m+'</th>'+lata.map(function(r){return kafel(s,r,k);}).join('')+'</tr>';});
+      }
+      return h+'</tbody></table>';
+    }
+    function planuj(){clearTimeout(timer);timer=null;if(!auto||zbior().length<2||pauza)return;startT=performance.now();timer=setTimeout(function(){timer=null;przesun(1);},zostalo);}
+    // miekko: tabela przenika; odNowa: 15 s i pasek postępu liczą się od początku
+    function pokaz(miekko,odNowa){
+      var z=zbior();if(!z.some(function(s){return s.t===biez;})){biez=z[0].t;odNowa=true;}
+      var s=z.filter(function(x){return x.t===biez;})[0],jedna=z.length<2,biegnie=auto&&!jedna;
+      bWstecz.disabled=bDalej.disabled=bAuto.disabled=jedna;
+      bAuto.setAttribute('aria-pressed',biegnie?'true':'false');
+      nazwa.setAttribute('aria-live',biegnie?'off':'polite');
+      nazwa.innerHTML='<i style="background:'+s.kol+'"></i>'+s.nazwa;
+      var wstaw=function(){cel.innerHTML=tabela(s);cel.style.opacity='';};
+      if(miekko&&ruch){cel.style.opacity='0';setTimeout(wstaw,200);}else wstaw();
+      postep.hidden=!biegnie;
+      if(!biegnie){clearTimeout(timer);timer=null;postep.classList.remove('biegnie');}
+      else if(odNowa||(!timer&&!pauza)){zostalo=CO_MS;postep.classList.remove('biegnie');void postep.offsetWidth;postep.classList.add('biegnie');planuj();}
+    }
+    function przesun(o){var z=zbior(),i=0;z.forEach(function(s,k){if(s.t===biez)i=k;});biez=z[(i+o+z.length)%z.length].t;pokaz(true,true);}
+    bWstecz.addEventListener('click',function(){auto=false;przesun(-1);});
+    bDalej.addEventListener('click',function(){auto=false;przesun(1);});
+    bAuto.addEventListener('click',function(){auto=!auto;pokaz(false,true);});
+    function sprawdzPauze(){
+      var p=sekM.matches(':hover')||sekM.contains(document.activeElement);if(p===pauza)return;pauza=p;sekM.classList.toggle('pauza',p);
+      if(p){if(timer){clearTimeout(timer);timer=null;zostalo=Math.max(300,zostalo-(performance.now()-startT));}}else planuj();
+    }
+    ['mouseenter','mouseleave','focusin'].forEach(function(n){sekM.addEventListener(n,sprawdzPauze);});
+    sekM.addEventListener('focusout',function(){setTimeout(sprawdzPauze,0);});
+    pokaz(false,true);
+    return {odswiez:function(){pokaz(false,false);}};
+  })();
+  // dziś na tle historii (w kartach)
+  karty.forEach(function(k){
+    var s=SP.filter(function(z){return z.t===k.getAttribute('data-t');})[0],zm=[];for(var i=1;i<N;i++)zm.push((s.dane[i]/s.dane[i-1]-1)*100);
+    var dzis=s.pr,ile=dzis<0?zm.filter(function(z){return z<dzis;}).length:zm.filter(function(z){return z>dzis;}).length,proc=Math.round(ile/zm.length*100);
+    var t=document.createElement('span');t.className='tlo';t.innerHTML=(dzis<0?'Większy spadek niż dziś: ':'Większy wzrost niż dziś: ')+proc+'% sesji od '+ddmm(DATY[0])+'.'+DATY[0].slice(0,4);k.appendChild(t);
+  });
+  st.od=odDlaMiesiecy(6);
+  window.addEventListener('resize',function(){if(!sek.hidden){rysuj(false);mapa.odswiez();}});
+  return function(){odswiez(true);};
+})();
+
+// ---------- słownik: lista od A do Ż z kategoriami, karta wybranego hasła, wyszukiwanie i pojęcie dnia ----------
+var slownik=(function(){
+  var KAT=[{"k": "podstawy", "n": "Podstawy rynku"}, {"k": "handel", "n": "Handel i sesja"}, {"k": "ceny", "n": "Ceny i wykresy"}, {"k": "indeksy", "n": "Indeksy"}, {"k": "raporty", "n": "Raporty i wyniki"}, {"k": "wycena", "n": "Wskaźniki i wycena"}, {"k": "walne", "n": "Walne i dywidendy"}];
+  var H=[{"id": "gielda", "n": "Giełda", "k": "podstawy", "d": "Giełda to zorganizowany rynek, na którym kupuje się i sprzedaje akcje, obligacje i inne papiery wartościowe według wspólnych zasad. W Polsce działa Giełda Papierów Wartościowych w Warszawie (GPW), której pierwsza sesja odbyła się w kwietniu 1991 roku. Sama giełda niczego nie kupuje ani nie sprzedaje, tylko kojarzy zlecenia kupujących i sprzedających.", "z": ["akcja", "sesja", "knf"]}, {"id": "akcja", "n": "Akcja", "k": "podstawy", "d": "Akcja to część spółki, więc jej właściciel jest współwłaścicielem firmy w takim stopniu, jaki ta akcja stanowi. Daje prawo do udziału w zysku w postaci dywidendy i do głosu na walnym zgromadzeniu. Cena akcji na giełdzie zmienia się w ciągu sesji, bo zależy od tego, ile kupujący są gotowi za nią zapłacić.", "z": ["akcjonariusz", "dywidenda", "kapitalizacja"]}, {"id": "spolka-publiczna", "n": "Spółka publiczna", "k": "podstawy", "d": "Spółka publiczna to spółka akcyjna, której akcje są notowane na giełdzie i może je kupić każdy inwestor. W zamian musi regularnie publikować raporty i od razu informować o ważnych wydarzeniach. Nad tym, czy robi to rzetelnie, czuwa Komisja Nadzoru Finansowego.", "z": ["emitent", "raport-biezacy", "knf"]}, {"id": "emitent", "n": "Emitent", "k": "podstawy", "d": "Emitent to podmiot, który wypuścił papiery wartościowe, na przykład spółka, której akcje są notowane na giełdzie. To emitent odpowiada za raporty bieżące i okresowe. Słowo często pojawia się w komunikatach giełdy i w przepisach.", "z": ["spolka-publiczna", "emisja", "espi-ebi"]}, {"id": "akcjonariusz", "n": "Akcjonariusz", "k": "podstawy", "d": "Akcjonariusz to właściciel co najmniej jednej akcji spółki. Może głosować na walnym zgromadzeniu i dostaje dywidendę, jeśli spółka ją wypłaca. Kto przekroczy próg 5% głosów w spółce publicznej, musi zawiadomić o tym spółkę i KNF, a podobnie przy kolejnych progach.", "z": ["walne", "dywidenda", "free-float"]}, {"id": "rynek-glowny", "n": "Rynek Główny i NewConnect", "k": "podstawy", "d": "Rynek Główny to podstawowy rynek GPW dla większych spółek, z ostrzejszymi wymogami wejścia i raportowania. NewConnect to osobny rynek dla mniejszych i młodszych spółek, prowadzony przez GPW od 2007 roku. Spółki z Rynku Głównego publikują komunikaty w ESPI, a spółki z NewConnect w EBI.", "z": ["espi-ebi", "gielda", "ipo"]}, {"id": "knf", "n": "KNF", "k": "podstawy", "d": "Komisja Nadzoru Finansowego to urząd, który nadzoruje w Polsce rynek kapitałowy, banki i ubezpieczycieli. Zatwierdza prospekty przy debiutach, pilnuje obowiązków informacyjnych spółek i może nakładać kary. Prowadzi też system ESPI, przez który spółki z Rynku Głównego przekazują raporty.", "z": ["espi-ebi", "ipo", "spolka-publiczna"]}, {"id": "kdpw", "n": "KDPW", "k": "podstawy", "d": "Krajowy Depozyt Papierów Wartościowych prowadzi ewidencję akcji i obligacji notowanych na GPW. To w nim po każdej transakcji akcje przechodzą od sprzedającego do kupującego, a pieniądze w drugą stronę. Przez KDPW przechodzą też dywidendy, zanim trafią do domów maklerskich.", "z": ["t2", "dzien-wyplaty", "dom-maklerski"]}, {"id": "dom-maklerski", "n": "Dom maklerski", "k": "podstawy", "d": "Dom maklerski to firma, która pośredniczy między inwestorem a giełdą. Inwestor nie składa zleceń bezpośrednio na GPW, tylko przez swój dom maklerski, który przekazuje je dalej. Za tę usługę pobiera prowizję od każdej transakcji.", "z": ["rachunek-maklerski", "prowizja", "zlecenie"]}, {"id": "rachunek-maklerski", "n": "Rachunek maklerski", "k": "podstawy", "d": "Rachunek maklerski to konto w domu maklerskim, na którym zapisane są kupione akcje i pieniądze przeznaczone na inwestycje. Z niego składa się zlecenia kupna i sprzedaży. Na ten rachunek trafiają też dywidendy i pieniądze ze sprzedaży akcji.", "z": ["dom-maklerski", "zlecenie", "dzien-wyplaty"]}, {"id": "ipo", "n": "Debiut (IPO)", "k": "podstawy", "d": "Debiut, nazywany też IPO, to pierwsze wejście spółki na giełdę, często połączone ze sprzedażą nowych akcji inwestorom. Spółka przygotowuje prospekt, który zatwierdza KNF, i ustala cenę akcji w ofercie. Od pierwszego notowania akcje można kupować i sprzedawać na sesji.", "z": ["emisja", "knf", "rynek-glowny"]}, {"id": "ticker", "n": "Ticker", "k": "podstawy", "d": "Ticker to krótki symbol spółki używany w notowaniach, na GPW zwykle trzyliterowy. Pozwala szybko znaleźć spółkę i odróżnić ją od firm o podobnej nazwie. W serwisach zagranicznych do tickera dopisuje się oznaczenie giełdy, dla Warszawy końcówkę „.WA”.", "z": ["sesja", "kurs-zamkniecia"], "tu": ["start", "Pasek notowań i karty na stronie startowej podpisują spółki tickerami."]}, {"id": "sesja", "n": "Sesja", "k": "handel", "d": "Sesja to jeden dzień handlu na giełdzie. Na GPW notowania akcji trwają mniej więcej od 9:00 do 17:00, a dzień kończy aukcja zamknięcia, która ustala kurs zamknięcia. W weekendy i w dni wolne od sesji giełda nie notuje.", "z": ["notowania-ciagle", "aukcja", "dzien-bez-sesji"]}, {"id": "dzien-bez-sesji", "n": "Dzień bez sesji", "k": "handel", "d": "Dzień bez sesji to dzień roboczy, w którym giełda jest zamknięta, na przykład Wigilia, Boże Ciało albo 11 listopada. Takich dni nie ma w notowaniach i to nie jest błąd w danych. GPW ogłasza listę dni bez sesji z wyprzedzeniem na cały rok.", "z": ["sesja", "t2"], "tu": ["kalendarz", "Dni bez sesji są w kalendarzu zaznaczone szarym kreskowaniem."]}, {"id": "notowania-ciagle", "n": "Notowania ciągłe", "k": "handel", "d": "Notowania ciągłe to część sesji, w której transakcje zawierają się na bieżąco, gdy tylko zlecenia kupna i sprzedaży pasują do siebie ceną. Kurs zmienia się wtedy wiele razy w ciągu dnia. Tak notowana jest większość akcji na GPW.", "z": ["aukcja", "arkusz-zlecen", "sesja"]}, {"id": "aukcja", "n": "Aukcja", "k": "handel", "d": "Aukcja to faza sesji, w której zlecenia są tylko zbierane, a potem realizowane naraz, po jednej wspólnej cenie. Giełda wybiera taki kurs, przy którym da się zrealizować jak najwięcej zleceń. Aukcją zaczyna się i kończy dzień notowań.", "z": ["kurs-zamkniecia", "notowania-ciagle"]}, {"id": "kurs-zamkniecia", "n": "Kurs zamknięcia", "k": "handel", "d": "Kurs zamknięcia to cena akcji ustalona w aukcji na koniec sesji. Od niego liczy się zmianę dzienną i to on trafia do oficjalnego archiwum notowań giełdy. Serwisy z notowaniami mogą chwilowo podawać inne liczby, dlatego punktem odniesienia jest archiwum GPW.", "z": ["aukcja", "kurs-odniesienia", "ohlc"], "tu": ["wykresy", "Wszystkie wykresy na tej stronie pokazują kursy zamknięcia."]}, {"id": "kurs-odniesienia", "n": "Kurs odniesienia", "k": "handel", "d": "Kurs odniesienia to cena, od której giełda liczy zmianę dzienną i dopuszczalne wahania kursu w czasie sesji. Zwykle jest nim kurs zamknięcia z poprzedniej sesji. Przy zdarzeniach takich jak podział akcji giełda go koryguje, żeby porównanie miało sens.", "z": ["kurs-zamkniecia", "split", "zmiana-proc"]}, {"id": "zlecenie", "n": "Zlecenie", "k": "handel", "d": "Zlecenie to polecenie kupna albo sprzedaży akcji, które inwestor składa w domu maklerskim. Zlecenie z limitem wskazuje najwyższą cenę kupna albo najniższą cenę sprzedaży, a zlecenia bez limitu (PKC, PCR) mają się wykonać jak najszybciej po cenach z rynku. Niezrealizowane zlecenie czeka w arkuszu, aż ktoś przyjmie jego warunki albo minie jego ważność.", "z": ["arkusz-zlecen", "dom-maklerski", "plynnosc"]}, {"id": "arkusz-zlecen", "n": "Arkusz zleceń", "k": "handel", "d": "Arkusz zleceń to lista oczekujących zleceń kupna i sprzedaży danej akcji, ułożona według cen. Na górze stoją najlepsze oferty: najwyższa cena kupna i najniższa cena sprzedaży. Z arkusza widać, ile akcji da się kupić albo sprzedać bez dużej zmiany ceny.", "z": ["zlecenie", "spread", "plynnosc"]}, {"id": "spread", "n": "Spread", "k": "handel", "d": "Spread to różnica między najniższą ceną, za którą ktoś chce sprzedać akcję, a najwyższą, za którą ktoś chce ją kupić. Mały spread oznacza, że akcją handluje się łatwo i tanio. Przy rzadko handlowanych spółkach spread bywa duży i zjada część zysku.", "z": ["arkusz-zlecen", "plynnosc", "animator"]}, {"id": "plynnosc", "n": "Płynność", "k": "handel", "d": "Płynność mówi, jak łatwo kupić albo sprzedać akcje bez mocnego poruszenia ceny. Spółki o dużych obrotach są płynne, bo w arkuszu zawsze czekają chętni po obu stronach. Przy małej płynności nawet niewielkie zlecenie potrafi zmienić kurs o kilka procent.", "z": ["obrot", "spread", "free-float"]}, {"id": "wolumen", "n": "Wolumen", "k": "handel", "d": "Wolumen to liczba akcji, które w czasie sesji zmieniły właściciela. Pokazuje, jak duże było zainteresowanie spółką danego dnia. Duży ruch ceny przy dużym wolumenie zwykle znaczy więcej niż ten sam ruch przy małym.", "z": ["obrot", "plynnosc", "ohlc"]}, {"id": "obrot", "n": "Obrót", "k": "handel", "d": "Obrót to łączna wartość transakcji w złotych, czyli suma cen pomnożonych przez liczbę akcji z każdej transakcji. Razem z wolumenem pokazuje, ile pieniędzy przeszło przez daną spółkę albo cały rynek w czasie sesji. Giełda podaje obrót każdej spółki w archiwum notowań.", "z": ["wolumen", "plynnosc"]}, {"id": "animator", "n": "Animator rynku", "k": "handel", "d": "Animator rynku to dom maklerski, który na podstawie umowy stale wystawia zlecenia kupna i sprzedaży akcji danej spółki. Dzięki temu w arkuszu zawsze ktoś czeka po obu stronach, a spread jest mniejszy. Animator nie gra na wzrost ani na spadek, tylko poprawia płynność.", "z": ["plynnosc", "spread", "arkusz-zlecen"]}, {"id": "prowizja", "n": "Prowizja maklerska", "k": "handel", "d": "Prowizja to opłata, którą dom maklerski pobiera za wykonanie zlecenia, zwykle jako procent wartości transakcji z kwotą minimalną. Płaci się ją przy kupnie i przy sprzedaży. Przy małych transakcjach minimalna prowizja potrafi zjeść dużą część zysku.", "z": ["dom-maklerski", "zlecenie", "stopa-zwrotu"]}, {"id": "t2", "n": "Rozliczenie T+2", "k": "handel", "d": "T+2 oznacza, że transakcja rozlicza się dwa dni robocze po jej zawarciu. Dopiero wtedy kupujący staje się w ewidencji właścicielem akcji. Dlatego, żeby dostać dywidendę, trzeba kupić akcje najpóźniej dwie sesje przed dniem dywidendy.", "z": ["kdpw", "dzien-dywidendy"], "tu": ["kalendarz", "Przy dniach dywidendy kalendarz podaje ostatni dzień zakupu."]}, {"id": "krotka-sprzedaz", "n": "Krótka sprzedaż", "k": "handel", "d": "Krótka sprzedaż to sprzedaż akcji pożyczonych od kogoś innego w nadziei, że ich cena spadnie. Inwestor odkupuje je później taniej, oddaje pożyczającemu i zatrzymuje różnicę. Jeśli cena wzrośnie, strata może być bardzo duża, bo wzrost nie ma górnej granicy.", "z": ["bessa", "zlecenie"]}, {"id": "ohlc", "n": "OHLC", "k": "ceny", "d": "OHLC to cztery ceny opisujące jedną sesję: otwarcia (Open), najwyższa (High), najniższa (Low) i zamknięcia (Close). Razem pokazują nie tylko, gdzie kurs skończył dzień, ale też jak daleko wychylił się w ciągu dnia. Z tych czterech liczb rysuje się świece.", "z": ["swieca", "kurs-zamkniecia", "wolumen"]}, {"id": "swieca", "n": "Świeca", "k": "ceny", "d": "Świeca pokazuje na wykresie jedną sesję za pomocą cen otwarcia, zamknięcia, maksimum i minimum. Grube ciało łączy otwarcie z zamknięciem, a cienkie knoty sięgają do ceny najwyższej i najniższej. Kolor mówi, czy sesja skończyła się wyżej, czy niżej, niż się zaczęła.", "z": ["ohlc", "wykres-liniowy", "analiza-techniczna"]}, {"id": "wykres-liniowy", "n": "Wykres liniowy", "k": "ceny", "d": "Wykres liniowy łączy kursy zamknięcia z kolejnych sesji jedną linią. Gubi wahania w ciągu dnia, za to dobrze pokazuje kierunek ceny w dłuższym okresie. Łatwo też na nim porównać kilka spółek naraz.", "z": ["swieca", "trend", "zmiana-proc"], "tu": ["wykresy", "Zakładka Wykresy pokazuje wykres liniowy trzech spółek, w złotych albo w procentach."]}, {"id": "zmiana-proc", "n": "Zmiana procentowa", "k": "ceny", "d": "Zmiana procentowa mówi, o jaką część ceny wyjściowej zmienił się kurs, a zmiana w złotych, o ile podrożał albo potaniał. Procenty nie są symetryczne, bo za każdym razem dzieli się przez inną cenę początkową. Wzrost z 10 do 15 zł to +50%, a spadek z 15 do 10 zł to −33%.", "z": ["stopa-zwrotu", "kurs-odniesienia"], "tu": ["wykresy", "Przełącznik „Zmiana %” nad wykresem liczy procenty od pierwszej sesji wybranego okresu."]}, {"id": "stopa-zwrotu", "n": "Stopa zwrotu", "k": "ceny", "d": "Stopa zwrotu to zysk albo strata z inwestycji wyrażona w procentach. Liczy się ją od ceny zakupu do ceny sprzedaży, a pełna stopa zwrotu dolicza też otrzymane dywidendy. Bez dywidend wynik spółek, które dużo wypłacają, wygląda gorzej, niż był naprawdę.", "z": ["zmiana-proc", "dywidenda", "indeks-dochodowy"], "tu": ["wykresy", "Ranking liczy zmianę samego kursu, bez dywidend."]}, {"id": "srednia-kroczaca", "n": "Średnia krocząca", "k": "ceny", "d": "Średnia krocząca to średnia kursów z ostatnich kilku sesji, liczona od nowa po każdej sesji. Wygładza dzienne skoki i ułatwia dostrzeżenie kierunku ceny. Gdy kurs przebija średnią od dołu albo od góry, część inwestorów traktuje to jako sygnał.", "z": ["trend", "analiza-techniczna"], "tu": ["wykresy", "Średnią z 20 sesji włączysz przyciskiem nad wykresem."]}, {"id": "trend", "n": "Trend", "k": "ceny", "d": "Trend to przeważający kierunek ruchu ceny w dłuższym czasie: wzrostowy, spadkowy albo boczny. W trendzie wzrostowym kolejne dołki i szczyty wypadają coraz wyżej. Trend widać dopiero z pewnej odległości, bo pojedyncze sesje potrafią iść w drugą stronę.", "z": ["hossa", "bessa", "srednia-kroczaca"]}, {"id": "hossa", "n": "Hossa", "k": "ceny", "d": "Hossa to długi okres wzrostów, gdy ceny większości akcji idą w górę. Często mówi się o niej, gdy indeks wzrósł o co najmniej 20% od dołka. Przeciwieństwem hossy jest bessa.", "z": ["bessa", "trend", "indeks"]}, {"id": "bessa", "n": "Bessa", "k": "ceny", "d": "Bessa to długi okres spadków, gdy ceny większości akcji idą w dół. Zwykle mówi się o niej, gdy indeks spadł o co najmniej 20% od szczytu. W bessie nawet dobre wyniki spółki nie zawsze chronią jej kurs.", "z": ["hossa", "trend", "krotka-sprzedaz"]}, {"id": "zmiennosc", "n": "Zmienność", "k": "ceny", "d": "Zmienność mówi, jak mocno i jak często cena waha się w krótkim czasie. Spółka o dużej zmienności potrafi w ciągu jednej sesji zmienić kurs o kilka procent, w obie strony. Wysoka zmienność to większa szansa na zysk, ale też większe ryzyko straty.", "z": ["odchylenie", "plynnosc"]}, {"id": "odchylenie", "n": "Odchylenie standardowe", "k": "ceny", "d": "Odchylenie standardowe to liczba, która mówi, jak bardzo wartości są rozrzucone wokół średniej. Na giełdzie liczy się je zwykle z dziennych zmian ceny i używa jako miary zmienności. Spokojny miesiąc ma niskie odchylenie, a miesiąc z dużymi skokami w obie strony wysokie.", "z": ["zmiennosc", "zmiana-proc"], "tu": ["wykresy", "Ranking wybiera najbardziej zmienny miesiąc właśnie według odchylenia standardowego."]}, {"id": "analiza-techniczna", "n": "Analiza techniczna", "k": "ceny", "d": "Analiza techniczna próbuje przewidywać ruchy ceny na podstawie samego wykresu i wolumenu. Szuka w nich powtarzalnych układów, trendów i poziomów, przy których cena często zawracała. Nie ocenia, ile spółka jest warta, tylko jak zachowują się kupujący i sprzedający.", "z": ["analiza-fundamentalna", "swieca", "srednia-kroczaca"]}, {"id": "analiza-fundamentalna", "n": "Analiza fundamentalna", "k": "ceny", "d": "Analiza fundamentalna ocenia wartość spółki na podstawie jej wyników, zadłużenia, perspektyw i branży. Porównuje tę wartość z ceną na giełdzie, żeby ocenić, czy akcje są drogie, czy tanie. Korzysta z raportów okresowych i wskaźników takich jak C/Z.", "z": ["analiza-techniczna", "raport-okresowy", "cz"]}, {"id": "indeks", "n": "Indeks giełdowy", "k": "indeksy", "d": "Indeks giełdowy to jedna liczba, która pokazuje, jak zmieniają się ceny wybranej grupy spółek. Dzięki niemu jednym spojrzeniem widać, czy rynek jako całość rośnie, czy spada. Na GPW najczęściej śledzi się WIG i WIG20.", "z": ["wig", "wig20", "indeks-dochodowy"]}, {"id": "wig", "n": "WIG", "k": "indeksy", "d": "WIG to najstarszy i najszerszy indeks GPW, liczony od pierwszej sesji w 1991 roku. Obejmuje spółki z Rynku Głównego, które spełniają warunki udziału w indeksie. Jest indeksem dochodowym, czyli uwzględnia też wypłacane dywidendy.", "z": ["indeks", "wig20", "indeks-dochodowy"]}, {"id": "wig20", "n": "WIG20", "k": "indeksy", "d": "WIG20 to indeks 20 największych i najbardziej płynnych spółek z Rynku Głównego GPW. Jego skład giełda sprawdza okresowo, więc spółki do niego wchodzą i z niego wypadają. To indeks cenowy, który liczy same zmiany kursów, bez dywidend.", "z": ["mwig40-swig80", "wig", "indeks-dochodowy"]}, {"id": "mwig40-swig80", "n": "mWIG40 i sWIG80", "k": "indeksy", "d": "mWIG40 obejmuje 40 średnich, a sWIG80 80 mniejszych spółek z Rynku Głównego GPW. Razem z WIG20 dzielą rynek na trzy warstwy według wielkości. Pozwalają porównać, jak radzą sobie średnie i małe firmy na tle największych.", "z": ["wig20", "wig", "kapitalizacja"]}, {"id": "indeks-dochodowy", "n": "Indeks dochodowy i cenowy", "k": "indeksy", "d": "Indeks dochodowy zakłada, że wypłacone dywidendy od razu wracają do tych samych akcji. Indeks cenowy liczy tylko zmiany kursów, więc w dniu odcięcia dywidendy spada razem z ceną. Parą takich indeksów są WIG20 i jego dochodowa wersja WIG20TR.", "z": ["wig", "wig20", "odciecie"]}, {"id": "free-float", "n": "Free float", "k": "indeksy", "d": "Free float to akcje w wolnym obrocie, czyli te, które nie należą do dużych, stałych akcjonariuszy. Od jego wielkości zależy, jak płynne są akcje i jak dużą wagę spółka ma w indeksach. Spółka warta dużo, ale z małym free floatem może mieć w indeksie mniejszą wagę niż mniejsza firma.", "z": ["plynnosc", "akcjonariusz", "indeks"]}, {"id": "espi-ebi", "n": "ESPI i EBI", "k": "raporty", "d": "ESPI i EBI to systemy, którymi spółki giełdowe przekazują oficjalne komunikaty. Z ESPI, prowadzonego przez KNF, korzystają spółki z Rynku Głównego, a z EBI, prowadzonego przez GPW, spółki z NewConnect. Każdy komunikat dociera do wszystkich inwestorów w tej samej chwili.", "z": ["raport-biezacy", "knf", "rynek-glowny"], "tu": ["kalendarz", "Daty w kalendarzu pochodzą z komunikatów ESPI spółek."]}, {"id": "raport-biezacy", "n": "Raport bieżący", "k": "raporty", "d": "Raport bieżący to komunikat o ważnym wydarzeniu w spółce, publikowany zaraz, gdy do niego dojdzie. Dotyczy na przykład dużej umowy, zwołania walnego zgromadzenia albo wypłaty dywidendy. Każdy ma numer złożony z kolejnego numeru i roku, na przykład 8/2025.", "z": ["espi-ebi", "raport-okresowy", "walne"]}, {"id": "raport-okresowy", "n": "Raport okresowy", "k": "raporty", "d": "Raporty okresowe to regularne sprawozdania finansowe spółki: kwartalne, półroczne i roczne. Terminy ich publikacji spółka ogłasza z góry, w harmonogramie na cały rok obrotowy. Raport roczny bada, a półroczny przegląda biegły rewident.", "z": ["rok-obrotowy", "biegly-rewident", "wstepne-wyniki"], "tu": ["kalendarz", "Raporty mają w kalendarzu i na wykresie znaczek R."]}, {"id": "rok-obrotowy", "n": "Rok obrotowy", "k": "raporty", "d": "Rok obrotowy to okres, za który spółka zamyka księgi i przygotowuje raport roczny. Zwykle pokrywa się z rokiem kalendarzowym, ale może zaczynać się w innym miesiącu, na przykład w październiku. Wtedy kwartały w raportach spółki nie pokrywają się z kwartałami kalendarza.", "z": ["raport-okresowy", "walne"]}, {"id": "raport-skonsolidowany", "n": "Raport skonsolidowany", "k": "raporty", "d": "Raport skonsolidowany pokazuje wyniki całej grupy kapitałowej, czyli spółki matki razem ze spółkami zależnymi. Raport jednostkowy dotyczy tylko samej spółki matki. Inwestorzy patrzą zwykle na skonsolidowany, bo lepiej oddaje cały biznes.", "z": ["raport-okresowy", "przychody"]}, {"id": "przychody", "n": "Przychody", "k": "raporty", "d": "Przychody to pieniądze, które spółka uzyskała w danym okresie ze sprzedaży swoich produktów i usług. To pierwsza linia rachunku wyników, zanim odejmie się jakiekolwiek koszty. Rosnące przychody nie oznaczają jeszcze zysku, jeśli koszty rosną szybciej.", "z": ["zysk-netto", "ebitda", "raport-okresowy"]}, {"id": "zysk-netto", "n": "Zysk netto", "k": "raporty", "d": "Zysk netto to to, co zostaje spółce z przychodów po odjęciu wszystkich kosztów, odsetek i podatku. Z niego wypłaca się dywidendę albo zatrzymuje go w firmie na rozwój. Zysk netto podzielony przez liczbę akcji daje zysk na akcję.", "z": ["przychody", "zysk-na-akcje", "dywidenda"]}, {"id": "ebitda", "n": "EBITDA", "k": "raporty", "d": "EBITDA to zysk operacyjny przed odjęciem odsetek, podatku i amortyzacji. Pokazuje, ile spółka zarabia na samej działalności, niezależnie od sposobu finansowania i księgowego rozłożenia kosztów inwestycji. Spółki często podają też EBITDA skorygowaną, czyli bez jednorazowych zdarzeń.", "z": ["zysk-netto", "ev-ebitda", "konsensus"]}, {"id": "konsensus", "n": "Konsensus", "k": "raporty", "d": "Konsensus to średnia prognoz analityków dotyczących wyników spółki, na przykład zysku w danym kwartale. Po publikacji raportu porównuje się z nim wynik rzeczywisty. Kurs często reaguje nie na sam wynik, tylko na to, czy był lepszy, czy gorszy od konsensusu.", "z": ["raport-okresowy", "wstepne-wyniki"]}, {"id": "wstepne-wyniki", "n": "Wstępne wyniki", "k": "raporty", "d": "Wstępne wyniki to szacunkowe dane finansowe, które spółka podaje przed pełnym raportem okresowym. Pozwalają szybciej poznać najważniejsze liczby, takie jak przychody i zysk. Ostateczne dane w raporcie mogą się od nich nieco różnić.", "z": ["raport-okresowy", "konsensus"]}, {"id": "biegly-rewident", "n": "Biegły rewident", "k": "raporty", "d": "Biegły rewident to niezależny audytor, który bada roczne sprawozdanie finansowe spółki i przegląda półroczne. Sprawdza, czy liczby są rzetelne i zgodne z zasadami rachunkowości. Jego sprawozdanie jest częścią raportu rocznego.", "z": ["raport-okresowy", "walne"]}, {"id": "kapitalizacja", "n": "Kapitalizacja", "k": "wycena", "d": "Kapitalizacja to giełdowa wartość spółki, czyli cena jednej akcji pomnożona przez liczbę wszystkich akcji. Zmienia się razem z kursem przy każdej sesji. Spółka z akcją po 50 zł i 10 mln akcji jest wyceniana na 500 mln zł.", "z": ["akcja", "free-float", "ev-ebitda"]}, {"id": "zysk-na-akcje", "n": "Zysk na akcję (EPS)", "k": "wycena", "d": "Zysk na akcję, w skrócie EPS, to zysk netto podzielony przez liczbę akcji. Pozwala porównać zyski spółek o bardzo różnej liczbie akcji. Jest podstawą wskaźnika C/Z.", "z": ["zysk-netto", "cz"]}, {"id": "cz", "n": "C/Z", "k": "wycena", "d": "C/Z to cena akcji podzielona przez roczny zysk na akcję, czyli informacja, ile płaci się za każdą złotówkę rocznego zysku. Wskaźnik 15 oznacza, że za złotówkę zysku inwestor płaci 15 zł. Niskie C/Z może oznaczać okazję albo kłopoty, dlatego porównuje się je w obrębie jednej branży.", "z": ["zysk-na-akcje", "cwk", "ev-ebitda"]}, {"id": "cwk", "n": "C/WK", "k": "wycena", "d": "C/WK to cena akcji podzielona przez wartość księgową na akcję, czyli przez majątek spółki po odjęciu zobowiązań. Wynik poniżej 1 oznacza, że giełda wycenia spółkę niżej niż jej majątek w księgach. Wskaźnik najlepiej sprawdza się przy firmach z dużym majątkiem, na przykład bankach.", "z": ["cz", "roe"]}, {"id": "ev-ebitda", "n": "EV/EBITDA", "k": "wycena", "d": "EV/EBITDA to wartość przedsiębiorstwa, czyli kapitalizacja powiększona o dług netto, podzielona przez EBITDA. W odróżnieniu od C/Z uwzględnia zadłużenie, więc lepiej porównuje firmy finansowane w różny sposób. Im niższy wynik, tym taniej giełda wycenia działalność spółki.", "z": ["ebitda", "kapitalizacja", "cz"]}, {"id": "stopa-dywidendy", "n": "Stopa dywidendy", "k": "wycena", "d": "Stopa dywidendy to dywidenda na akcję podzielona przez cenę akcji, wyrażona w procentach. Mówi, jaka część ceny akcji wraca do akcjonariusza w gotówce. Przy akcji po 100 zł i dywidendzie 4 zł stopa dywidendy wynosi 4%.", "z": ["dywidenda", "stopa-zwrotu"]}, {"id": "roe", "n": "ROE", "k": "wycena", "d": "ROE to zysk netto podzielony przez kapitał własny spółki, wyrażony w procentach. Mówi, ile spółka zarabia na pieniądzach należących do akcjonariuszy. Wysokie ROE przez kilka lat z rzędu świadczy o dobrej rentowności, o ile nie wynika z dużego zadłużenia.", "z": ["zysk-netto", "cwk"]}, {"id": "walne", "n": "Walne zgromadzenie", "k": "walne", "d": "Walne zgromadzenie to zebranie akcjonariuszy, na którym zapadają najważniejsze decyzje spółki. Zwyczajne odbywa się raz w roku, najpóźniej sześć miesięcy po końcu roku obrotowego, i zatwierdza wyniki oraz podział zysku. Nadzwyczajne zwołuje się w razie potrzeby, na przykład w sprawie połączenia spółek.", "z": ["dywidenda", "zarzad-rada", "polaczenie"], "tu": ["kalendarz", "Walne zgromadzenia mają w kalendarzu i na wykresie znaczek W."]}, {"id": "zarzad-rada", "n": "Zarząd i rada nadzorcza", "k": "walne", "d": "Zarząd prowadzi bieżące sprawy spółki i odpowiada za jej wyniki. Rada nadzorcza kontroluje zarząd w imieniu akcjonariuszy i opiniuje między innymi propozycję podziału zysku. Członków rady wybiera walne zgromadzenie.", "z": ["walne", "akcjonariusz"]}, {"id": "dywidenda", "n": "Dywidenda", "k": "walne", "d": "Dywidenda to część zysku, którą spółka wypłaca akcjonariuszom, zwykle raz w roku. O jej wysokości decyduje walne zgromadzenie na wniosek zarządu. Dostaje ją każdy, kto ma akcje na koniec dnia dywidendy.", "z": ["dzien-dywidendy", "stopa-dywidendy", "odciecie"], "tu": ["kalendarz", "Dni dywidendy i wypłaty mają w kalendarzu i na wykresie znaczek D."]}, {"id": "dzien-dywidendy", "n": "Dzień dywidendy", "k": "walne", "d": "Dzień dywidendy rozstrzyga, kto dostanie dywidendę: dostają ją osoby, które mają akcje na koniec tego dnia. Ze względu na rozliczenie T+2 akcje trzeba kupić najpóźniej dwie sesje wcześniej. Następna sesja po tym ostatnim dniu zakupu to dzień odcięcia dywidendy.", "z": ["t2", "odciecie", "dzien-wyplaty"], "tu": ["kalendarz", "W opisie każdego dnia dywidendy kalendarz podaje ostatni dzień zakupu."]}, {"id": "odciecie", "n": "Odcięcie dywidendy", "k": "walne", "d": "Odcięcie dywidendy to pierwsza sesja, na której akcje kupuje się już bez prawa do dywidendy. Kurs zwykle spada wtedy mniej więcej o wartość dywidendy, bo nowy kupujący jej nie dostanie. Akcjonariusz nic na tym nie traci, bo pieniądze dostanie w dniu wypłaty.", "z": ["dzien-dywidendy", "indeks-dochodowy"]}, {"id": "dzien-wyplaty", "n": "Dzień wypłaty", "k": "walne", "d": "Dzień wypłaty to dzień, w którym dywidenda trafia na rachunki maklerskie akcjonariuszy. Wypada zwykle kilka dni po dniu dywidendy. Od wypłaty pobierany jest podatek, w Polsce 19%.", "z": ["dywidenda", "rachunek-maklerski", "kdpw"]}, {"id": "skup-akcji", "n": "Skup akcji własnych", "k": "walne", "d": "Skup akcji własnych to odkupienie przez spółkę jej własnych akcji od inwestorów. Zwykle akcje te się potem umarza, więc każda pozostała akcja odpowiada za większą część firmy. Bywa uzupełnieniem albo zamiennikiem dywidendy.", "z": ["dywidenda", "emisja"]}, {"id": "emisja", "n": "Emisja akcji", "k": "walne", "d": "Emisja akcji to wydanie przez spółkę nowych akcji, zwykle po to, żeby zebrać pieniądze na rozwój albo przejęcie. Zwiększa liczbę akcji, więc udział dotychczasowych akcjonariuszy maleje, jeśli nie kupią nowych. Na podwyższenie kapitału zgodę wydaje walne zgromadzenie.", "z": ["prawo-poboru", "ipo", "walne"]}, {"id": "prawo-poboru", "n": "Prawo poboru", "k": "walne", "d": "Prawo poboru daje dotychczasowym akcjonariuszom pierwszeństwo w kupnie nowych akcji przy emisji. Dzięki niemu mogą zachować swój udział w spółce. Walne zgromadzenie może prawo poboru wyłączyć, na przykład przy emisji dla nowego inwestora albo pracowników.", "z": ["emisja", "akcjonariusz"]}, {"id": "split", "n": "Split (podział akcji)", "k": "walne", "d": "Split to podział każdej akcji na kilka mniejszych, na przykład jednej na dziesięć. Cena jednej akcji spada wtedy proporcjonalnie, a wartość pakietu inwestora się nie zmienia. Spółki robią to zwykle wtedy, gdy wysoka cena akcji utrudnia drobny handel.", "z": ["kurs-odniesienia", "akcja"]}, {"id": "polaczenie", "n": "Połączenie spółek", "k": "walne", "d": "Połączenie spółek to sytuacja, w której jedna spółka przejmuje drugą albo obie tworzą nową. Akcjonariusze spółki przejmowanej dostają zwykle akcje spółki przejmującej według ustalonego parytetu. Połączenie musi zatwierdzić walne zgromadzenie każdej z łączących się spółek.", "z": ["walne", "emisja"], "tu": ["kalendarz", "Takie walne zgromadzenie jest w kalendarzu w lipcu 2026."]}];
+  var PO={},KN={},ZAK={wykresy:'Wykresy',kalendarz:'Kalendarz',start:'Start'};
+  H.forEach(function(h){PO[h.id]=h;});KAT.forEach(function(k){KN[k.k]=k.n;});
+  var sek=document.getElementById('slownik'),cel=document.getElementById('slw-widok'),qEl=document.getElementById('slw-q'),ileEl=document.getElementById('slw-ile');
+  var st={q:'',k:'all',wyb:null,cel:null};
+  function alfa(a,b){return a.n.localeCompare(b.n,'pl');}
+  function norm(s){return s.toLowerCase().replace(/ł/g,'l').normalize('NFD').replace(/[̀-ͯ]/g,'');}
+  function esc(s){return s.replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function pasuje(h){var q=norm(st.q.trim());return !q||norm(h.n).indexOf(q)>=0||norm(h.d).indexOf(q)>=0;}
+  function wKat(h){return st.k==='all'||h.k===st.k;}
+  function pojec(x){if(x===1)return 'pojęcie';var j=x%10,d=x%100;return(j>=2&&j<=4&&(d<12||d>14))?'pojęcia':'pojęć';}
+  function tu(h){return h.tu?'<p class="tu">Na tej stronie: <a href="#'+h.tu[0]+'">'+ZAK[h.tu[0]]+'</a>. '+h.tu[1]+'</p>':'';}
+  function zt(h){return '<div class="zt"><span>Zobacz też</span>'+h.z.map(function(i){return '<button type="button" data-id="'+i+'">'+PO[i].n+'</button>';}).join('')+'</div>';}
+  function pusto(){return '<p class="slw-pusto">Nie ma pojęcia pasującego do „'+esc(st.q.trim())+'”. Spróbuj krótszego słowa albo wyczyść pole wyszukiwania.</p>';}
+  function rysuj(){
+    var l=H.filter(function(h){return wKat(h)&&pasuje(h);}).sort(alfa);
+    if(l.length&&!l.some(function(h){return h.id===st.wyb;}))st.wyb=l[0].id;
+    var stara=cel.querySelector('.slw-lista'),przewin=stara?stara.scrollTop:0,szczegol=!!cel.querySelector('.slw-c.szczegol');
+    var chipy='<button type="button" data-k="all" aria-pressed="'+(st.k==='all')+'">Wszystkie</button>'+KAT.map(function(k){return '<button type="button" data-k="'+k.k+'" aria-pressed="'+(st.k===k.k)+'">'+k.n+'</button>';}).join('');
+    var lista='',lit='';
+    l.forEach(function(h){var p=h.n.charAt(0).toUpperCase();if(p!==lit){lit=p;lista+='<div class="lit" aria-hidden="true">'+p+'</div>';}lista+='<button type="button" data-id="'+h.id+'"'+(h.id===st.wyb?' aria-current="true"':'')+'>'+h.n+'<small>'+KN[h.k]+'</small></button>';});
+    var karta=pusto();
+    if(l.length){
+      var h=PO[st.wyb],i=l.indexOf(h),pop=l[(i-1+l.length)%l.length],nas=l[(i+1)%l.length];
+      karta='<button type="button" class="wroc"><span aria-hidden="true">←</span>&nbsp;Lista pojęć</button><span class="kat">'+KN[h.k]+'</span><h3>'+h.n+'</h3><p class="d">'+h.d+'</p>'+tu(h)+zt(h)+
+        (l.length>1?'<div class="nast"><button type="button" data-id="'+pop.id+'"><span aria-hidden="true">←</span> '+pop.n+'</button><button type="button" data-id="'+nas.id+'">'+nas.n+' <span aria-hidden="true">→</span></button></div>':'');
+    }
+    cel.innerHTML='<div class="slw-c'+(szczegol?' szczegol':'')+'"><div class="slw-lewa"><div class="slw-chipy" role="group" aria-label="Kategorie słownika">'+chipy+'</div><div class="slw-lista">'+lista+'</div></div><article class="slw-karta" aria-live="polite">'+karta+'</article></div>';
+    var nowa=cel.querySelector('.slw-lista');if(nowa)nowa.scrollTop=przewin;
+    var zawezone=st.q.trim()||st.k!=='all';
+    ileEl.textContent=zawezone?l.length+' z '+H.length+' '+pojec(H.length):H.length+' '+pojec(H.length);
+  }
+  // przejście do hasła z „Zobacz też”, ze strzałek albo z pojęcia dnia
+  function przejdzDo(id){
+    var h=PO[id];if(!h)return;
+    if(!pasuje(h)){st.q='';qEl.value='';}
+    if(!wKat(h))st.k='all';
+    st.wyb=id;rysuj();
+    cel.querySelector('.slw-c').classList.add('szczegol');
+    var lista=cel.querySelector('.slw-lista'),poz=cel.querySelector('.slw-lista [aria-current]');
+    if(lista&&poz)lista.scrollTop=Math.max(0,poz.offsetTop-lista.clientHeight/2);
+    var karta=cel.querySelector('.slw-karta');if(karta&&karta.getBoundingClientRect().top<70)window.scrollTo(0,sek.offsetTop);
+  }
+  cel.addEventListener('click',function(e){
+    var b=e.target.closest('button');if(!b||!cel.contains(b))return;
+    if(b.hasAttribute('data-k')){st.k=b.getAttribute('data-k');rysuj();return;}
+    if(b.classList.contains('wroc')){cel.querySelector('.slw-c').classList.remove('szczegol');return;}
+    if(b.hasAttribute('data-id')){
+      var id=b.getAttribute('data-id');
+      if(b.closest('.slw-lista')){st.wyb=id;rysuj();cel.querySelector('.slw-c').classList.add('szczegol');if(window.innerWidth<=860)window.scrollTo(0,sek.offsetTop);return;}
+      przejdzDo(id);
+    }
+  });
+  qEl.addEventListener('input',function(){st.q=qEl.value;rysuj();});
+  // pojęcie dnia: co dzień inne hasło (krok względnie pierwszy z liczbą haseł, więc przez kolejne dni przechodzi przez wszystkie)
+  (function(){
+    function nwd(a,b){return b?nwd(b,a%b):a;}
+    var d=new Date(),dni=Math.round((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-Date.UTC(2026,0,1))/864e5),krok=7;
+    while(nwd(krok,H.length)!==1)krok++;
+    var h=H[((dni*krok)%H.length+H.length)%H.length];
+    document.getElementById('pd-t').textContent=h.n;document.getElementById('pd-d').textContent=h.d;
+    document.getElementById('pd-link').addEventListener('click',function(){st.cel=h.id;});
+  })();
+  return {pokaz:function(){rysuj();if(st.cel){var c=st.cel;st.cel=null;przejdzDo(c);}}};
+})();
+
+// ---------- kalendarz (szkic): zakładka pokazywana pod #kalendarz ----------
+(function(){
+  // typ: raport, wstepne, wz, dyw, wolne; st: status; szcz: co warto wiedzieć
+  var WYD=[
+    // historia 08.2023–12.2025, zebrana 21.10.2026:
+    // - raporty Cyber_Folks: daty publikacji ze strony relacji inwestorskich spółki;
+    // - raporty XTB: harmonogramy RB 1/2023, 1/2024 i 2/2025 (raport roczny za 2023 potwierdzony RB 9/2024);
+    // - raporty Synektik: harmonogramy RB 47/2023, 52/2024 i 59/2025; zmian terminów XTB i Synektik nie znaleziono;
+    // - walne i dywidendy: XTB RB 24/2024, 18/2025, NWZ RB 34/2024 i 37/2024; Synektik RB 8/2025, dywidenda 2024 z trzech serwisów;
+    //   Cyber_Folks: daty WZ i kwoty ze strony spółki, dni dywidendy z serwisów (2025 wyliczony z ostatniego dnia z prawem, 02.06);
+    // - „zakup najpóźniej” liczony z kalendarza sesji (dwie sesje przed dniem dywidendy).
+    {d:'2023-08-18',t:'XTB',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2023',st:'opublikowany'},
+    {d:'2023-09-05',t:'CBF',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2023',st:'opublikowany'},
+    {d:'2023-11-08',t:'XTB',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2023',st:'opublikowany'},
+    {d:'2023-11-14',t:'CBF',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2023',st:'opublikowany'},
+    {d:'2023-11-14',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2023',st:'opublikowany'},
+    {d:'2024-01-18',t:'SNT',typ:'raport',tyt:'Raport roczny',op:'październik 2022 – wrzesień 2023',st:'opublikowany'},
+    {d:'2024-02-14',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'październik–grudzień 2023',st:'opublikowany'},
+    {d:'2024-02-26',t:'SNT',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok październik 2022 – wrzesień 2023',szcz:'Uchwalona dywidenda 3,03 zł na akcję, razem 25,8 mln zł.',st:'zakończone'},
+    {d:'2024-03-04',t:'SNT',typ:'dyw',tyt:'Dzień dywidendy',op:'3,03 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 29.02).',st:'zakończone'},
+    {d:'2024-03-08',t:'SNT',typ:'dyw',tyt:'Wypłata dywidendy',op:'3,03 zł na akcję',szcz:'Pieniądze trafiają na rachunki akcjonariuszy.',st:'zakończone'},
+    {d:'2024-03-26',t:'CBF',typ:'raport',tyt:'Raport roczny',op:'styczeń–grudzień 2023',st:'opublikowany'},
+    {d:'2024-03-28',t:'XTB',typ:'raport',tyt:'Raport roczny',op:'styczeń–grudzień 2023',st:'opublikowany'},
+    {d:'2024-05-09',t:'XTB',typ:'raport',tyt:'Raport kwartalny',op:'styczeń–marzec 2024',st:'opublikowany'},
+    {d:'2024-05-20',t:'CBF',typ:'raport',tyt:'Raport kwartalny',op:'styczeń–marzec 2024',st:'opublikowany'},
+    {d:'2024-05-23',t:'XTB',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok 2023',szcz:'Uchwalona dywidenda 5,02 zł na akcję, razem 590,2 mln zł.',st:'zakończone'},
+    {d:'2024-05-27',t:'CBF',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok 2023',szcz:'Uchwalona dywidenda 1,50 zł na akcję, razem 21,3 mln zł.',st:'zakończone'},
+    {d:'2024-06-03',t:'XTB',typ:'dyw',tyt:'Dzień dywidendy',op:'5,02 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 29.05).',st:'zakończone'},
+    {d:'2024-06-11',t:'SNT',typ:'raport',tyt:'Raport półroczny',op:'październik 2023 – marzec 2024',st:'opublikowany'},
+    {d:'2024-06-20',t:'XTB',typ:'dyw',tyt:'Wypłata dywidendy',op:'5,02 zł na akcję',st:'zakończone'},
+    {d:'2024-06-24',t:'CBF',typ:'dyw',tyt:'Dzień dywidendy',op:'1,50 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 20.06).',st:'zakończone'},
+    {d:'2024-06-26',t:'CBF',typ:'dyw',tyt:'Wypłata dywidendy',op:'1,50 zł na akcję',st:'zakończone'},
+    {d:'2024-08-06',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'kwiecień–czerwiec 2024',st:'opublikowany'},
+    {d:'2024-08-20',t:'XTB',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2024',st:'opublikowany'},
+    {d:'2024-09-03',t:'CBF',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2024',st:'opublikowany'},
+    {d:'2024-11-08',t:'XTB',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2024',st:'opublikowany'},
+    {d:'2024-11-13',t:'CBF',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2024',st:'opublikowany'},
+    {d:'2024-11-14',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2024',st:'opublikowany'},
+    {d:'2024-11-19',t:'XTB',typ:'wz',tyt:'Nadzwyczajne walne zgromadzenie',op:'wybór rady nadzorczej',szcz:'Rada nadzorcza wybrana na kadencję 20.11.2024 – 20.11.2027.',st:'zakończone'},
+    {d:'2024-12-23',t:'SNT',typ:'raport',tyt:'Raport roczny',op:'październik 2023 – wrzesień 2024',st:'opublikowany'},
+    {d:'2025-01-22',t:'SNT',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok październik 2023 – wrzesień 2024',szcz:'Uchwalona dywidenda 8,25 zł na akcję, razem 70,4 mln zł.',st:'zakończone'},
+    {d:'2025-01-28',t:'SNT',typ:'dyw',tyt:'Dzień dywidendy',op:'8,25 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 24.01).',st:'zakończone'},
+    {d:'2025-01-31',t:'SNT',typ:'dyw',tyt:'Wypłata dywidendy',op:'8,25 zł na akcję',szcz:'Pieniądze trafiają na rachunki akcjonariuszy.',st:'zakończone'},
+    {d:'2025-02-05',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'październik–grudzień 2024',st:'opublikowany'},
+    {d:'2025-03-18',t:'CBF',typ:'raport',tyt:'Raport roczny',op:'styczeń–grudzień 2024',st:'opublikowany'},
+    {d:'2025-03-21',t:'XTB',typ:'raport',tyt:'Raport roczny',op:'styczeń–grudzień 2024',st:'opublikowany'},
+    {d:'2025-05-14',t:'XTB',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok 2024',szcz:'Uchwalona dywidenda 5,45 zł na akcję, razem 640,8 mln zł.',st:'zakończone'},
+    {d:'2025-05-15',t:'CBF',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok 2024',szcz:'Uchwalona dywidenda 2,00 zł na akcję, razem 28,3 mln zł.',st:'zakończone'},
+    {d:'2025-05-15',t:'XTB',typ:'raport',tyt:'Raport kwartalny',op:'styczeń–marzec 2025',st:'opublikowany'},
+    {d:'2025-05-20',t:'CBF',typ:'raport',tyt:'Raport kwartalny',op:'styczeń–marzec 2025',st:'opublikowany'},
+    {d:'2025-06-04',t:'CBF',typ:'dyw',tyt:'Dzień dywidendy',op:'2,00 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 02.06).',st:'zakończone'},
+    {d:'2025-06-06',t:'CBF',typ:'dyw',tyt:'Wypłata dywidendy',op:'2,00 zł na akcję',st:'zakończone'},
+    {d:'2025-06-11',t:'SNT',typ:'raport',tyt:'Raport półroczny',op:'październik 2024 – marzec 2025',st:'opublikowany'},
+    {d:'2025-06-16',t:'XTB',typ:'dyw',tyt:'Dzień dywidendy',op:'5,45 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 12.06).',st:'zakończone'},
+    {d:'2025-06-25',t:'XTB',typ:'dyw',tyt:'Wypłata dywidendy',op:'5,45 zł na akcję',st:'zakończone'},
+    {d:'2025-08-07',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'kwiecień–czerwiec 2025',st:'opublikowany'},
+    {d:'2025-08-28',t:'XTB',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2025',st:'opublikowany'},
+    {d:'2025-09-02',t:'CBF',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2025',st:'opublikowany'},
+    {d:'2025-11-05',t:'CBF',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2025',st:'opublikowany'},
+    {d:'2025-11-18',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2025',st:'opublikowany'},
+    {d:'2025-11-18',t:'XTB',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2025',st:'opublikowany'},
+    {d:'2025-12-19',t:'SNT',typ:'raport',tyt:'Raport roczny',op:'październik 2024 – wrzesień 2025',st:'opublikowany'},
+    {d:'2026-01-01',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Nowy Rok'},
+    {d:'2026-01-06',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Trzech Króli'},
+    {d:'2026-01-20',t:'SNT',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok październik 2024 – wrzesień 2025',szcz:'Uchwalona dywidenda 10,75 zł na akcję, razem 91,7 mln zł.',st:'zakończone'},
+    {d:'2026-01-29',t:'SNT',typ:'dyw',tyt:'Dzień dywidendy',op:'10,75 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia. Żeby je mieć, trzeba było kupić najpóźniej dwie sesje wcześniej (27.01).',st:'zakończone'},
+    {d:'2026-02-02',t:'SNT',typ:'dyw',tyt:'Wypłata dywidendy',op:'10,75 zł na akcję',szcz:'Pieniądze trafiają na rachunki akcjonariuszy.',st:'zakończone'},
+    {d:'2026-02-12',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'październik–grudzień 2025',st:'opublikowany'},
+    {d:'2026-03-18',t:'CBF',typ:'raport',tyt:'Raport roczny',op:'styczeń–grudzień 2025',st:'opublikowany'},
+    {d:'2026-03-20',t:'XTB',typ:'raport',tyt:'Raport roczny',op:'styczeń–grudzień 2025',st:'opublikowany'},
+    {d:'2026-04-03',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Wielki Piątek'},
+    {d:'2026-04-06',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Poniedziałek Wielkanocny'},
+    {d:'2026-04-28',t:'XTB',typ:'wstepne',tyt:'Wstępne wyniki',op:'styczeń–marzec 2026',szcz:'Podane 2,5 tygodnia przed pełnym raportem, poza harmonogramem.',st:'opublikowany'},
+    {d:'2026-05-01',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Święto Pracy'},
+    {d:'2026-05-08',t:'XTB',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok 2025',szcz:'Uchwalona dywidenda 4,07 zł na akcję, razem 478,5 mln zł.',st:'zakończone'},
+    {d:'2026-05-15',t:'XTB',typ:'raport',tyt:'Raport kwartalny',op:'styczeń–marzec 2026',st:'opublikowany'},
+    {d:'2026-05-18',t:'CBF',typ:'wz',tyt:'Zwyczajne walne zgromadzenie',op:'za rok 2025',szcz:'Uchwalona dywidenda 2,50 zł na akcję.',st:'zakończone'},
+    {d:'2026-05-20',t:'CBF',typ:'raport',tyt:'Raport kwartalny',op:'styczeń–marzec 2026',szcz:'Termin przesunięty o jeden dzień, z 19.05.',st:'opublikowany'},
+    {d:'2026-06-04',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Boże Ciało'},
+    {d:'2026-06-11',t:'SNT',typ:'raport',tyt:'Raport półroczny',op:'październik 2025 – marzec 2026',st:'opublikowany'},
+    {d:'2026-06-15',t:'XTB',typ:'dyw',tyt:'Dzień dywidendy',op:'4,07 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 11.06).',st:'zakończone'},
+    {d:'2026-06-24',t:'XTB',typ:'dyw',tyt:'Wypłata dywidendy',op:'4,07 zł na akcję',st:'zakończone'},
+    {d:'2026-07-01',t:'CBF',typ:'dyw',tyt:'Dzień dywidendy',op:'2,50 zł na akcję',szcz:'Dywidendę dostaje każdy, kto ma akcje na koniec tego dnia (zakup najpóźniej 29.06).',st:'zakończone'},
+    {d:'2026-07-03',t:'CBF',typ:'dyw',tyt:'Wypłata dywidendy',op:'2,50 zł na akcję',st:'zakończone'},
+    {d:'2026-07-20',t:'CBF',typ:'wz',tyt:'Nadzwyczajne walne zgromadzenie',op:'połączenie z Shoper S.A.',szcz:'Uchwalone połączenie z Shoper S.A., podwyższenie kapitału i zmiana statutu. Połączenie wpisane do KRS 01.09.2026.',st:'zakończone'},
+    {d:'2026-08-05',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'kwiecień–czerwiec 2026',st:'opublikowany'},
+    {d:'2026-08-28',t:'XTB',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2026',st:'opublikowany'},
+    {d:'2026-09-02',t:'CBF',typ:'raport',tyt:'Raport półroczny',op:'styczeń–czerwiec 2026',st:'opublikowany'},
+    {d:'2026-11-11',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Święto Niepodległości'},
+    {d:'2026-11-16',t:'CBF',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2026',st:'zapowiedziany'},
+    {d:'2026-11-18',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2026',st:'zapowiedziany'},
+    {d:'2026-11-20',t:'XTB',typ:'raport',tyt:'Raport kwartalny',op:'lipiec–wrzesień 2026',st:'zapowiedziany'},
+    {d:'2026-12-22',t:'SNT',typ:'raport',tyt:'Raport roczny',op:'październik 2025 – wrzesień 2026',st:'zapowiedziany'},
+    {d:'2026-12-24',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Wigilia'},
+    {d:'2026-12-25',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Boże Narodzenie'},
+    {d:'2026-12-31',t:'GPW',typ:'wolne',tyt:'Brak sesji',op:'Sylwester'},
+    {d:'2027-02-24',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'październik–grudzień 2026',st:'zapowiedziany'},
+    {d:'2027-06-23',t:'SNT',typ:'raport',tyt:'Raport półroczny',op:'październik 2026 – marzec 2027',st:'zapowiedziany'},
+    {d:'2027-08-04',t:'SNT',typ:'raport',tyt:'Raport kwartalny',op:'kwiecień–czerwiec 2027',st:'zapowiedziany'}
+  ];
+  window.WYD_ALL=WYD;
+  var NAZWY={CBF:'Cyber_Folks',SNT:'Synektik',XTB:'XTB',GPW:'GPW'};
+  var ETYK={raport:'raport',wstepne:'wyniki',wz:'WZ',dyw:'dywidenda',wolne:''};
+  var MIES=['styczeń','luty','marzec','kwiecień','maj','czerwiec','lipiec','sierpień','wrzesień','październik','listopad','grudzień'];
+  var MSK=['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+  function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function data(s){return new Date(s+'T12:00:00');}
+  var teraz=new Date(),DZIS=iso(teraz);
+  function kolor(t){return t==='GPW'?'var(--linia2)':'var(--'+t.toLowerCase()+')';}
+  function dni(x){var n=Math.round((data(x)-data(DZIS))/864e5);return n===0?'dziś':(n===1?'jutro':'za '+n+' dni');}
+  // najbliższe wydarzenia
+  var przyszle=WYD.filter(function(w){return w.d>=DZIS;}).slice(0,4);
+  document.getElementById('najblizsze').innerHTML=przyszle.map(function(w){
+    var d=data(w.d);
+    return '<article class="wyd" style="--kolor:'+kolor(w.t)+'"><div class="kiedy"><span class="data num">'+d.getDate()+' '+MSK[d.getMonth()]+'</span><span class="za">'+dni(w.d)+'</span></div>'+
+      '<span class="dzien">'+DNI[d.getDay()]+', '+ddmm(w.d)+'.'+w.d.slice(0,4)+'</span>'+
+      '<span class="kto"><i></i>'+NAZWY[w.t]+'</span><span class="co">'+w.tyt+(w.typ==='wolne'?' · '+w.op:'<br>'+w.op)+'</span>'+
+      (w.st?'<span class="status">'+w.st+'</span>':'')+'</article>';
+  }).join('');
+  // siatka miesiąca: od stycznia 2026 do sierpnia 2027
+  var OD=new Date(2026,0,1),DO=new Date(2027,7,1);
+  var pierwszy=przyszle.length?data(przyszle[0].d):teraz,m=new Date(pierwszy.getFullYear(),pierwszy.getMonth(),1);
+  var tlo=document.querySelector('.kal-tlo'),siatka=document.getElementById('kal-siatka'),tytul=document.getElementById('kal-miesiac'),wstecz=document.getElementById('kal-wstecz'),dalej=document.getElementById('kal-dalej'),dymek=document.getElementById('dymek');
+  function rysuj(){
+    tytul.textContent=MIES[m.getMonth()]+' '+m.getFullYear();
+    var start=new Date(m),przes=(m.getDay()+6)%7;start.setDate(1-przes);
+    var h='';
+    for(var i=0;i<42;i++){
+      var d=new Date(start);d.setDate(start.getDate()+i);
+      if(i%7===0&&i>=28&&d.getMonth()!==m.getMonth())break;
+      var s=iso(d),tu=WYD.filter(function(w){return w.d===s;}),kl='dz';
+      if(d.getMonth()!==m.getMonth())kl+=' poza';
+      if(d.getDay()===0||d.getDay()===6)kl+=' weekend';
+      if(s===DZIS)kl+=' dzis';
+      if(s<DZIS)kl+=' minione';
+      if(tu.some(function(w){return w.typ==='wolne';}))kl+=' wolne';
+      if(tu.length)kl+=' ma';
+      h+='<div class="'+kl+'" data-d="'+s+'"'+(tu.length?' tabindex="0"':'')+'><span class="nr">'+d.getDate()+'</span>'+tu.map(function(w){
+        return '<span class="wpis'+(w.typ==='wolne'?' szary':'')+'" style="--kolor:'+kolor(w.t)+'"><span>'+(w.typ==='wolne'?w.tyt:w.t+' <b>'+ETYK[w.typ]+'</b>')+'</span></span>';
+      }).join('')+'</div>';
+    }
+    siatka.innerHTML=h;
+    wstecz.disabled=m<=OD;dalej.disabled=m>=DO;
+    schowaj();
+  }
+  // opis dnia po najechaniu, po dotknięciu albo z klawiatury
+  function pokaz(el){
+    var s=el.getAttribute('data-d'),tu=WYD.filter(function(w){return w.d===s;});if(!tu.length){schowaj();return;}
+    var d=data(s);
+    dymek.innerHTML='<h4>'+DNI[d.getDay()]+', '+ddmm(s)+'.'+s.slice(0,4)+'</h4>'+tu.map(function(w){
+      return '<div class="poz" style="--kolor:'+kolor(w.t)+'"><strong>'+NAZWY[w.t]+': '+w.tyt+'</strong><span>'+w.op+'</span>'+(w.szcz?'<span>'+w.szcz+'</span>':'')+(w.st?'<span class="st">'+w.st+'</span>':'')+'</div>';
+    }).join('');
+    dymek.hidden=false;
+    var bt=tlo.getBoundingClientRect(),be=el.getBoundingClientRect(),w=dymek.offsetWidth,hh=dymek.offsetHeight;
+    var x=be.left-bt.left+be.width/2-w/2;x=Math.max(16,Math.min(bt.width-w-16,x));
+    var y=be.top-bt.top-hh-10;if(y<8)y=be.bottom-bt.top+10;
+    dymek.style.left=x+'px';dymek.style.top=y+'px';
+  }
+  function schowaj(){dymek.hidden=true;}
+  siatka.addEventListener('mouseover',function(e){var el=e.target.closest('.dz.ma');if(el)pokaz(el);else schowaj();});
+  siatka.addEventListener('mouseleave',schowaj);
+  siatka.addEventListener('focusin',function(e){var el=e.target.closest('.dz.ma');if(el)pokaz(el);});
+  siatka.addEventListener('focusout',schowaj);
+  siatka.addEventListener('click',function(e){var el=e.target.closest('.dz.ma');if(el)pokaz(el);});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')schowaj();});
+  wstecz.addEventListener('click',function(){m.setMonth(m.getMonth()-1);rysuj();});
+  dalej.addEventListener('click',function(){m.setMonth(m.getMonth()+1);rysuj();});
+  rysuj();
+  // ---------- zakładka Projekt: schemat drogi danych i karta wybranego elementu (układ B), cztery wyglądy do porównania (przełącznik tylko w szkicu) ----------
+  // Liczby z biegu 22.10.2026 wpisane na stałe (decyzja D4 a z 23.10); z pliku dane.js: ostatnia sesja, liczba sesji, pierwsza sesja wiersze Atheny, zapytania, notowania, wiadomości i pełne miesiące Golda, wiadomości Kafki, rozmiar pliku w S3 (rozmiar_dzienne z data_stream.py; bez niego liczba z 22.10) (decyzje 26.10). Kontrola: stały fakt z kodu.
+  var projekt=(function(){
+    var sek=document.getElementById('projekt'),widokEl=document.getElementById('prj-widok');
+    var BIEG='Ostatni bieg, 22.10.2026';
+    var NS=SP.length,SES='Ostatnia sesja, '+pelna(DATY[OST]),STAN='Stan na '+pelna(DATY[OST]);
+    // pełne miesiące jak w gold.py: bez pierwszego i ostatniego miesiąca i z co najmniej 15 sesjami (MIN_DNI)
+    var PM=(function(){var m={};DATY.forEach(function(d){var k=d.slice(0,7);m[k]=(m[k]||0)+1;});var k=Object.keys(m).sort();
+      return {wsz:k.length*NS,pelne:k.filter(function(x,i){return i>0&&i<k.length-1&&m[x]>=15;}).length*NS};})();
+    var ETAPY=[
+      {nr:1,nazwa:'Pobranie danych',godz:'18:00',opis:'Program Producenta, napisany w języku Python i uruchamiany przez harmonogram cron na serwerze Amazon EC2, pobiera notowania z serwisu Yahoo Finance. Do brokera Apache Kafka, działającego na tym samym serwerze, wysyła wyłącznie notowanie z bieżącej sesji, a brakujące notowania z wcześniejszych dni wstrzymuje do ręcznego sprawdzenia. Zapis lokalny jest aktualizowany dopiero po potwierdzeniu odbioru wiadomości przez brokera.'},
+      {nr:2,nazwa:'Zapis danych źródłowych',godz:'18:00',opis:'Program Konsumenta, również w języku Python, odczytuje wiadomości z Kafki i zapisuje je jako pliki JSON w magazynie Amazon S3. Odczyt jest zatwierdzany w Kafce dopiero po udanym zapisie, co zapobiega utracie danych. Raz w miesiącu skrypt kompakcji w języku Python, uruchamiany ręcznie, przepisuje dane z zakończonego miesiąca do formatu Parquet (warstwa bronze).'},
+      {nr:3,nazwa:'Oczyszczenie i obliczenia',godz:'18:10',opis:'Zapytanie SQL w usłudze Amazon Athena łączy dane historyczne z bieżącymi i usuwa powtórzone notowania (warstwa silver). Następnie biblioteka pandas oblicza dzienne zmiany procentowe oraz ranking spółek. Wyniki są zapisywane w Amazon S3 jako pliki CSV (warstwa gold).'},
+      {nr:4,nazwa:'Kontrola',godz:'18:30',opis:'Skrypt kontrolny weryfikuje zapis przebiegu oraz tabelę wynikową w Athenie, w tym obecność notowania z bieżącej sesji i jednakową liczbę dni dla wszystkich spółek. Wynik jest przekazywany do zewnętrznej usługi monitorującej, która w razie nieprawidłowości wysyła powiadomienie e-mail.'},
+      {nr:5,nazwa:'Publikacja',godz:'po kontroli',opis:'Strona jest statycznym plikiem HTML, generowanym na podstawie danych z warstwy gold. Wykresy są rysowane w przeglądarce jako grafika SVG, a trójwymiarowa siatka na stronie startowej w bibliotece three.js.'}
+    ];
+    var W=[
+      {e:1,nazwa:'Yahoo Finance',rola:'źródło notowań',narz:'zapytanie HTTP, odpowiedź w formacie JSON',gdzie:'serwis zewnętrzny',godz:'18:00',l:String(NS),lo:'zapytania, po jednym na spółkę',lk:SES,
+       opis:'Serwis udostępnia dzienne kursy zamknięcia. Producent pobiera dla każdej spółki zakres ostatnich trzech lat. Pewna jest cena z dnia zapytania, bo starsze notowania serwis potrafi później zmieniać.',
+       aw:'Brak odpowiedzi: Producent zapisuje błąd, a kontrola zgłasza brak notowania z bieżącej sesji.'},
+      {e:1,nazwa:'Producent',rola:'pobiera notowania i wysyła je do Kafki',narz:'Python 3.14, requests, kafka-python',gdzie:'Amazon EC2, harmonogram cron',godz:'18:00',l:String(NS),lo:'notowania z ostatniej sesji, po jednym na spółkę',lk:SES,
+       opis:'Porównuje odpowiedź serwisu z notowaniami zapisanymi lokalnie. Do Kafki wysyła tylko notowanie z bieżącej sesji i na każde czeka na potwierdzenie brokera. Zapis lokalny nadpisuje dopiero po potwierdzeniu.',
+       aw:'Przed 17:55 bieżąca sesja jest pomijana. Brakujące wcześniejsze dni są wstrzymywane, a kontrola zgłasza je jako awarię.'},
+      {e:1,nazwa:'Apache Kafka',rola:'kolejka wiadomości',narz:'Apache Kafka 4.3, temat gpw_tracker',gdzie:'Amazon EC2, ten sam serwer',godz:'18:00',l:String(NS),lo:'wiadomości z ostatniej sesji, po jednej na spółkę',lk:SES,
+       opis:'Broker przechowuje wiadomości w kolejności nadania i pamięta, dokąd grupa gpw_consumer zatwierdziła odczyt. Dzięki temu pobranie i zapis działają niezależnie od siebie.',
+       aw:'Brak potwierdzenia odbioru: zapis lokalny zostaje bez zmian, a kontrola zgłasza awarię.'},
+      {e:2,nazwa:'Konsument',rola:'zapisuje wiadomości w S3',narz:'Python 3.14, kafka-python, boto3',gdzie:'Amazon EC2, harmonogram cron',godz:'18:00',l:String(NS),lo:'wiadomości odebrane i zapisane w '+NS+' plikach',lk:SES,
+       opis:'Odczytuje wiadomości, dopóki przez 5 sekund nie przyjdzie żadna nowa. Dla każdej spółki zapisuje jeden plik JSON w warstwie live. Odczyt zatwierdza w Kafce dopiero po zapisie.',
+       aw:'Nieudany zapis do S3: odczyt nie jest zatwierdzany, a wiadomości czekają w Kafce na następny odczyt.'},
+      {e:2,nazwa:'Amazon S3',rola:'magazyn plików',narz:'Amazon S3',gdzie:'chmura AWS, region eu-north-1',godz:'18:00 i 18:10',l:D.rozmiar_dzienne?String(D.rozmiar_dzienne).replace(/\B(?=(\d{3})+(?!\d))/g,' ')+' B':'160 554 B',lo:'plik dane_dzienne.csv w warstwie gold',lk:D.rozmiar_dzienne?STAN:BIEG,
+       opis:'Przechowuje wszystkie warstwy danych: live (JSON), bronze (Parquet) i gold (CSV). Amazon Athena czyta pliki bezpośrednio z magazynu, bez osobnej bazy danych.',
+       aw:'Każdy dodatkowy plik w folderze tabeli dokłada wiersze do zapytań, dlatego do tych folderów nic nie trafia ręcznie.'},
+      {e:2,nazwa:'Kompakcja',rola:'przepisuje live do bronze',narz:'Python, pandas, PyArrow',gdzie:'komputer lokalny, uruchamiana ręcznie',godz:'raz w miesiącu',l:'783',lo:'sesje na spółkę w bronze, stan na 30.09.2026',lk:'Ostatnia kompakcja, 03.10.2026',boczny:true,
+       opis:'Przepisuje notowania z zakończonego miesiąca z warstwy live do jednego pliku Parquet na spółkę i usuwa przepisane pliki JSON. Przed zapisem pobiera kopię poprzedniego pliku i porównuje liczbę notowań.',
+       aw:'Mniej notowań niż w poprzednim pliku: skrypt przerywa pracę przed zapisem.'},
+      {e:3,nazwa:'Amazon Athena',rola:'warstwa silver',narz:'SQL, pyathena, katalog AWS Glue',gdzie:'chmura AWS, wywołanie z EC2',godz:'18:10',l:String(NS*N),lo:'wierszy w warstwie silver ('+NS+' × '+N+')',lk:STAN,
+       opis:'Zapytanie SQL łączy tabele bronze i live. Program Silver usuwa powtórzone dni, sprawdza wynik i zapisuje oczyszczone dane w pliku CSV na serwerze.',
+       aw:'Brak albo nadmiar spółki: program Silver przerywa pracę z błędem. Pustą cenę i powtórzony dzień usuwa bez komunikatu, a przy dwóch cenach z jednego dnia zostawia przypadkową.'},
+      {e:3,nazwa:'pandas',rola:'warstwa gold',narz:'Python, pandas 3.0, boto3',gdzie:'Amazon EC2, harmonogram cron',godz:'18:10',l:String(PM.pelne),lo:'pełnych miesięcy spółek w rankingu, ze '+PM.wsz,lk:STAN,
+       opis:'Program Gold liczy dzienne zmiany procentowe, zmianę przez cały okres i najbardziej zmienny pełny miesiąc każdej spółki. Pełny miesiąc nie jest pierwszym ani ostatnim w danych i ma co najmniej 15 sesji. Oba wyniki trafiają do S3 jako pliki CSV.',
+       aw:'Brak wysyłki któregokolwiek z dwóch plików kontrola zgłasza jako awarię.'},
+      {e:4,nazwa:'Kontrola',rola:'sprawdza przebieg i wynik',narz:'Python, pyathena, requests',gdzie:'Amazon EC2, harmonogram cron',godz:'18:30',l:'4',lo:'problemy, których szuka w tabeli wynikowej',lk:'W kodzie',
+       opis:'Sprawdza zapis przebiegu: zapis każdej spółki, odbiór wiadomości, wysyłkę obu plików i brak błędów. W tabeli wynikowej w Athenie sprawdza notowanie z bieżącej sesji, brak dat z przyszłości i jednakową liczbę dni u wszystkich spółek.',
+       aw:'Nieprawidłowość albo brak zgłoszenia o 18:30: usługa monitorująca wysyła e-mail.'},
+      {e:5,nazwa:'Strona',rola:'publikacja',narz:'HTML, CSS, JavaScript, SVG, three.js',gdzie:'statyczny plik HTML',godz:'po kontroli',l:pelna(DATY[0]),lo:'pierwsza sesja w danych',lk:'Dane',
+       opis:'Statyczny plik HTML, generowany na podstawie danych z warstwy gold. Wykresy są rysowane w przeglądarce jako grafika SVG, a siatka na stronie startowej w bibliotece three.js.',
+       aw:'Przy awarii biegu strona zostaje z danymi z poprzedniej sesji.'}
+    ];
+    var DZIEN=[
+      ['17:55','Granica sesji','Przed tą godziną Producent pomija bieżącą sesję, bo jej notowanie może być jeszcze niepełne.'],
+      ['18:00','Pobranie i zapis','Producent wysyła notowania do Kafki, a zaraz po nim Konsument zapisuje je w Amazon S3.'],
+      ['18:10','Silver i gold','Athena łączy i oczyszcza dane, pandas liczy zmiany i ranking, a wyniki trafiają do S3.'],
+      ['18:30','Kontrola','Skrypt kontrolny sprawdza przebieg i tabelę wynikową, a wynik wysyła do usługi monitorującej.'],
+      ['ok. 18:45','Powiadomienie','Przy nieprawidłowości albo braku zgłoszenia usługa monitorująca wysyła e-mail.']
+    ];
+    var WARSTWY=[
+      {n:'live',k:'--w-live',f:'JSON',gdzie:'S3: live/spolka=…/',opis:'Notowania z bieżącego miesiąca, jeden plik na spółkę i bieg.',kod:'{"sp\\u00f3\\u0142ka": "CBF.WA", "data": "2026-10-22 17:00:00", "cena": 195.10000610351562}'},
+      {n:'bronze',k:'--w-bronze',f:'Parquet',gdzie:'S3: bronze/spolka=…/',opis:'Notowania do końca poprzedniego miesiąca, jeden plik na spółkę.',kod:'CBF.WA.parquet · 783 wiersze\nkolumny: data, cena'},
+      {n:'silver',k:'--w-silver',f:'CSV',gdzie:'EC2: silver/clean_data.csv',opis:'Wszystkie notowania bez powtórzonych dni.',kod:'data,cena,spolka\n2026-10-22 17:00:00,195.10000610351562,CBF.WA'},
+      {n:'gold',k:'--w-gold',f:'CSV',gdzie:'S3: gold/dane_dzienne/, gold/ranking/',opis:'Dane dzienne ze zmianą procentową i miesiącem oraz ranking spółek.',kod:'data,cena,spolka,zmiana_proc,miesiac\n2026-10-22 17:00:00,195.10000610351562,CBF.WA,0.6188820241386228,2026-10'}
+    ];
+    var AWARIE=[
+      ['Serwis Yahoo Finance nie odpowiada','Producent zapisuje błąd i nie zmienia zapisu lokalnego. Kontrola zgłasza brak notowania z bieżącej sesji.'],
+      ['Broker Kafki nie potwierdza odbioru','Zapis lokalny zostaje bez zmian, a kontrola zgłasza awarię.'],
+      ['Brakuje notowań z wcześniejszych dni','Producent ich nie wysyła i oznacza je jako wstrzymane, a kontrola zgłasza awarię. Notowania uzupełnia się ręcznie po sprawdzeniu cen.'],
+      ['Zapis do Amazon S3 się nie udaje','Konsument nie zatwierdza odczytu, więc wiadomości czekają w Kafce na następny odczyt. Kontrola zgłasza awarię.'],
+      ['W tabeli wynikowej brakuje bieżącej sesji, jest data z przyszłości albo spółki mają różną liczbę dni','Kontrola zgłasza awarię, a usługa monitorująca wysyła e-mail.'],
+      ['Serwer nie działa albo kontrola się nie uruchamia','Zgłoszenie o 18:30 nie dociera, więc usługa monitorująca sama wysyła e-mail.'],
+      ['Kompakcja zwraca mniej notowań niż poprzedni plik','Skrypt przerywa pracę przed zapisem, a poprzedni plik zostaje w kopii.']
+    ];
+    var NARZ=[
+      ['Python 3.14','Producent, Konsument, Silver, Gold, kontrola i kompakcja'],
+      ['Apache Kafka 4.3','kolejka wiadomości między pobraniem a zapisem'],
+      ['Amazon EC2','serwer t3.micro z systemem Amazon Linux 2023, działa bez przerwy'],
+      ['cron','harmonogram biegów w czasie polskim (strefa Europe/Warsaw)'],
+      ['Amazon S3','magazyn wszystkich warstw danych'],
+      ['AWS Glue, Amazon Athena','katalog tabel i zapytania SQL na plikach w S3'],
+      ['pandas, PyArrow','obliczenia na danych i zapis plików Parquet'],
+      ['pytest','38 testów kontroli, sprawdzenia tabeli i reguł sesji'],
+      ['Git, GitHub','kod projektu; serwer pobiera nowe wersje poleceniem git pull']
+    ];
+    var OGR=[
+      'Jedno źródło danych. Gdy Yahoo Finance nie odpowie, notowanie z danego dnia trzeba uzupełnić ręcznie.',
+      'Poprawki cen, które serwis wprowadza po wysłaniu notowania, nie trafiają do zapisanych danych.',
+      'Kontrola sprawdza daty i liczbę notowań, ale nie wykryje błędnej ceny przy prawidłowej dacie.',
+      'W dzień wolny od sesji w tygodniu, na przykład 11 listopada, kontrola zgłasza fałszywy alarm.',
+      'Kompakcja jest uruchamiana ręcznie raz w miesiącu, a dodanie spółki wymaga ręcznych kroków w Athenie.'
+    ];
+    function naglowek(id,t){return '<section class="prj-sek" id="'+id+'" aria-labelledby="'+id+'-t"><h3 class="prj-h" id="'+id+'-t">'+t+'</h3>';}
+    function wspolne(){
+      return naglowek('prj-dzien','Dzień biegu')+'<ol class="prj-os">'+DZIEN.map(function(d){return '<li><span class="g num">'+d[0]+'</span><b>'+d[1]+'</b><span class="t">'+d[2]+'</span></li>';}).join('')+'</ol></section>'+
+        naglowek('prj-warstwy','Warstwy danych')+'<div class="prj-warstwy">'+WARSTWY.map(function(w){return '<div class="prj-warstwa" style="--kolor:var('+w.k+')"><div class="gl"><i aria-hidden="true"></i>'+w.n+'<small>'+w.f+'</small></div><span class="gdzie">'+w.gdzie+'</span><p>'+w.opis+'</p><code class="prj-kod">'+w.kod+'</code></div>';}).join('')+'</div></section>'+
+        naglowek('prj-awarie','Przy awarii')+'<div class="prj-awarie">'+AWARIE.map(function(a){return '<div><b>'+a[0]+'</b><span>'+a[1]+'</span></div>';}).join('')+'</div></section>'+
+        naglowek('prj-narz','Narzędzia')+'<div class="prj-narz"><table><thead><tr><th scope="col">Narzędzie</th><th scope="col">Do czego</th></tr></thead><tbody>'+NARZ.map(function(n){return '<tr><td>'+n[0]+'</td><td>'+n[1]+'</td></tr>';}).join('')+'</tbody></table></div></section>'+
+        naglowek('prj-ogr','Ograniczenia')+'<ul class="prj-ogr">'+OGR.map(function(o){return '<li>'+o+'</li>';}).join('')+'</ul><p class="prj-readme">Pełny opis architektury, wyników sprawdzeń oraz znanych ograniczeń znajduje się w pliku <a href="https://github.com/gracjan20022002-prog/GPW---pulse#readme">README w repozytorium GitHub</a>.</p></section>';
+    }
+    var wybB=1,silnik=null,gotowe=false;
+    function schemat(){
+      return '<div class="prjB-schemat"><div class="prjB-droga" id="prjB-droga" role="group" aria-label="Etapy drogi danych">'+
+        W.map(function(w,i){return (i?'<span class="prz" aria-hidden="true"></span>':'')+'<button type="button" class="wz'+(w.boczny?' boczny':'')+'" data-i="'+i+'" aria-pressed="false"><small class="g"><i aria-hidden="true">'+w.e+'</i>'+w.godz+'</small><b>'+w.nazwa+'</b><span class="r">'+w.rola+'</span></button>';}).join('')+'</div></div>';
+    }
+    function uklad(){
+      return '<div class="prjB" id="prjB">'+schemat()+'<div class="prjB-karta" id="prjB-karta" aria-live="polite"><span class="wskaznik" id="prjB-wsk" aria-hidden="true"></span><div class="tresc" id="prjB-tresc"></div></div></div>'+wspolne();
+    }
+    function kartaB(i){
+      var w=W[i],e=ETAPY[w.e-1];
+      return '<div class="glowna"><span class="etap">Etap '+e.nr+' z 5 · '+e.nazwa+'</span><div class="naz"><h3>'+w.nazwa+'</h3></div><div class="rola">'+w.rola+'</div><p>'+w.opis+'</p><dl><dt>Narzędzie</dt><dd>'+w.narz+'</dd><dt>Gdzie działa</dt><dd>'+w.gdzie+'</dd><dt>Kiedy</dt><dd>'+w.godz+'</dd></dl></div>'+
+        '<div class="prjB-bok"><div><span class="et">'+(w.lk||BIEG)+'</span><div class="liczba num">'+w.l+'</div><div class="opis">'+w.lo+'</div></div><div><span class="et">Gdy coś pójdzie źle</span><div class="awaria">'+w.aw+'</div></div></div>'+
+        '<div class="prjB-nast"><button type="button" data-k="-1"'+(i===0?' disabled':'')+'>← '+(i>0?W[i-1].nazwa:'')+'</button><button type="button" data-k="1"'+(i===W.length-1?' disabled':'')+'>'+(i<W.length-1?W[i+1].nazwa:'')+' →</button></div>';
+    }
+
+    // Światło jak w panelu na Start: po każdym wyborze przechodzi raz, od źródła do wybranego kafelka (1,4–3,2 s, łagodny start i koniec), i znika.
+    // Droga liczona w kolejności czytania (kafelek, przewód, kafelek…); na telefonie kafelki stoją jeden pod drugim, więc światło biegnie z góry na dół.
+    function start(){
+      var droga=document.getElementById('prjB-droga'),karta=document.getElementById('prjB-karta'),tresc=document.getElementById('prjB-tresc'),wsk=document.getElementById('prjB-wsk');
+      var przyc=[].slice.call(droga.querySelectorAll('button.wz')),el=[].slice.call(droga.children);
+      var V=260,T=150,poz=[],pion=false,t0=performance.now(),biegnie=false,widoczna=true;
+      var LINIA='linear-gradient(var(--linia2),var(--linia2))',CZERW='linear-gradient(rgba(229,56,59,.5),rgba(229,56,59,.5))';
+      function lagodnie(p){return p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;}
+      function mierz(){var cs=getComputedStyle(droga);pion=cs.flexDirection==='column';var s=0,gap=parseFloat(pion?cs.rowGap:cs.columnGap)||0;poz=el.map(function(e){var q={s:s,w:pion?e.offsetHeight:e.offsetWidth};s+=q.w+gap;return q;});}
+      function warstwa(x){
+        return 'linear-gradient('+(pion?180:90)+'deg,transparent '+(x-T).toFixed(1)+'px,rgba(196,200,214,.10) '+(x-T*0.6).toFixed(1)+'px,rgba(214,217,230,.32) '+(x-30).toFixed(1)+'px,rgba(229,56,59,.65) '+(x-10).toFixed(1)+'px,rgba(255,74,76,1) '+(x-2).toFixed(1)+'px,transparent '+(x+3).toFixed(1)+'px)';
+      }
+      function nr(){return el.indexOf(przyc[wybB]);}
+      function czolo(teraz){
+        // pozycja czoła światła albo null, gdy światło już doszło do wybranego kafelka
+        var q=poz[nr()],cel=q.s+q.w,czas=Math.min(3200,Math.max(1400,cel/V*1000)),p=(teraz-t0)/czas;
+        return p<1?cel*lagodnie(p):null;
+      }
+      function rysuj(teraz,statycznie){
+        // zwraca true, dopóki światło jest w drodze
+        var k=nr(),h=statycznie?null:czolo(teraz);
+        el.forEach(function(e,i){
+          var p=poz[i],x=h===null?0:h-p.s,wars=(h!==null&&x-T<p.w&&x+3>0)?[warstwa(x)]:[];
+          if(e.tagName==='BUTTON'){
+            var tl=i===k?'linear-gradient(165deg,#2C181B,#1C1416)':'linear-gradient(165deg,#222229,#16161A)',ob=i===k?'var(--akcent)':'var(--linia2)';
+            e.style.background=tl+' padding-box,'+wars.map(function(z){return z+' border-box';}).concat(['linear-gradient('+ob+','+ob+') border-box']).join(',');
+          }else e.style.background=wars.concat([i<k?CZERW:LINIA]).join(',');
+        });
+        return h!==null;
+      }
+      function klatka(teraz){biegnie=false;if(silnik!==api||sek.hidden)return;if(rysuj(teraz,false)&&ruch&&widoczna){biegnie=true;requestAnimationFrame(klatka);}}
+      function popchnij(){if(silnik!==api)return;if(!ruch){rysuj(0,true);return;}if(!biegnie){biegnie=true;requestAnimationFrame(klatka);}}
+      function wskaznik(){var b=przyc[wybB].getBoundingClientRect(),r=karta.getBoundingClientRect();wsk.style.left=(b.left+b.width/2-r.left)+'px';}
+      function wybierz(i){
+        wybB=i;tresc.innerHTML=kartaB(i);
+        var k=nr();
+        przyc.forEach(function(b,j){b.setAttribute('aria-pressed',j===i?'true':'false');});
+        el.forEach(function(e,j){e.classList.toggle('dalej',j>k);e.classList.toggle('przed',j<k);});
+        t0=performance.now();wskaznik();rysuj(t0,!ruch);popchnij();
+      }
+      droga.addEventListener('click',function(e){var b=e.target.closest('button.wz');if(b)wybierz(+b.getAttribute('data-i'));});
+      karta.addEventListener('click',function(e){var b=e.target.closest('button[data-k]');if(b)wybierz(wybB+(+b.getAttribute('data-k')));});
+      var io=new IntersectionObserver(function(x){widoczna=x[0].isIntersecting;if(widoczna)popchnij();},{threshold:0});io.observe(droga);
+      function nowyRozmiar(){if(silnik!==api)return;mierz();wskaznik();popchnij();}
+      window.addEventListener('resize',nowyRozmiar);
+      if(document.fonts&&document.fonts.ready){document.fonts.ready.then(nowyRozmiar);}
+      var api={wznow:nowyRozmiar};
+      silnik=api;sluchacze.push(popchnij);
+      mierz();wybierz(wybB);
+      return api;
+    }
+
+    function buduj(){widokEl.innerHTML=uklad();start();gotowe=true;}
+    return {pokaz:function(){if(!gotowe)buduj();else if(silnik)silnik.wznow();}};
+  })();
+
+  // przełączanie zakładek w szkicu: Start, Wykresy, Kalendarz, Słownik albo Projekt
+  var kal=document.getElementById('kalendarz'),wyk=document.getElementById('wykresy'),slw=document.getElementById('slownik'),prj=document.getElementById('projekt'),startowe=[document.getElementById('start'),document.querySelector('.pasek'),document.querySelector('main')];
+  var linki=[].slice.call(document.querySelectorAll('.zakladki a'));
+  function widok(){
+    var h=location.hash,z=['#kalendarz','#wykresy','#slownik','#projekt'].indexOf(h)>=0?h:'#start';
+    kal.hidden=z!=='#kalendarz';wyk.hidden=z!=='#wykresy';slw.hidden=z!=='#slownik';prj.hidden=z!=='#projekt';startowe.forEach(function(e){e.hidden=z!=='#start';});
+    linki.forEach(function(a){if(a.getAttribute('href')===z)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});
+    if(z!=='#start')window.scrollTo(0,0);else window.dispatchEvent(new Event('resize'));
+    if(z==='#wykresy')rysujWykres();
+    if(z==='#slownik')slownik.pokaz();
+    if(z==='#projekt')projekt.pokaz();
+  }
+  window.addEventListener('hashchange',widok);widok();
+})();
+})();
+</script>
+
+</body></html>

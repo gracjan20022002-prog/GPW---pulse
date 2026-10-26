@@ -6,8 +6,8 @@ w AWS pobiera kursy zamknięcia z Yahoo Finance, przepuszcza je przez Kafkę do 
 i pandas liczą z nich zmiany cen i ranking spółek. O 18:30 projekt sprawdza sam siebie
 i przy awarii wysyła e-mail.
 
-Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **23.10.2026** (dane do sesji
-23.10). Pełna lista wad i kolejność napraw:
+Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **26.10.2026** (dane do sesji
+26.10). Pełna lista wad i kolejność napraw:
 [`notatki/plany/Przeglad-2026-10-23-calosc.md`](notatki/plany/Przeglad-2026-10-23-calosc.md).
 
 ---
@@ -18,10 +18,14 @@ Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **23.10.2026** (
 
 ![Ranking: całkowita zmiana ceny](wykresy/ranking.png)
 
-Całkowita zmiana ceny od 14.08.2023 do 23.10.2026: **SNT +372,0%**, **XTB +261,1%**,
-**CBF +154,0%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
+Całkowita zmiana ceny od 14.08.2023 do 26.10.2026: **SNT +372,9%**, **XTB +272,6%**,
+**CBF +157,7%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
 z tabel w Athenie; te w repozytorium mają stan na 09.10. Data w tytule to dzień ostatniej świecy,
 więc stary obrazek widać od razu.
+
+**Strona** (`strona/index.html`, pierwszy etap: na laptopie, nie w internecie): notowania, wykresy
+z pełną historią, ranking, kalendarz wydarzeń, słownik pojęć i opis drogi danych. Dane bierze
+z pliku `strona/dane.js`, który robi skrypt `kod/data_stream.py` z plików Golda w S3.
 
 ---
 
@@ -38,6 +42,7 @@ flowchart LR
     G --> T[Athena<br/>gold_dane_dzienne<br/>gold_ranking_spolek]
     T -->|18:30 control.py| H[stróż healthchecks.io<br/>e-mail przy awarii]
     T --> W[wykresy.py, ranking.py<br/>laptop]
+    G -.->|po 18:15 data_stream.py<br/>laptop, ręcznie| D[strona/dane.js] --> P[strona/index.html]
     L -.->|raz w miesiącu<br/>compaction.py z laptopa| B
 ```
 
@@ -46,6 +51,7 @@ flowchart LR
 | 18:00 | EC2, `cron` | `data_ingestion.py` wysyła nowe świece do Kafki, zaraz po nim `kafka_consumer.py` zapisuje je do S3 | pliki JSON w `live/spolka=…/` |
 | 18:10 | EC2, `cron` | `silver.py`, a gdy się uda — `gold.py` | `silver/clean_data.csv`, `gold/dane_dzienne.csv`, `gold/ranking.csv`; oba pliki Golda także w S3 |
 | 18:30 | EC2, `cron` | `control.py` sprawdza log i dane | `Kontrola: OK` albo `Kontrola: AWARIA - …`, zgłoszenie do stróża |
+| po 18:15 | laptop, ręcznie | `data_stream.py` pobiera oba pliki Golda z S3, sprawdza je i zapisuje dane dla strony | `strona/dane.js` albo komunikat `Strona: problem - …` i stary plik bez zmian |
 | raz w miesiącu | laptop, ręcznie | `compaction.py` przepisuje zakończone miesiące z `live/` do `bronze/` | Parquet w `bronze/`, skasowane pliki w `live/` |
 | na żądanie | laptop | `wykresy.py`, `ranking.py` | dwa obrazki w `wykresy/` |
 
@@ -119,12 +125,18 @@ Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak 
   po **zmianie stanu** — tylko wtedy: dwie awarie z rzędu dają jeden mail (sprawdzone 23.10).
 - **Liczby przed biegiem.** Każdą zmianę sprawdza się porównaniem liczb zapisanych przed
   uruchomieniem (numer linii w logu, liczba wierszy, zakładka, rozmiar pliku) z wynikiem.
-- **Testy:** `pytest kod/ -v`, 38 testów (od 17.10). 13 sprawdza `control.py` na prawdziwym
+- **Skrypt danych strony sprawdza pliki przed zapisem** (`kod/data_stream.py`): komplet spółek
+  w obu plikach, brak pustej ceny i powtórzonego dnia, każda spółka ma każdy dzień, żadnej sesji
+  z przyszłości, nie mniej sesji niż w poprzednim `dane.js` (ochrona przed „pół tabeli”) i ostatnia
+  cena zgodna z rankingiem (oba pliki z tego samego biegu Golda). Przy problemie kończy się
+  komunikatem i kodem 1, a stary `dane.js` zostaje — lepiej stara strona niż zła.
+- **Testy:** `pytest kod/ -v`, 48 testów (od 25.10). 13 sprawdza `control.py` na prawdziwym
   bloku logu z 18.09 (`kod/dane_testowe/`), w tym alarm przy wstrzymanych dniach, 7 sprawdza daty
   z `path.py` na zmyślonych danych, 18 sprawdza `session.py`: granicę 17:55 (w tym godziny zimowe
-  i letnie) i podział nowych dni na wysłane i wstrzymane. Testy nie łączą się z AWS.
+  i letnie) i podział nowych dni na wysłane i wstrzymane, 10 sprawdza `data_stream.py`: każde
+  sprawdzenie plików i budowę danych dla strony. Testy nie łączą się z AWS.
 - **Ceny porównane z giełdą.** Punktem odniesienia jest archiwum notowań GPW, nie serwisy
-  pośrednie. 120 cen z S3 porównanych do 23.10 — wszystkie zgodne co do grosza.
+  pośrednie. 124 ceny z S3 porównane do 26.10 — wszystkie zgodne co do grosza.
 
 ---
 
@@ -135,17 +147,25 @@ sprawdzenie z liczbą policzoną przed biegiem; awaria jest głośna; działa ta
 działać (EC2); opis mówi też, czego nie ma.
 
 **Sprawdzone:**
-- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 23.10).
+- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 26.10). Zmiana
+  czasu 25.10 przeszła bez śladu: bieg dalej o 18:00 polskiego, w logu `17:00` zamiast `16:00`.
 - Kontrola o 18:30 chodzi z `cron` od 21.09, a sprawdzenie danych w Athenie od 26.09.
   Wymuszone awarie (19.09 i 26.09) dały u stróża `Failure` i e-mail. 06.10 ta sama próba na
   Pythonie 3.14 dała `Failure` z treścią co do bajtu taką, jak policzona przed wysłaniem.
   23.10 awaria z dopiskiem `wstrzymane`, wysłana dwa razy z rzędu: dwa zgłoszenia, jedna zmiana
   stanu, jeden e-mail; treść z polskimi literami doszła cała.
-- Dane: 800 dni notowań na spółkę, od 14.08.2023 do 23.10.2026 (2400 wierszy), te same daty
-  u wszystkich trzech. 120 cen z S3 porównanych z archiwum notowań GPW, wszystkie zgodne co do
-  grosza: 66 z historii (w tym wszystkie podejrzane serie jednakowych cen i dni odzyskane
-  03.09), 17, 18 i 21.09 oraz każdy dzień giełdowy od 05 do 23.10. Reszty historii nie
-  porównywaliśmy.
+- Dane: 801 dni notowań na spółkę, od 14.08.2023 do 26.10.2026 (2403 wiersze), te same daty
+  u wszystkich trzech. 124 ceny z S3 porównane z archiwum notowań GPW, wszystkie zgodne co do
+  grosza: 70 z historii (w tym wszystkie podejrzane serie jednakowych cen, dni odzyskane 03.09
+  i największy wzrost i spadek XTB, 31.01.2024 i 31.01.2025), 17, 18 i 21.09 oraz każdy dzień
+  giełdowy od 05 do 23.10. Reszty historii nie porównywaliśmy.
+- Strona na laptopie (26.10): `kod/data_stream.py` na prawdziwych plikach z S3 dał 800 sesji
+  (do 23.10), drugi bieg odczytał poprzedni plik (`poprzednio 800`), a bieg po dzisiejszej sesji
+  801 (`poprzednio 800`), z rozmiarem pliku równym temu w S3. Strona otwarta z dysku działa (zrzut
+  statystyk z przeglądarki autora); ceny, ranking z Golda i liczba sesji sprawdzone na jej kopii
+  w przeglądarce, a bez `dane.js` strona pokazuje „Brak danych”. Zatrzymanie przy
+  złych plikach (kod 1, stary `dane.js` nietknięty) sprawdzone na kopii z udawanym S3, na prawdziwym
+  biegu jeszcze nie wystąpiło.
 - Od 03.10 EC2 liczy na Pythonie 3.14. Pliki Silvera i Golda z nowego i starego Pythona są
   identyczne co do bajtu, a pierwszy bieg (sobota) zgadza się co do linii. Pierwszy dzień
   giełdowy na nowym Pythonie (05.10) też: Kafka i zapis do S3 działają jak wcześniej.
@@ -201,8 +221,14 @@ działać (EC2); opis mówi też, czego nie ma.
     kolejności, więc dane są poprawne;
   - część Producenta poza `session.py` (scalanie pamięci z odpowiedzią Yahoo, wybór nowych dni)
     nie ma testów.
-- Strony internetowej z wynikiem jeszcze nie ma — jest szkic i zatwierdzony plan, jak dane z Golda
-  trafią na stronę ([`notatki/plany/Notatka-2026-10-23-dane-na-strone.md`](notatki/plany/Notatka-2026-10-23-dane-na-strone.md)).
+- **Strona działa tylko na laptopie.** Nie ma jej w internecie, a `dane.js` odświeża się tylko po
+  ręcznym `python kod/data_stream.py` (po 18:15; między 18:05 a 18:15 Gold wysyła pliki). Publikacja
+  i odświeżanie bez laptopa to drugi etap, z osobną notatką; warunki Yahoo dla publicznej strony
+  są niesprawdzone. Plan: [`notatki/plany/Notatka-2026-10-23-dane-na-strone.md`](notatki/plany/Notatka-2026-10-23-dane-na-strone.md).
+- W zakładce Projekt liczby kafelków biorą się z `dane.js` (sesje, wiersze, pełne miesiące, rozmiar
+  pliku w S3) albo są stałym faktem z kodu (Kontrola: 4 problemy). Wyniku kontroli i licznika Kafki
+  strona nie zna; kafelek Kompakcja (783 sesji, 03.10) trzeba zmienić ręcznie po każdej kompakcji.
+- Kalendarz wydarzeń na stronie jest wpisany ręcznie (z raportów ESPI), nie z danych.
 
 ---
 
@@ -221,7 +247,8 @@ działać (EC2); opis mówi też, czego nie ma.
 | `compaction.py` | laptop, raz w miesiącu | przepisuje zakończone miesiące do `bronze/` (Parquet), ze strażnikiem liczby wierszy (kopia poprzedniego `bronze` pobierana najpierw, tylko `404` = nowa spółka), kasuje pokryte pliki z `live/` |
 | `wykresy.py` | laptop | ceny trzech spółek w czasie z `gold_dane_dzienne` → `wykresy/wykres3spolek.png` |
 | `ranking.py` | laptop | słupki zmiany za cały okres z `gold_ranking_spolek` → `wykresy/ranking.png` |
-| `test_control.py`, `test_path.py`, `test_session.py` | laptop | 38 testów (`pytest kod/ -v`) |
+| `data_stream.py` | laptop, ręcznie po 18:15 | dane dla strony: pobiera `gold/dane_dzienne/dane_dzienne.csv` i `gold/ranking/ranking.csv` z S3 do `strona/pobrane/`, sprawdza je (`sprawdz_pliki`), obraca w listy cen według dat (`zbuduj_dane`) i zapisuje `strona/dane.js` (`window.DANE = {…};`, z godziną wygenerowania i rozmiarem pliku z S3). Wypisuje `Strona: N sesji (od – do), poprzednio M, ostatnie: …` albo kończy się `Strona: problem - …` i kodem 1 |
+| `test_control.py`, `test_path.py`, `test_session.py`, `test_data_stream.py` | laptop | 48 testów (`pytest kod/ -v`) |
 | `dane_testowe/blok_2026-09-18.txt` | laptop | prawdziwy blok logu z 18.09, wzór do testów |
 | `pipeline.bat` | — | dawny lokalny bieg Silver+Gold z Harmonogramu Windows; zadanie wyłączone od 21.09, plik zostaje |
 
@@ -238,7 +265,12 @@ python -m venv .venv
 pip install -r requirements-lokalny.txt
 pytest kod/ -v
 python kod/wykresy.py
+python kod/data_stream.py
+Start-Process strona\index.html
 ```
+
+`data_stream.py` uruchamiać po 18:15 (wtedy ma dzisiejszą sesję); strona działa otwarta wprost
+z dysku, bez serwera.
 
 **EC2 (Amazon Linux 2023)** — Python 3.14 z `dnf` obok systemowego, osobne środowisko
 `venv314`, tylko gotowe paczki:
@@ -309,6 +341,7 @@ te same wersje, ale tylko to, czego potrzebuje potok.
 | `bronze/` | lokalne pliki Parquet z kompakcji — poza gitem |
 | `silver/`, `gold/` | wyniki biegu na EC2 — poza gitem, w repozytorium tylko pusty `.gitkeep` |
 | `wykresy/` | dwa obrazki i raport Power BI |
+| `strona/` | `index.html` (strona, w gicie); `dane.js` i `pobrane/` robi `data_stream.py` — poza gitem |
 | `notatki/plany/` | notatki projektowe (każdy mechanizm: co, po co, co może pójść źle, decyzje, wyniki), [przegląd z 23.10](notatki/plany/Przeglad-2026-10-23-calosc.md) (źródło prawdy o wadach; przeglądy z [08.10](notatki/plany/Przeglad-2026-10-08-calosc.md) i [08.09](notatki/plany/Przeglad-2026-09-08-co-nie-gra.md) to już historia), [historia projektu](notatki/plany/Historia-projektu.md) (dawny README z datami), [historia stanu](notatki/plany/Historia-stanu.md) (codzienne sekcje stanu z CLAUDE.md, 12.09–10.10) |
 | `notatki/Slownik.md` | pojęcia wyjaśnione prostym językiem, z przykładami |
 | `notatki/lekcje/`, `notatki/Zrodla.md` | materiały do nauki |
@@ -319,7 +352,8 @@ te same wersje, ale tylko to, czego potrzebuje potok.
 
 **Jak powstaje projekt:** kod i testy pisze autor. Asystent AI (Claude) tłumaczy pojęcia na
 przykładach, przygotowuje notatki projektowe i instrukcje, przewiduje wyniki przed biegiem
-i prowadzi dokumentację. Zasady tej współpracy są w [`CLAUDE.md`](CLAUDE.md).
+i prowadzi dokumentację. Wyjątek: kod strony (HTML, CSS, JavaScript w `strona/index.html`) pisze
+asystent, a autor uzgadnia każdy jej element; dane dla strony (`kod/data_stream.py`) pisze autor. Zasady tej współpracy są w [`CLAUDE.md`](CLAUDE.md).
 
 Folder `notatki/` to sejf Obsidiana: zapisy w podwójnych nawiasach kwadratowych to linki
 między notatkami.
