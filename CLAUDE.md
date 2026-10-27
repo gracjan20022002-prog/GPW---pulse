@@ -353,20 +353,19 @@ Jak czytać rozjazd:
 - Zakładka **`2432 2432 0`**; `errors.log` **8**.
 - S3 `gold/`: **160966 B** (+217; 23.10: 160749 B) i **363 B**, z `17:10:07` UTC. **`aws s3 ls` z laptopa
   pokazuje czas polski** (`18:10:07`), z EC2 — UTC.
-- Stróż: **wynik #42–#44 (24–26.10) nie doszedł do rozmowy 26.10** — sprawdzić na starcie; ostatni
-  potwierdzony #41 (23.10, `OK`).
+- Stróż: **#44** `GET` 18:30 `OK` (26.10); #42 (24.10) i #43 (25.10) też `OK` o 18:30 czasu polskiego —
+  25.10 pierwszy sprawdzian strefy u stróża po zmianie czasu, zgodny. Od 23.10 (`down → up`) bez zmiany stanu.
 - Ranking (Gold): SNT 334,80 (372,881318%), XTB 141,38 (272,641038%), CBF 194,80 (157,671967%).
-- Ceny z GPW: 23.10 — 192,00 / 334,20 / 137,00; 26.10 — **niesprawdzone** (o 18:44 archiwum jeszcze puste; pełne ok. 19:44).
-- Ceny w S3 porównane z archiwum GPW: **124**, wszystkie zgodne co do grosza (70 z historii — w tym
+- Ceny z GPW: 23.10 — 192,00 / 334,20 / 137,00; 26.10 — 194,80 / 334,80 / 141,38 (porównane 27.10, zgodne).
+- Ceny w S3 porównane z archiwum GPW: **127**, wszystkie zgodne co do grosza (70 z historii — w tym
   największy wzrost i spadek XTB, 31.01.2024 i 31.01.2025 z dniami poprzednimi — 17, 18 i 21.09, każdy
-  dzień giełdowy 05–23.10).
+  dzień giełdowy 05–26.10).
 - `strona/dane.js` (bieg o 18:32): 801 sesji, 27931 B, `rozmiar_dzienne` 160966 (= S3).
 
 ### Przewidywania od 10.10
 
 Zapisane przed biegami: wiersze 10–16.10 dnia 08.10, 17–25.10 dnia 10.10, a 26–31.10 dnia 20.10.
-**Wszystkie dni 10–26.10 sprawdzone: zgodne co do liczby**, także S3 i stróż (#26–#38, #41; #42–#44
-z 24–26.10 do potwierdzenia). **Tabela na listopad do ułożenia przed 01.11** (Gold zmieni 117/111).
+**Wszystkie dni 10–26.10 sprawdzone: zgodne co do liczby**, także S3 i stróż (#26–#38, #41–#44). **Tabela na listopad do ułożenia przed 01.11** (Gold zmieni 117/111).
 **Od 23.10 numery u stróża są o 2 wyższe niż w pierwotnej tabeli** (próba `/fail` #39 i #40) —
 tabela niżej już poprawiona.
 - Blok ma 28 linii (także po naprawach 1 i 2 z 20.10).
@@ -502,7 +501,7 @@ w wariancie (a), wieczorem punkt 1 zmieniony na (b) i punkt 2 odłożony; furtka
 ### Terminy
 
 - **24–26.10** — sprawdzone 26.10: pierwszy bieg po skasowaniu starego `venv` (24.10) bez nowych linii,
-  25.10 start `17:00:03` UTC (zmiana czasu poprawna), 26.10 `nowych dni: 1` bez dopisku. Stróż do potwierdzenia.
+  25.10 start `17:00:03` UTC (zmiana czasu poprawna), 26.10 `nowych dni: 1` bez dopisku; stróż #42–#44 `OK` o 18:30 polskiego.
 - **01.11** — Gold zmieni `117`/`111`. Przeliczyć przed biegiem, nie z pamięci.
 - **16, 18 i 20.11** — raporty kwartalne Cyber_Folks, Synektik i XTB (kalendarz strony).
 - **początek listopada** — kompakcja za październik, z laptopa, nie między 17:55 a 18:35.
@@ -576,7 +575,7 @@ zgodne → `NADROB=1`, potem sprawdzić wysłane ceny w Athenie; niezgodne → c
 14. **[przeglądarka]** stróż: `Up`, ostatnie zgłoszenie ok. 18:30 (`Europe/Warsaw`), typ `GET`
     z `13.63.105.190`, `python-requests/2.34.2`, liczba zgłoszeń +1 na dzień (21.09: 3; 26.09
     po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24; 09.10 #25; 12–20.10 #28–#36,
-    odczytane 19 i 20.10; 21.10 #37; 22.10 #38; 23.10 #41 po próbie `/fail` #39–#40; 24.10 #42). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
+    odczytane 19 i 20.10; 21.10 #37; 22.10 #38; 23.10 #41 po próbie `/fail` #39–#40; 24.10 #42; 25.10 #43; 26.10 #44). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
     `DOWN` (mail przychodzi ok. 15 minut po zmianie stanu).
 15. **[EC2, przez SSH]** (od 22.09, po punkcie 6) `ls -a silver gold` — w każdym
     `.gitkeep` i pliki `.csv`; `git status --short` — pusty.
@@ -644,15 +643,16 @@ Stan 26.10 (poniedziałek, koniec sesji wieczorem).
   `48 passed`) i pierwsze biegi na prawdziwym S3 (800, potem 801 sesji); strona `strona/index.html` czyta
   `dane.js` (zmiany zaakceptowane, statystyki z rokiem, kafelki Projektu z pliku); notatki z 24, 25 i 26.10
   (26.10: część główna linia po linii, przystępniej); kontrola 24–26.10 zgodna; README, CLAUDE.md, słownik.
-- **Commit** z 26.10 — komendy podane na koniec sesji; wynik sprawdzić na starcie. Na EC2 `git pull`
-  niepotrzebny (kod EC2 bez zmian).
+- **Commit `e79cd29`** (26.10, 18:48, 10 plików) jest na GitHubie. **Po nim niezacommitowana poprawka
+  CLAUDE.md** (wynik stróża #42–#44, 13 linii) — commit na starcie. Na EC2 `git pull` niepotrzebny.
 - **Po każdej zmianie Gracjana:** opis każdej nowej linii (zasada 3).
 
 0. **Na starcie:**
-   - `git log -1` i `git status --short` na laptopie: commit z 26.10 jest, gałąź nie przed GitHubem;
+   - `git log -1` i `git status --short` na laptopie: `e79cd29`, ` M CLAUDE.md` i `?? "Strona - pomysły.txt"`;
+     commit poprawki CLAUDE.md (stróż) i `git push`;
    - `date`;
    - lista sesji: czy po ostatniej była jakaś bez dziennika;
-   - **stróż #42–#44** (wynik z 26.10 nie doszedł do rozmowy).
+   - ~~ceny z 26.10 z archiwum GPW~~ — porównane 27.10, zgodne (194,80 / 334,80 / 141,38).
 1. **Do rozstrzygnięcia przez Gracjana:** czy pierwszy etap strony uznać za zamknięty (zasada 9, punkt 4
    „Wciąż otwarte”) i sprawdzenie „daty nie rosną” (rekomendacja: niepotrzebne).
 2. **Przegląd całości** (zasada 16) po zamknięciu pierwszego etapu strony.

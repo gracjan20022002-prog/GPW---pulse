@@ -136,7 +136,7 @@ Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak 
   i letnie) i podział nowych dni na wysłane i wstrzymane, 10 sprawdza `data_stream.py`: każde
   sprawdzenie plików i budowę danych dla strony. Testy nie łączą się z AWS.
 - **Ceny porównane z giełdą.** Punktem odniesienia jest archiwum notowań GPW, nie serwisy
-  pośrednie. 124 ceny z S3 porównane do 26.10 — wszystkie zgodne co do grosza.
+  pośrednie. 127 cen z S3 porównanych do 26.10 — wszystkie zgodne co do grosza.
 
 ---
 
@@ -155,10 +155,10 @@ działać (EC2); opis mówi też, czego nie ma.
   23.10 awaria z dopiskiem `wstrzymane`, wysłana dwa razy z rzędu: dwa zgłoszenia, jedna zmiana
   stanu, jeden e-mail; treść z polskimi literami doszła cała.
 - Dane: 801 dni notowań na spółkę, od 14.08.2023 do 26.10.2026 (2403 wiersze), te same daty
-  u wszystkich trzech. 124 ceny z S3 porównane z archiwum notowań GPW, wszystkie zgodne co do
+  u wszystkich trzech. 127 cen z S3 porównanych z archiwum notowań GPW, wszystkie zgodne co do
   grosza: 70 z historii (w tym wszystkie podejrzane serie jednakowych cen, dni odzyskane 03.09
   i największy wzrost i spadek XTB, 31.01.2024 i 31.01.2025), 17, 18 i 21.09 oraz każdy dzień
-  giełdowy od 05 do 23.10. Reszty historii nie porównywaliśmy.
+  giełdowy od 05 do 26.10. Reszty historii nie porównywaliśmy.
 - Strona na laptopie (26.10): `kod/data_stream.py` na prawdziwych plikach z S3 dał 800 sesji
   (do 23.10), drugi bieg odczytał poprzedni plik (`poprzednio 800`), a bieg po dzisiejszej sesji
   801 (`poprzednio 800`), z rozmiarem pliku równym temu w S3. Strona otwarta z dysku działa (zrzut
