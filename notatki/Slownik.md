@@ -2416,6 +2416,58 @@ liczbę z jej datą, zamiast zmyślać nową.
 *Kafelek S3 26.10: bez klucza `rozmiar_dzienne` → „Ostatni bieg, 22.10.2026 · 160 554 B”; z kluczem
 → „Stan na 26.10.2026 · 160 966 B”.*
 
+### `tmp_path` (pytest)
+Wbudowana fixture pytest: wystarczy dopisać ją w nawiasie testu albo własnej fixture. Każdy test
+dostaje osobny, pusty folder poza projektem; pytest trzyma foldery z trzech ostatnich biegów, starsze
+kasuje sam. Służy do testów funkcji, które piszą pliki — prawdziwy plik zostaje nietknięty.
+*27.10: `os.listdir(tmp_path)` na początku testu → `[]`; ścieżka np.
+`C:\Users\gracj\AppData\Local\Temp\pytest-of-gracj\pytest-0\test_brak_pliku0`. W projekcie: testy
+zapisu `dane.js` w `kod/test_data_stream.py`.*
+
+### Fixture korzystająca z innej fixture
+Fixture może dostać inną fixture w nawiasie, tak jak test. Pytest najpierw robi tę z nawiasu, potem
+woła naszą, a to, co zwróci `return`, daje testowi.
+*27.10, pomysł Gracjana: `def sciezka(tmp_path): return os.path.join(tmp_path, "dane.js")`; dwa testy
+→ `…\test_pierwszy0\pogoda.js` i `…\test_drugi0\pogoda.js`, drugi nie widzi pliku pierwszego.*
+
+### `assert` bez porównania
+`assert x` sprawdza tylko, czy `x` jest „prawdziwe”. `0`, pusta lista i pusty tekst to „fałsz”.
+*27.10: `assert wczytaj_poprzednie(sciezka)` przy braku pliku → `assert 0` → `AssertionError: assert 0`;
+taki test przeszedłby dopiero przy zepsutej funkcji oddającej `1`. Dobrze: `… == 0`.*
+
+### `pytest.raises(Błąd)`
+`with pytest.raises(json.JSONDecodeError):` i wcięte pod spodem wywołanie: test przechodzi, gdy kod
+pod spodem rzuci ten błąd. Gdy nie rzuci → `Failed: DID NOT RAISE …`. Wywołanie przed `with` → błąd
+leci poza `with` i test pada; bez wcięcia → `IndentationError`, cały plik się nie wczytuje.
+*27.10: `test_zepsuty_plik` — urwany `dane.js` musi dać błąd, a nie ciche `0`.*
+
+### `json.JSONDecodeError`
+Błąd `json.loads` przy tekście, który nie jest poprawnym JSON-em. Treść mówi, gdzie się zepsuło.
+*`json.loads('{"daty": ["2026-10-22"')` → `Expecting ',' delimiter: line 1 column 23 (char 22)`;
+`json.loads('{"daty": ["2026-10-20"]};')` → `Extra data: line 1 column 25 (char 24)` (27.10).*
+
+### Argumenty po kolejności
+Wartości w wywołaniu trafiają do parametrów funkcji po kolei: pierwsza do pierwszego, druga do drugiego.
+Nazwa zmiennej w wywołaniu nie ma znaczenia.
+*27.10: `wyslij_sms("Lody gotowe", telefon)` → `numer = '700300400'`; odwrotnie `wyslij_sms("600100200",
+"Lody gotowe")` → `tresc = '600100200'`. W teście: `zapisz_js({"daty": …}, sciezka)` → `dane` i
+`sciezka`; zamienione → `TypeError: expected str, bytes or os.PathLike object, not dict`.*
+
+### `Copy-Item`, `Move-Item -Force`, `sys.path.insert`
+`Copy-Item a b` kopiuje plik (oryginał zostaje); `Move-Item -Force a b` przenosi `a` na miejsce
+istniejącego `b` (`a` znika). `sys.path.insert(0, 'kod')` dopisuje folder na początek listy miejsc,
+gdzie Python szuka modułów.
+*27.10, próbna awaria: kopia `dane.js`, podstawienie przez `python -c "import sys; sys.path.insert(0,
+'kod'); from data_stream import zapisz_js; …"`, przywrócenie `Move-Item -Force`. Bez `sys.path.insert`
+→ `ModuleNotFoundError: No module named 'data_stream'`.*
+
+### `git gc --auto` (automatyczne sprzątanie gita)
+Po commicie git sam sprawdza, czy w `.git/objects` nie leży za dużo luźnych obiektów, i pakuje je
+w jedną paczkę (`Enumerating`, `Compressing`, `Writing objects`). `cruft` to obiekty, do których nie
+prowadzi żaden commit. Commit jest zrobiony, zanim sprzątanie ruszy.
+*27.10: 920 obiektów spakowanych, potem stanęło na `Enumerating cruft objects: 7`; procesy bez pracy
+procesora → Ctrl+C, `git push` normalnie.*
+
 ---
 
 ## Powiązane notatki

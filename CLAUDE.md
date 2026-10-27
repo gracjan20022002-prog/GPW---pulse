@@ -80,6 +80,11 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
    notatki. Styl i szerokość linii jak w starszych notatkach (ok. 100 znaków). Wzór:
    `notatki/plany/Notatka-2026-10-13-jak-napisac-naprawy-1-i-2.md`. Wąską kolumnę tekstu w panelu
    plików aplikacji ustala panel, nie plik (13.10, zrzut ekranu).
+   **Bez zbiorczych tabel „co robi / co łapie” (27.10, Gracjan: „kolejny raz ta tabelka nic mi nie
+   mówi… zrób ją konkretniejszą”):** przy wyjaśnianiu testów i kodu nie wciskać kodu i kilku pojęć
+   w komórki jednej tabeli. Przy każdym teście (kawałku) osobny blok jak w notatce z 26.10: po ludzku
+   jednym zdaniem, potem po kolei konkretne wartości — co jest w pliku albo zmiennej przed, co zwraca
+   wywołanie, z czym porównuje `assert` — i jedna konkretna pomyłka z jej prawdziwym komunikatem.
 
 4. **Każda komenda z etykietą maszyny i środowiska**, bez wyjątku,
    także ostatnia w sesji, także `git`: `[lokalny PowerShell, (.venv)
@@ -179,7 +184,7 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu (26.10)
+## Stan projektu (27.10)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
 - **Źródło prawdy o wadach i kolejności napraw (od 23.10, decyzja 5 Gracjana):**
@@ -312,11 +317,12 @@ po wstrzymaniu stróż więc milknie po pierwszym mailu — patrz „Zasada na c
 - Wykresy (`wykresy.py`, `ranking.py`) czytają Athenę od 03.10.
 - Power BI odłożony, pokazuje dane do 20.09.
 - **Skrypt danych strony `kod/data_stream.py`** (od 26.10 pełny, 84 linie; testy `kod/test_data_stream.py`,
-  10): ręcznie po 18:15 (**nigdy między 18:05 a 18:15**, bo o 18:10 Gold wysyła pliki), `(.venv)` włączone.
+  15 — od 27.10 także zapis i odczyt `dane.js` w `tmp_path`, fixture `sciezka`): ręcznie po 18:15 (**nigdy między 18:05 a 18:15**, bo o 18:10 Gold wysyła pliki), `(.venv)` włączone.
   Pobiera oba pliki Golda z S3 do `strona/pobrane/`, sprawdza je (`sprawdz_pliki`), zapisuje
   `strona/dane.js` (`window.DANE = {…};`, z `wygenerowano` i `rozmiar_dzienne`). Linia wyniku
   `Strona: N sesji (od - do), poprzednio M, ostatnie: …`; przy problemie `Strona: problem - …`, kod 1,
-  stary `dane.js` nietknięty.
+  stary `dane.js` nietknięty (na prawdziwym biegu 27.10). Zepsuty `dane.js` → `JSONDecodeError`, kod 1;
+  wtedy usunąć plik ręcznie (następny bieg: `poprzednio 0`). **Pierwszy etap strony zamknięty 27.10.**
 - **Strona `strona/index.html`** (kod Claude'a, ze szkicu wersja 30) czyta `dane.js`; otwierana z dysku
   `Start-Process strona\index.html`. `dane.js` i `pobrane/` poza gitem (`.gitignore` linie 18–19),
   `index.html` w gicie. Bez `dane.js` pokazuje „Brak danych”.
@@ -333,7 +339,7 @@ po wstrzymaniu stróż więc milknie po pierwszym mailu — patrz „Zasada na c
 | 1 | `Odebrano N wiadomości` |
 | 2 | ostrzeżenie `pandas` z `silver.py` |
 | 2 | `(M, 3)` z Silvera i z Golda |
-| 11 | reszta Golda: tabela 4, `Pełna liczba … 117, Prawidłowa … 111` (październik) 1, ranking 6 |
+| 11 | reszta Golda: tabela 4, `Pełna liczba … 117, Prawidłowa … 111` (październik; od 02.11 `120`/`114`) 1, ranking 6 |
 | 2 | `S3: wysłano` |
 | 2 | ostrzeżenie `pandas` z `kod/path.py:32` |
 | 2 | `Kontrola: Dane M wierszy`, `Kontrola: OK` |
@@ -346,34 +352,37 @@ Jak czytać rozjazd:
 - **`PythonDeprecationWarning` w bloku** — stary `venv` (3.9) skasowany 23.10, więc powrotu do niego
   nie ma; taka linia znaczyłaby coś nowego.
 
-### Ostatnie liczby (bieg 26.10, sprawdzony 26.10)
+### Ostatnie liczby (bieg 27.10, sprawdzony 27.10)
 
-- Log: start w linii **1672** (`17:00:02` UTC — od 25.10 czas zimowy), `wc -l` **1699**.
-- Dane: 2 × `(2403, 3)`, `Kontrola: Dane 2403 wierszy`, pliki spółek **801 × 3**.
-- Zakładka **`2432 2432 0`**; `errors.log` **8**.
-- S3 `gold/`: **160966 B** (+217; 23.10: 160749 B) i **363 B**, z `17:10:07` UTC. **`aws s3 ls` z laptopa
+- Log: start w linii **1700** (`17:00:03` UTC — od 25.10 czas zimowy), `wc -l` **1727**.
+- Dane: 2 × `(2406, 3)`, `Kontrola: Dane 2406 wierszy`, pliki spółek **802 × 3**.
+- Zakładka **`2435 2435 0`**; `errors.log` **8**.
+- S3 `gold/`: **161161 B** (+195; 26.10: 160966 B) i **336 B**, z `17:10:07` UTC. **`aws s3 ls` z laptopa
   pokazuje czas polski** (`18:10:07`), z EC2 — UTC.
-- Stróż: **#44** `GET` 18:30 `OK` (26.10); #42 (24.10) i #43 (25.10) też `OK` o 18:30 czasu polskiego —
-  25.10 pierwszy sprawdzian strefy u stróża po zmianie czasu, zgodny. Od 23.10 (`down → up`) bez zmiany stanu.
-- Ranking (Gold): SNT 334,80 (372,881318%), XTB 141,38 (272,641038%), CBF 194,80 (157,671967%).
-- Ceny z GPW: 23.10 — 192,00 / 334,20 / 137,00; 26.10 — 194,80 / 334,80 / 141,38 (porównane 27.10, zgodne).
-- Ceny w S3 porównane z archiwum GPW: **127**, wszystkie zgodne co do grosza (70 z historii — w tym
+- Stróż: **#45** `GET` 18:30 `OK` (27.10). Od 23.10 (`down → up`) bez zmiany stanu.
+- Ranking (Gold): SNT 334,60 (372,598858%), XTB 139,50 (267,685833%), CBF 194,00 (156,613762%).
+- Ceny z GPW: 26.10 — 194,80 / 334,80 / 141,38; 27.10 — 194,00 / 334,60 / 139,50 (zgodne; archiwum
+  27.10 pełne już o 19:14).
+- Ceny w S3 porównane z archiwum GPW: **130**, wszystkie zgodne co do grosza (70 z historii — w tym
   największy wzrost i spadek XTB, 31.01.2024 i 31.01.2025 z dniami poprzednimi — 17, 18 i 21.09, każdy
-  dzień giełdowy 05–26.10).
-- `strona/dane.js` (bieg o 18:32): 801 sesji, 27931 B, `rozmiar_dzienne` 160966 (= S3).
+  dzień giełdowy 05–27.10).
+- `strona/dane.js` (bieg o 20:31): 802 sesje, 27965 B, `rozmiar_dzienne` 161161 (= S3).
 
 ### Przewidywania od 10.10
 
 Zapisane przed biegami: wiersze 10–16.10 dnia 08.10, 17–25.10 dnia 10.10, a 26–31.10 dnia 20.10.
-**Wszystkie dni 10–26.10 sprawdzone: zgodne co do liczby**, także S3 i stróż (#26–#38, #41–#44). **Tabela na listopad do ułożenia przed 01.11** (Gold zmieni 117/111).
+**Wszystkie dni 10–27.10 sprawdzone: zgodne co do liczby**, także S3 i stróż (#26–#38, #41–#45). **Tabela na
+listopad niżej, zapisana 27.10.**
 **Od 23.10 numery u stróża są o 2 wyższe niż w pierwotnej tabeli** (próba `/fail` #39 i #40) —
 tabela niżej już poprawiona.
 - Blok ma 28 linii (także po naprawach 1 i 2 z 20.10).
-- W październiku nie ma świąt. Gold daje `117`/`111` do końca miesiąca.
+- W październiku nie ma świąt. Gold daje `117`/`111` do 01.11 włącznie (31.10 i 01.11 bez nowej sesji),
+  a od pierwszej sesji listopada, **02.11**, `120`/`114` (przeliczone 27.10 regułą z `gold.py` na pliku
+  Golda z dopisanymi sesjami: 40 miesięcy × 3; październik, 22 sesje, staje się pełnym miesiącem).
 - **Numery u stróża przesuwa każdy ręczny `control.py` ze `STROZ_URL`.**
 - S3 `dane_dzienne.csv` rośnie o ok. 177–219 B na dzień giełdowy (09.10: +193, 12.10: +177,
   13.10: +208, 14.10: +205, 15–16.10: +426 razem, 19.10: +219, 20.10: +204, 21.10: +216,
-  22.10: +207, 23.10: +195, 26.10: +217). `ranking.csv` 330–370 B. Dokładny przyrost da się policzyć z cen GPW
+  22.10: +207, 23.10: +195, 26.10: +217, 27.10: +195). `ranking.csv` 330–370 B. Dokładny przyrost da się policzyć z cen GPW
   (cena jako float32, jak z Yahoo; skrypt 23.10 trafił co do bajtu).
 - Od 25.10 linia startu ma `17:00:0X` UTC, a pliki w S3 `17:10` (potwierdzone 25 i 26.10).
 
@@ -404,6 +413,46 @@ tabela niżej już poprawiona.
 
 25.10 to pierwszy bieg po zmianie czasu. Linia startu ma wtedy `17:00:0X` UTC, a u stróża
 zgłoszenie dalej ok. 18:30 polskiego.
+
+**Listopad (zapisane 27.10, przed biegami).** Jedyny dzień bez sesji to **śr. 11.11** (uchwała GPW
+nr 753/2025, potwierdzone 27.10; w historii Yahoo nie ma 01.11.2023, 01.11.2024, 11.11.2024 ani 11.11.2025,
+więc święto nie daje świecy). Blok 28 linii każdego dnia, także 11.11: zamiast `Kontrola: OK` jedna linia
+`Kontrola: AWARIA - CBF.WA brak wpisu z: 2026-11-11; XTB.WA brak wpisu z: 2026-11-11; SNT.WA brak wpisu
+z: 2026-11-11`, `POST /fail` (zmiana `up → down`, mail `DOWN`); 12.11 `GET` (`down → up`, mail `UP`).
+Gold `120`/`114` od 02.11 do końca miesiąca. Kompakcja (z laptopa) nie zmienia liczb w tabeli.
+
+| Dzień | Start | `wc -l` | `Odebrano` | `Kontrola: Dane` | Zakładka | Pliki spółek | Gold | Stróż |
+|---|---|---|---|---|---|---|---|---|
+| niedz. 01.11 | 1840 | 1867 | 0 | 2415 | 2444 | 805 | 117/111 | #50 |
+| pon. 02.11 | 1868 | 1895 | 3 | 2418 | 2447 | 806 | **120/114** | #51 |
+| wt. 03.11 | 1896 | 1923 | 3 | 2421 | 2450 | 807 | 120/114 | #52 |
+| śr. 04.11 | 1924 | 1951 | 3 | 2424 | 2453 | 808 | 120/114 | #53 |
+| czw. 05.11 | 1952 | 1979 | 3 | 2427 | 2456 | 809 | 120/114 | #54 |
+| pt. 06.11 | 1980 | 2007 | 3 | 2430 | 2459 | 810 | 120/114 | #55 |
+| sob. 07.11 | 2008 | 2035 | 0 | 2430 | 2459 | 810 | 120/114 | #56 |
+| niedz. 08.11 | 2036 | 2063 | 0 | 2430 | 2459 | 810 | 120/114 | #57 |
+| pon. 09.11 | 2064 | 2091 | 3 | 2433 | 2462 | 811 | 120/114 | #58 |
+| wt. 10.11 | 2092 | 2119 | 3 | 2436 | 2465 | 812 | 120/114 | #59 |
+| **śr. 11.11 (święto)** | 2120 | 2147 | 0 | 2436 | 2465 | 812 | 120/114 | **#60 `/fail`, `DOWN`** |
+| czw. 12.11 | 2148 | 2175 | 3 | 2439 | 2468 | 813 | 120/114 | #61 `GET`, `UP` |
+| pt. 13.11 | 2176 | 2203 | 3 | 2442 | 2471 | 814 | 120/114 | #62 |
+| sob. 14.11 | 2204 | 2231 | 0 | 2442 | 2471 | 814 | 120/114 | #63 |
+| niedz. 15.11 | 2232 | 2259 | 0 | 2442 | 2471 | 814 | 120/114 | #64 |
+| pon. 16.11 | 2260 | 2287 | 3 | 2445 | 2474 | 815 | 120/114 | #65 |
+| wt. 17.11 | 2288 | 2315 | 3 | 2448 | 2477 | 816 | 120/114 | #66 |
+| śr. 18.11 | 2316 | 2343 | 3 | 2451 | 2480 | 817 | 120/114 | #67 |
+| czw. 19.11 | 2344 | 2371 | 3 | 2454 | 2483 | 818 | 120/114 | #68 |
+| pt. 20.11 | 2372 | 2399 | 3 | 2457 | 2486 | 819 | 120/114 | #69 |
+| sob. 21.11 | 2400 | 2427 | 0 | 2457 | 2486 | 819 | 120/114 | #70 |
+| niedz. 22.11 | 2428 | 2455 | 0 | 2457 | 2486 | 819 | 120/114 | #71 |
+| pon. 23.11 | 2456 | 2483 | 3 | 2460 | 2489 | 820 | 120/114 | #72 |
+| wt. 24.11 | 2484 | 2511 | 3 | 2463 | 2492 | 821 | 120/114 | #73 |
+| śr. 25.11 | 2512 | 2539 | 3 | 2466 | 2495 | 822 | 120/114 | #74 |
+| czw. 26.11 | 2540 | 2567 | 3 | 2469 | 2498 | 823 | 120/114 | #75 |
+| pt. 27.11 | 2568 | 2595 | 3 | 2472 | 2501 | 824 | 120/114 | #76 |
+| sob. 28.11 | 2596 | 2623 | 0 | 2472 | 2501 | 824 | 120/114 | #77 |
+| niedz. 29.11 | 2624 | 2651 | 0 | 2472 | 2501 | 824 | 120/114 | #78 |
+| pon. 30.11 | 2652 | 2679 | 3 | 2475 | 2504 | 825 | 120/114 | #79 |
 
 ### Wciąż otwarte
 
@@ -463,9 +512,14 @@ w wariancie (a), wieczorem punkt 1 zmieniony na (b) i punkt 2 odłożony; furtka
    „Brak danych”; jego decyzje: daty w Statystykach okresu zawsze z rokiem, kafelki Projektu z pliku (Yahoo,
    Producent, Kafka, Konsument = liczba spółek z ostatniej sesji; Athena = 3 × sesje; Gold 111/117 regułą
    z `gold.py`; S3 = `rozmiar_dzienne`), Kontrola = stały fakt „4 problemy”, Kompakcja bez zmian (ręcznie po
-   kompakcji). Zasada 9: (a), (b), (d) dla laptopa spełnione; (c) zatrzymanie przy złych plikach tylko na
-   kopii; (e) README 26.10. **Do rozstrzygnięcia:** sprawdzenie „daty nie rosną” z notatki 23.10
-   (rekomendacja: niepotrzebne).
+   kompakcji). Zasada 9: (a), (b), (d) dla laptopa spełnione; (e) README 26.10.
+   **27.10: pierwszy etap strony zamknięty** (decyzja Gracjana, wariant B): 5 testów zapisu i odczytu
+   `dane.js` (`tmp_path`, fixture `sciezka`, 15 w pliku, `53 passed`) i próbna awaria na prawdziwym biegu
+   — podstawiony poprzedni `dane.js` z 900 sesjami → `Strona: problem - Mniej sesji niż poprzednio:
+   802 < 900`, kod 1, plik nienadpisany, pliki z S3 pobrane; po przywróceniu `802 sesji, poprzednio 801`.
+   Warunek (c) spełniony. Sprawdzenia „daty nie rosną” **nie dodajemy** (decyzja 27.10: pokrywają je
+   `sort_values` w linii 73 i `pivot` w linii 37; sprawdzone na przetasowanym pliku Golda).
+   Następny krok: przegląd całości (zasada 16, D6 b). Drugi etap (internet) — osobna notatka.
 5. **Osobne decyzje, później:**
    - ~~stary `venv` na EC2~~ — **skasowany 23.10** razem z `~/porownanie-1003/` (205M + 256K; dysk
      72% → 69%, wolne 2,3 → 2,5 GB);
@@ -492,7 +546,6 @@ w wariancie (a), wieczorem punkt 1 zmieniony na (b) i punkt 2 odłożony; furtka
 
 **Niesprawdzone:**
 - nadrabianie `NADROB=1` na EC2, Konsument bez zmiennej na EC2 (naprawy 1 i 2);
-- `data_stream.py` przy złych plikach na prawdziwym biegu (kod 1 i nietknięty `dane.js` tylko na kopii);
 - czy warunki Yahoo pozwalają pokazywać dane na publicznej stronie (drugi etap strony);
 - czy port 9092 brokera jest otwarty dla laptopa;
 - rozmiar `athena-results/`;
@@ -502,7 +555,8 @@ w wariancie (a), wieczorem punkt 1 zmieniony na (b) i punkt 2 odłożony; furtka
 
 - **24–26.10** — sprawdzone 26.10: pierwszy bieg po skasowaniu starego `venv` (24.10) bez nowych linii,
   25.10 start `17:00:03` UTC (zmiana czasu poprawna), 26.10 `nowych dni: 1` bez dopisku; stróż #42–#44 `OK` o 18:30 polskiego.
-- **01.11** — Gold zmieni `117`/`111`. Przeliczyć przed biegiem, nie z pamięci.
+  27.10 zgodny (1700–1727, `Dane` 2406, S3 161161 B, #45).
+- **02.11** (pierwsza sesja listopada, nie 01.11) — Gold zmieni `117`/`111` na `120`/`114` (przeliczone 27.10).
 - **16, 18 i 20.11** — raporty kwartalne Cyber_Folks, Synektik i XTB (kalendarz strony).
 - **początek listopada** — kompakcja za październik, z laptopa, nie między 17:55 a 18:35.
   Pierwsza z prawdziwym kasowaniem na nowym strażniku. Przewidywania z Atheny przed biegiem.
@@ -543,7 +597,7 @@ zgodne → `NADROB=1`, potem sprawdzić wysłane ceny w Athenie; niezgodne → c
    start; 3 × `nowych dni: N, wysłane: N, stan: zapisane` (N = 1 albo 0), 2 linie
    `value_deserializer`, `Odebrano 3` albo `Odebrano 0`, 2 linie ostrzeżenia `pandas`
    z `silver.py`, 2 × `(M, 3)` **bez** linii `PythonDeprecationWarning` między nimi, tabela
-   Golda, `Pełna liczba … 117, Prawidłowa … 111` (październik), ranking w 6 liniach,
+   Golda, `Pełna liczba … 117, Prawidłowa … 111` (październik; od 02.11 `120`/`114`), ranking w 6 liniach,
    2 × `S3: wysłano`, brak `Traceback`, 2 linie ostrzeżenia `pandas` z `kod/path.py:32`,
    **przedostatnia `Kontrola: Dane M wierszy`, ostatnia `Kontrola: OK`**. M = poprzednie
    + 3 w dzień giełdowy, bez zmian w weekend (03.10: 2355). M w `Kontrola: Dane` = M
@@ -568,20 +622,20 @@ zgodne → `NADROB=1`, potem sprawdzić wysłane ceny w Athenie; niezgodne → c
     potrzebna tylko do `od`/`do` albo przy rozjeździe.
 13. **[EC2, przez SSH]** `aws s3 ls s3://gpw-tracker-bucket/gold/ --recursive` — dwa pliki
     z dzisiejszą datą i godziną `16:10` (UTC, bo z EC2; od 25.10 `17:10`). Rozmiar
-    `dane_dzienne.csv`: 160966 B na 2403 wiersze (26.10), rośnie o ok. 59–73 B na wiersz (ok.
+    `dane_dzienne.csv`: 161161 B na 2406 wierszy (27.10), rośnie o ok. 59–73 B na wiersz (ok.
     +177–219 B na dzień giełdowy; krótkie ceny jak `200.0` dają mniej);
     `ranking.csv` 330–370 B. **Lokalnego pliku do porównania rozmiaru nie ma od 21.09**
     (Harmonogram wyłączony).
 14. **[przeglądarka]** stróż: `Up`, ostatnie zgłoszenie ok. 18:30 (`Europe/Warsaw`), typ `GET`
     z `13.63.105.190`, `python-requests/2.34.2`, liczba zgłoszeń +1 na dzień (21.09: 3; 26.09
     po testach E4: 9; 06.10 `cron` #20, po teście `/fail` #22; 07.10 #23; 08.10 #24; 09.10 #25; 12–20.10 #28–#36,
-    odczytane 19 i 20.10; 21.10 #37; 22.10 #38; 23.10 #41 po próbie `/fail` #39–#40; 24.10 #42; 25.10 #43; 26.10 #44). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
+    odczytane 19 i 20.10; 21.10 #37; 22.10 #38; 23.10 #41 po próbie `/fail` #39–#40; 24.10 #42; 25.10 #43; 26.10 #44; 27.10 #45; listopad w tabeli przewidywań). Zrzuty przycinać bez pola z adresem zgłoszenia. Na Interii: żadnego
     `DOWN` (mail przychodzi ok. 15 minut po zmianie stanu).
 15. **[EC2, przez SSH]** (od 22.09, po punkcie 6) `ls -a silver gold` — w każdym
     `.gitkeep` i pliki `.csv`; `git status --short` — pusty.
 16. **[EC2, przez SSH]** (od 09.10, na czas badania punktu 1.1 przeglądu z 08.10)
     `tail -n N companies/*.WA.txt` — ostatnie dni pamięci każdej spółki, N tak, żeby objąć 05.10
-    (21.10: 13; 22.10: 14; 23.10: 15; 26.10: 16; 27.10: 17). Pamięć ma ceny z odpowiedzi Yahoo z 18:00
+    (21.10: 13; 22.10: 14; 23.10: 15; 26.10: 16; 27.10: 17; 28.10: 18; +1 na dzień giełdowy). Pamięć ma ceny z odpowiedzi Yahoo z 18:00
     i **nadpisuje się przy każdym biegu** — stan z danego dnia można odczytać tylko przed następnym
     biegiem. Szukamy dnia, w którym dni 05–13.10 przestaną mieć zamknięcie z 02.10 (CBF 201,0, SNT
     341,6, XTB 138,56), i patrzymy, czy dni od 14.10 zostają dobre (14.10 po biegu: 05–13.10 z ceną
@@ -638,27 +692,30 @@ informacje, diagramy, wykresy); zakładki: spółki, aktualności, dane spółek
 
 ### Na następną sesję
 
-Stan 26.10 (poniedziałek, koniec sesji wieczorem).
-- **Zrobione 24–26.10:** skrypt danych strony `kod/data_stream.py` (porcje 1–3, 84 linie, 10 testów,
-  `48 passed`) i pierwsze biegi na prawdziwym S3 (800, potem 801 sesji); strona `strona/index.html` czyta
-  `dane.js` (zmiany zaakceptowane, statystyki z rokiem, kafelki Projektu z pliku); notatki z 24, 25 i 26.10
-  (26.10: część główna linia po linii, przystępniej); kontrola 24–26.10 zgodna; README, CLAUDE.md, słownik.
-- **Commit `e79cd29`** (26.10, 18:48, 10 plików) jest na GitHubie. **Po nim niezacommitowana poprawka
-  CLAUDE.md** (wynik stróża #42–#44, 13 linii) — commit na starcie. Na EC2 `git pull` niepotrzebny.
+Stan 27.10 (wtorek, koniec sesji wieczorem).
+- **Zrobione 27.10:** commit `d257732` na starcie; kontrola 27.10 zgodna (#45); ceny 26 i 27.10 zgodne
+  z GPW (130); 5 testów zapisu i odczytu `dane.js` (`tmp_path`, fixture `sciezka`, `53 passed`) z notatką
+  i wytłumaczeniem; **pierwszy etap strony zamknięty** po próbnej awarii na prawdziwym biegu; „daty nie
+  rosną” — nie dodajemy; **tabela przewidywań na listopad** (Gold `120`/`114` od 02.11, święto 11.11);
+  README, CLAUDE.md, słownik, dopiski w notatkach z 23 i 27.10.
+- **Commit końcowy 27.10** — komendy podane na koniec sesji; wynik sprawdzić na starcie. Na EC2 `git pull`
+  niepotrzebny (kod EC2 bez zmian).
 - **Po każdej zmianie Gracjana:** opis każdej nowej linii (zasada 3).
+- **Notatki i wyjaśnienia testów/kodu:** bez zbiorczych tabel, blok na test z konkretnymi wartościami
+  (zasada 3, 27.10).
 
 0. **Na starcie:**
-   - `git log -1` i `git status --short` na laptopie: `e79cd29`, ` M CLAUDE.md` i `?? "Strona - pomysły.txt"`;
-     commit poprawki CLAUDE.md (stróż) i `git push`;
+   - `git log -1` i `git status --short` na laptopie: commit z 27.10 jest, gałąź nie przed GitHubem,
+     zostaje tylko `?? "Strona - pomysły.txt"`;
    - `date`;
-   - lista sesji: czy po ostatniej była jakaś bez dziennika;
-   - ~~ceny z 26.10 z archiwum GPW~~ — porównane 27.10, zgodne (194,80 / 334,80 / 141,38).
-1. **Do rozstrzygnięcia przez Gracjana:** czy pierwszy etap strony uznać za zamknięty (zasada 9, punkt 4
-   „Wciąż otwarte”) i sprawdzenie „daty nie rosną” (rekomendacja: niepotrzebne).
-2. **Przegląd całości** (zasada 16) po zamknięciu pierwszego etapu strony.
-3. Propozycja z 26.10, niewybrana: testy `wczytaj_poprzednie` i `zapisz_js` w pytest (`tmp_path`).
-4. **Kontrola biegów** (27.10: `tail -n 17`, stróż #45…); **przed 01.11 tabela przewidywań na listopad**.
-5. Później: drugi etap strony (internet, odświeżanie bez laptopa, warunki Yahoo), notatka o drugim biegu
+   - lista sesji: czy po ostatniej była jakaś bez dziennika.
+1. **Kontrola biegów** według tabel w „Przewidywania od 10.10” (28.10: start 1728, `Dane` 2409, zakładka
+   2438, #46, `tail -n 18`); ceny z GPW (archiwum bywa pełne ok. 19:15).
+2. **Przegląd całości** (zasada 16, decyzja D6 b z 23.10) — pierwszy etap strony zamknięty; wynik do
+   pliku przeglądu.
+3. **Kompakcja za październik** (początek listopada, z laptopa, nie między 17:55 a 18:35) —
+   przewidywania z Atheny przed biegiem; pierwsza z prawdziwym kasowaniem na nowym strażniku.
+4. Później: drugi etap strony (internet, odświeżanie bez laptopa, warunki Yahoo), notatka o drugim biegu
    tego samego wieczoru (B); terminy wyżej.
 
 **EC2 jest na `5fa44fc` od 20.10 ok. 14:57 UTC.** Poprzednio: `5676575` od 07.10, `4aca12d` od 03.10,
@@ -712,6 +769,10 @@ nowe pomyłki idą do dziennika dnia. Tutaj zostają wnioski, które obowiązuj�
 17. **Zachowanie usługi z zewnątrz (stróż, Yahoo, przeglądarka) sprawdzić, zanim wpisze się je do
     notatki jako fakt** (23.10: notatka z 12.10 obiecywała „stróż alarmuje codziennie”, a stróż wysyła
     mail tylko przy zmianie stanu; podgląd strony bez `viewport` pokazał telefon na 980 px).
+18. **Wynik dla projektu tylko z uruchomienia na kopii projektu, nigdy przepisany z przykładu na innych
+    danych** (27.10: w notatce „każda pomyłka daje `1 failed`” wzięte z pogody; na kopii projektu brak
+    `removesuffix` dał 2 nieudane testy, `"\n"` — 3). Daty z kodu, nie z pamięci: „Gold zmieni się
+    01.11” było nieścisłe — zmiana przychodzi z pierwszą sesją miesiąca (02.11).
 
 ### Kopie
 
@@ -768,8 +829,8 @@ bloku jeszcze nie ma). Awaria Atheny: dopisać przed komendą zmyślone `AWS_ACC
 AWS_SECRET_ACCESS_KEY=…`. Ze stróżem: `export STROZ_URL=$(crontab -l | grep '^STROZ_URL=' |
 cut -d= -f2-)`, sprawdzić `echo ${#STROZ_URL}` → `56`, po testach `unset STROZ_URL` → `0`.
 Każde zgłoszenie ręczne przesuwa numery u stróża. **Od 03.10 wszystkie testy jedną komendą:**
-`pytest kod/ -v` (od 25.10 48 testów: 13 w `test_control.py`, 7 w `test_path.py`, 18
-w `test_session.py`, 10 w `test_data_stream.py`; `test_plikow.py` usunięty) — **z włączonym `(.venv)`**, bo Python systemowy na laptopie nie ma `pyathena`.
+`pytest kod/ -v` (od 27.10 53 testy: 13 w `test_control.py`, 7 w `test_path.py`, 18
+w `test_session.py`, 15 w `test_data_stream.py`; `test_plikow.py` usunięty) — **z włączonym `(.venv)`**, bo Python systemowy na laptopie nie ma `pyathena`.
 **Wykresy** (od 03.10 z Atheny, tylko laptop, `(.venv)` włączone): `python kod/wykresy.py`
 (`Wiersze: N, stan na: RRRR-MM-DD`, obrazek `wykresy/wykres3spolek.png`) i `python
 kod/ranking.py` (tabela 3 spółek malejąco, `stan na: …`, `wykresy/ranking.png`). Bez dostępu
@@ -777,12 +838,12 @@ do Atheny padają z błędem i nie nadpisują obrazka. Nauka Pythona (osobny pro
 **Archiwum notowań GPW** (punkt odniesienia dla cen, od 18.09): jeden dzień, wszystkie akcje —
 `https://www.gpw.pl/archiwum-notowan?fetch=0&type=10&instrument=&date=DD-MM-RRRR`, kurs zamknięcia
 w szóstej kolumnie (CBF to wiersz `CYBERFLKS`, SNT `SYNEKTIK`). Claude czyta je narzędziem
-w przeglądarce. Archiwum z dzisiejszego dnia o 18:48 jeszcze puste (08.10).
+w przeglądarce. Archiwum z dzisiejszego dnia o 18:48 jeszcze puste (08.10), 27.10 pełne o 19:14.
 
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`
 i `notatki/Slownik.md` **są śledzone**. Poza gitem, przez `.gitignore`, są
 `notatki/dziennik/` i `notatki/.obsidian/`. Znaczy to, że **wszystkie wpisy
-dziennika (64 pliki na 26.10), czyli cały zapis nauki z tego projektu,
+dziennika (65 plików na 27.10), czyli cały zapis nauki z tego projektu,
 istnieją wyłącznie na laptopie i w OneDrive, ani jeden nie jest
 w repozytorium**. **Decyzja Gracjana 06.10: zostaje tak** — dziennik tylko lokalnie (laptop
 i OneDrive), poza gitem. Świadomy koszt: jedna kopia, w zamian prywatność.

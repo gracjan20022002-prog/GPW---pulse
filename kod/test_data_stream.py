@@ -1,7 +1,9 @@
+import json
+import os
 import pandas as pd
 import pytest
 from config import ticker
-from data_stream import sprawdz_pliki, zbuduj_dane
+from data_stream import sprawdz_pliki, zbuduj_dane, wczytaj_poprzednie, zapisz_js
 @pytest.fixture
 def dzienne():
     return pd.DataFrame({
@@ -17,6 +19,9 @@ def ranking():
         "ostatnia_cena": [101.0, 202.0, 303.0],
         "zmiana_caly_okres": [10.0, 30.0, 20.0]
     })
+@pytest.fixture
+def sciezka(tmp_path):
+    return os.path.join(tmp_path, "dane.js")
 def test_komplet(dzienne, ranking):
     wynik = sprawdz_pliki(dzienne, ranking, ticker, "2026-10-24", 2)
     assert wynik == []
@@ -61,3 +66,22 @@ def test_zbuduj_dane(dzienne, ranking):
     assert wynik["ceny"] == {"CBF": [100.0, 101.0], "XTB": [200.0, 202.0], "SNT": [300.0, 334.2]}
     assert wynik["ranking"][0] == {"spolka": "XTB", "miesiac": "2025-02", "zmiana": 30.0}
     assert wynik["ranking"][2]["spolka"] == "CBF"
+def test_wczytaj_brak_pliku(sciezka):
+    assert wczytaj_poprzednie(sciezka) == 0
+def test_zapisz_js(sciezka):
+    zapisz_js({"daty": ["2026-10-22", "2026-10-23"]}, sciezka)
+    with open(sciezka, encoding="utf-8") as plik:
+        tekst = plik.read()
+    assert tekst == 'window.DANE = {"daty": ["2026-10-22", "2026-10-23"]};'
+def test_zapisz_i_wczytaj(dzienne, ranking, sciezka):
+    zapisz_js(zbuduj_dane(dzienne, ranking, ticker), sciezka)
+    assert wczytaj_poprzednie(sciezka) == 2
+def test_zapisz_i_nadpisz(sciezka):
+    zapisz_js({"daty": ["2026-10-21", "2026-10-22", "2026-10-23"]}, sciezka)
+    zapisz_js({"daty": ["2026-10-23"]}, sciezka)
+    assert wczytaj_poprzednie(sciezka) == 1
+def test_zepsuty_plik(sciezka):
+    with open(sciezka, "w", encoding="utf-8") as plik:
+        plik.write('window.DANE = {"daty": ["2026-10-22"')
+    with pytest.raises(json.JSONDecodeError):
+        wczytaj_poprzednie(sciezka)

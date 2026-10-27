@@ -6,8 +6,8 @@ w AWS pobiera kursy zamknięcia z Yahoo Finance, przepuszcza je przez Kafkę do 
 i pandas liczą z nich zmiany cen i ranking spółek. O 18:30 projekt sprawdza sam siebie
 i przy awarii wysyła e-mail.
 
-Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **26.10.2026** (dane do sesji
-26.10). Pełna lista wad i kolejność napraw:
+Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **27.10.2026** (dane do sesji
+27.10). Pełna lista wad i kolejność napraw:
 [`notatki/plany/Przeglad-2026-10-23-calosc.md`](notatki/plany/Przeglad-2026-10-23-calosc.md).
 
 ---
@@ -18,12 +18,12 @@ Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **26.10.2026** (
 
 ![Ranking: całkowita zmiana ceny](wykresy/ranking.png)
 
-Całkowita zmiana ceny od 14.08.2023 do 26.10.2026: **SNT +372,9%**, **XTB +272,6%**,
-**CBF +157,7%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
+Całkowita zmiana ceny od 14.08.2023 do 27.10.2026: **SNT +372,6%**, **XTB +267,7%**,
+**CBF +156,6%**. Obrazki rysuje się ręcznie na laptopie (`kod/wykresy.py`, `kod/ranking.py`)
 z tabel w Athenie; te w repozytorium mają stan na 09.10. Data w tytule to dzień ostatniej świecy,
 więc stary obrazek widać od razu.
 
-**Strona** (`strona/index.html`, pierwszy etap: na laptopie, nie w internecie): notowania, wykresy
+**Strona** (`strona/index.html`, pierwszy etap — na laptopie, nie w internecie — zamknięty 27.10): notowania, wykresy
 z pełną historią, ranking, kalendarz wydarzeń, słownik pojęć i opis drogi danych. Dane bierze
 z pliku `strona/dane.js`, który robi skrypt `kod/data_stream.py` z plików Golda w S3.
 
@@ -130,13 +130,15 @@ Między 17:55 a 18:35 nic nie uruchamia się ręcznie. W weekend biegi idą tak 
   z przyszłości, nie mniej sesji niż w poprzednim `dane.js` (ochrona przed „pół tabeli”) i ostatnia
   cena zgodna z rankingiem (oba pliki z tego samego biegu Golda). Przy problemie kończy się
   komunikatem i kodem 1, a stary `dane.js` zostaje — lepiej stara strona niż zła.
-- **Testy:** `pytest kod/ -v`, 48 testów (od 25.10). 13 sprawdza `control.py` na prawdziwym
+- **Testy:** `pytest kod/ -v`, 53 testy (od 27.10). 13 sprawdza `control.py` na prawdziwym
   bloku logu z 18.09 (`kod/dane_testowe/`), w tym alarm przy wstrzymanych dniach, 7 sprawdza daty
   z `path.py` na zmyślonych danych, 18 sprawdza `session.py`: granicę 17:55 (w tym godziny zimowe
-  i letnie) i podział nowych dni na wysłane i wstrzymane, 10 sprawdza `data_stream.py`: każde
-  sprawdzenie plików i budowę danych dla strony. Testy nie łączą się z AWS.
+  i letnie) i podział nowych dni na wysłane i wstrzymane, 15 sprawdza `data_stream.py`: każde
+  sprawdzenie plików, budowę danych dla strony oraz zapis i odczyt `dane.js` (brak pliku, dokładna
+  treść, zapis w obie strony, nadpisanie, zepsuty plik = głośny błąd). Testy zapisu piszą do
+  folderu tymczasowego pytest (`tmp_path`), nie do `strona/`. Testy nie łączą się z AWS.
 - **Ceny porównane z giełdą.** Punktem odniesienia jest archiwum notowań GPW, nie serwisy
-  pośrednie. 127 cen z S3 porównanych do 26.10 — wszystkie zgodne co do grosza.
+  pośrednie. 130 cen z S3 porównanych do 27.10 — wszystkie zgodne co do grosza.
 
 ---
 
@@ -147,25 +149,27 @@ sprawdzenie z liczbą policzoną przed biegiem; awaria jest głośna; działa ta
 działać (EC2); opis mówi też, czego nie ma.
 
 **Sprawdzone:**
-- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 26.10). Zmiana
+- Od 12.09 `cron` zostawia w logu jeden blok dziennie, bez dziury (sprawdzone do 27.10). Zmiana
   czasu 25.10 przeszła bez śladu: bieg dalej o 18:00 polskiego, w logu `17:00` zamiast `16:00`.
 - Kontrola o 18:30 chodzi z `cron` od 21.09, a sprawdzenie danych w Athenie od 26.09.
   Wymuszone awarie (19.09 i 26.09) dały u stróża `Failure` i e-mail. 06.10 ta sama próba na
   Pythonie 3.14 dała `Failure` z treścią co do bajtu taką, jak policzona przed wysłaniem.
   23.10 awaria z dopiskiem `wstrzymane`, wysłana dwa razy z rzędu: dwa zgłoszenia, jedna zmiana
   stanu, jeden e-mail; treść z polskimi literami doszła cała.
-- Dane: 801 dni notowań na spółkę, od 14.08.2023 do 26.10.2026 (2403 wiersze), te same daty
-  u wszystkich trzech. 127 cen z S3 porównanych z archiwum notowań GPW, wszystkie zgodne co do
+- Dane: 802 dni notowań na spółkę, od 14.08.2023 do 27.10.2026 (2406 wierszy), te same daty
+  u wszystkich trzech. 130 cen z S3 porównanych z archiwum notowań GPW, wszystkie zgodne co do
   grosza: 70 z historii (w tym wszystkie podejrzane serie jednakowych cen, dni odzyskane 03.09
   i największy wzrost i spadek XTB, 31.01.2024 i 31.01.2025), 17, 18 i 21.09 oraz każdy dzień
-  giełdowy od 05 do 26.10. Reszty historii nie porównywaliśmy.
+  giełdowy od 05 do 27.10. Reszty historii nie porównywaliśmy.
 - Strona na laptopie (26.10): `kod/data_stream.py` na prawdziwych plikach z S3 dał 800 sesji
   (do 23.10), drugi bieg odczytał poprzedni plik (`poprzednio 800`), a bieg po dzisiejszej sesji
   801 (`poprzednio 800`), z rozmiarem pliku równym temu w S3. Strona otwarta z dysku działa (zrzut
   statystyk z przeglądarki autora); ceny, ranking z Golda i liczba sesji sprawdzone na jej kopii
   w przeglądarce, a bez `dane.js` strona pokazuje „Brak danych”. Zatrzymanie przy
-  złych plikach (kod 1, stary `dane.js` nietknięty) sprawdzone na kopii z udawanym S3, na prawdziwym
-  biegu jeszcze nie wystąpiło.
+  złych danych sprawdzone na prawdziwym biegu 27.10: z podstawionym poprzednim `dane.js` (900
+  udawanych sesji) skrypt pobrał dzisiejsze pliki z S3 i skończył się `Strona: problem - Mniej sesji
+  niż poprzednio: 802 < 900`, kodem 1, a podstawiony plik został nienadpisany; po przywróceniu
+  prawdziwego pliku `802 sesji, poprzednio 801`. Pierwszy etap strony zamknięty 27.10.
 - Od 03.10 EC2 liczy na Pythonie 3.14. Pliki Silvera i Golda z nowego i starego Pythona są
   identyczne co do bajtu, a pierwszy bieg (sobota) zgadza się co do linii. Pierwszy dzień
   giełdowy na nowym Pythonie (05.10) też: Kafka i zapis do S3 działają jak wcześniej.
@@ -248,7 +252,7 @@ działać (EC2); opis mówi też, czego nie ma.
 | `wykresy.py` | laptop | ceny trzech spółek w czasie z `gold_dane_dzienne` → `wykresy/wykres3spolek.png` |
 | `ranking.py` | laptop | słupki zmiany za cały okres z `gold_ranking_spolek` → `wykresy/ranking.png` |
 | `data_stream.py` | laptop, ręcznie po 18:15 | dane dla strony: pobiera `gold/dane_dzienne/dane_dzienne.csv` i `gold/ranking/ranking.csv` z S3 do `strona/pobrane/`, sprawdza je (`sprawdz_pliki`), obraca w listy cen według dat (`zbuduj_dane`) i zapisuje `strona/dane.js` (`window.DANE = {…};`, z godziną wygenerowania i rozmiarem pliku z S3). Wypisuje `Strona: N sesji (od – do), poprzednio M, ostatnie: …` albo kończy się `Strona: problem - …` i kodem 1 |
-| `test_control.py`, `test_path.py`, `test_session.py`, `test_data_stream.py` | laptop | 48 testów (`pytest kod/ -v`) |
+| `test_control.py`, `test_path.py`, `test_session.py`, `test_data_stream.py` | laptop | 53 testy (`pytest kod/ -v`) |
 | `dane_testowe/blok_2026-09-18.txt` | laptop | prawdziwy blok logu z 18.09, wzór do testów |
 | `pipeline.bat` | — | dawny lokalny bieg Silver+Gold z Harmonogramu Windows; zadanie wyłączone od 21.09, plik zostaje |
 

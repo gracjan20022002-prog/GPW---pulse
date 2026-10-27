@@ -136,3 +136,18 @@ będzie zgodny z tabelą przewidywań): 2400 wierszy → 800 sesji, od 2023-08-1
 liczby zgadzają się z kontrolą i archiwum GPW, błędne dane kończą się komunikatem, a strona
 otwarta z laptopa pokazuje te same liczby. Internet, odświeżanie codzienne i warunki Yahoo dla
 publicznej strony (niesprawdzone) — drugi etap.
+
+## Dopisek 27.10: pierwszy etap zamknięty
+
+- **„Daty nie rosną”** (lista „Plik niepełny” wyżej) — **nie dodajemy** (decyzja Gracjana 27.10). Ten
+  przypadek pokrywają `sort_values(["spolka", "dzien"])` w linii 73 `kod/data_stream.py` i `pivot` w
+  `zbuduj_dane` (linia 37). Sprawdzone 27.10 na prawdziwym pliku Golda z 26.10 przetasowanym losowo:
+  daty w wyniku rosnąco (`2023-08-14` … `2026-10-26`); bez sortowania `sprawdz_pliki` zgłasza 3
+  problemy (np. `CBF.WA: ostatnia cena: 111.5, w rankingu: 194.8`), po sortowaniu `[]`. Dodatkowe
+  sprawdzenie nigdy by nie zadziałało (martwy kod, jak `assert` w `silver.py`, linie 21–22).
+- **Błędne dane kończą się komunikatem — sprawdzone na prawdziwym biegu 27.10:** podstawiony poprzedni
+  `dane.js` z 900 udawanymi sesjami → `Strona: problem - Mniej sesji niż poprzednio: 802 < 900`, kod 1,
+  plik nienadpisany, pliki z S3 pobrane (161161 i 336 B); po przywróceniu `802 sesji, poprzednio 801`.
+- Do tego 5 testów zapisu i odczytu `dane.js` (`tmp_path`), `pytest kod/ -v` → `53 passed`.
+- **Pierwszy etap zamknięty 27.10** — wszystkie warunki z akapitu „Zrobione” wyżej. Następny krok:
+  przegląd całości (D6 b).
