@@ -2470,6 +2470,47 @@ procesora → Ctrl+C, `git push` normalnie.*
 
 ---
 
+## Nauka DE — narzędzia kursu (28.10)
+
+### WebAssembly (wasm)
+Format programów, które przeglądarka uruchamia prawie tak szybko jak zwykłe programy na komputerze.
+W WebAssembly przepisuje się np. całego Pythona albo bazę danych, żeby działały w przeglądarce. Plik ma
+końcówkę `.wasm`.
+*28.10: strona próbna na claude.ai — „WebAssembly dozwolony”.*
+
+### Pyodide
+Prawdziwy Python (CPython) z pandas, przerobiony na WebAssembly. Do startu potrzebuje m.in. pliku
+`python_stdlib.zip` (biblioteka standardowa).
+*28.10: pobrany (13,6 MB), ale claude.ai nie serwuje plików `.zip`, więc na stronie Nauki DE go nie ma.*
+
+### Brython
+Python napisany w JavaScripcie: przeglądarka uruchamia go bez dodatkowych plików. Zachowuje się prawie
+jak zwykły Python, ale nie ma pandas, a treść niektórych błędów jest inna.
+*28.10: na stronie Nauki DE — `Python 3.13.0, saldo 1000` w 271 ms.*
+
+### SQLite (i sql.js)
+Mała baza danych SQL w jednym pliku, bez serwera. `sql.js` to SQLite przeniesione do przeglądarki.
+Rozumie większość SQL-a wspólnego z PostgreSQL, ale jest pobłażliwy: tekst w cudzysłowie `"Gdansk"`
+przyjmuje jako tekst, gdy nie ma takiej kolumny (PostgreSQL dałby błąd).
+*28.10: zadanie `tw-s01` przeszło z `"Gdansk"` i `GROUP BY` — do poprawki sprawdzarki.*
+
+### Dialekt SQL (SQL dialect)
+Odmiana SQL-a konkretnej bazy. Podstawy są wspólne, różnią się szczegóły. PostgreSQL: `LIMIT 10`,
+`TO_DATE('2022-Jan-01', 'YYYY-Mon-DD')`, `kolumna::DATE`, `SERIAL`. SQL Server: `TOP 10`, `CONVERT`,
+`CAST`, `IDENTITY(1,1)`. Athena: jeszcze inny (Trino).
+*28.10: test DataCamp jest w PostgreSQL, więc kurs też — z ramką „W SQL Server:”.*
+
+### OCR (rozpoznawanie tekstu, optical character recognition)
+Program, który z obrazka odczytuje tekst. Windows ma go wbudowanego.
+*28.10: tekst z 99 zrzutów testu DataCamp odczytany OCR-em Windowsa do pliku tekstowego.*
+
+### Powtórki rozłożone w czasie (spaced repetition)
+Sposób nauki: to samo pytanie wraca po coraz dłuższych przerwach (np. po 1, 3, 7 i 30 dniach), a przy
+złej odpowiedzi znów po 1 dniu. Tak działa np. Anki.
+*28.10: zaplanowane w Nauce DE (widok „Powtórki”), ruszą od pierwszej pełnej lekcji.*
+
+---
+
 ## Powiązane notatki
 
 - [[Plan-ogolny]]

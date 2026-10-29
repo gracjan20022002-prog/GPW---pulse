@@ -184,9 +184,16 @@ testów z mockowaniem, CI/CD, HTML/CSS/JS (strona to nowy obszar).
     zamknięciu każdego większego kawałka i zawsze na prośbę Gracjana —
     wynik do pliku przeglądu, nie do pamięci.
 
-## Stan projektu (27.10)
+## Stan projektu (28.10)
 
 Repo: `GPW - pulse`, GitHub `github.com/gracjan20022002-prog/GPW---pulse`.
+- **Etap 1 (21.07–27.10) opisany 28.10:** [`notatki/plany/Etap-1-dokumentacja.md`](notatki/plany/Etap-1-dokumentacja.md)
+  (części ze stanem według pięciu warunków, liczby z biegu 27.10, oś czasu, wnioski, otwarte sprawy,
+  kandydaci na etap 2 — do decyzji Gracjana).
+- **Od 28.10 Gracjan uczy się w osobnym kursie „Nauka DE”** (`../Nauka-DE`, własny `CLAUDE.md`, strona
+  `https://claude.ai/artifact/7AcYeWhD9q9fMN4CoEwTFp`). Sesje nauki otwierać w tamtym folderze.
+- **Od 28.10 kontrola biegów co kilka dni i zawsze po mailu stróża** (decyzja 15b Gracjana); po mailu
+  `DOWN` codziennie, aż przyjdzie `UP`. Tabele przewidywań niżej zostają wzorem do porównania.
 - **Źródło prawdy o wadach i kolejności napraw (od 23.10, decyzja 5 Gracjana):**
   [`notatki/plany/Przeglad-2026-10-23-calosc.md`](notatki/plany/Przeglad-2026-10-23-calosc.md),
   tabela „Stan punktów” na górze. Przeglądy z 08.09 i 08.10 to historia.
@@ -567,6 +574,8 @@ w wariancie (a), wieczorem punkt 1 zmieniony na (b) i punkt 2 odłożony; furtka
 
 ### Codzienna kontrola po biegu (ułożona 20.09, przeliczona 21.09, 26.09 i 03.10)
 
+**Od 28.10 co kilka dni i zawsze po mailu stróża** (decyzja 15b), kroki bez zmian.
+
 Kiedy: po 18:32 polskiego, bo skrypt kontrolny kończy o 18:30, a Silver i Gold o
 18:10. Godziny w logu są w UTC (patrz UWAGA wyżej). Przewidywania zapisać **przed**
 puszczeniem komend. „Dzień giełdowy" to dzień z nowymi świecami, „weekend/święto" to
@@ -692,25 +701,27 @@ informacje, diagramy, wykresy); zakładki: spółki, aktualności, dane spółek
 
 ### Na następną sesję
 
-Stan 27.10 (wtorek, koniec sesji wieczorem).
-- **Zrobione 27.10:** commit `d257732` na starcie; kontrola 27.10 zgodna (#45); ceny 26 i 27.10 zgodne
-  z GPW (130); 5 testów zapisu i odczytu `dane.js` (`tmp_path`, fixture `sciezka`, `53 passed`) z notatką
-  i wytłumaczeniem; **pierwszy etap strony zamknięty** po próbnej awarii na prawdziwym biegu; „daty nie
-  rosną” — nie dodajemy; **tabela przewidywań na listopad** (Gold `120`/`114` od 02.11, święto 11.11);
-  README, CLAUDE.md, słownik, dopiski w notatkach z 23 i 27.10.
-- **Commit końcowy 27.10** — komendy podane na koniec sesji; wynik sprawdzić na starcie. Na EC2 `git pull`
-  niepotrzebny (kod EC2 bez zmian).
+Stan 28.10 (środa, koniec sesji ok. 20:30).
+- **Zrobione 28.10:** start (commit `ab663b9` z 27.10 na GitHubie); **środowisko nauki „Nauka DE”**
+  (notatka zatwierdzona, strona w wersji 2, lekcja „Jak działa”, test wstępny 36 pytań — Gracjan zrobił
+  25); **dokumentacja etapu 1**; decyzja 15b (kontrola co kilka dni). Biegu 28.10 nie sprawdzaliśmy.
+- **Commit końcowy 28.10** (4 pliki: README, CLAUDE.md, słownik, `Etap-1-dokumentacja.md`) — komendy
+  podane na koniec sesji; wynik sprawdzić na starcie. Na EC2 `git pull` niepotrzebny (kod EC2 bez zmian).
+- **Nauka DE** ma własne „na następną sesję” w `../Nauka-DE/CLAUDE.md` (dokończenie testu, ocena,
+  poprawka sprawdzarki SQL, repozytorium).
 - **Po każdej zmianie Gracjana:** opis każdej nowej linii (zasada 3).
 - **Notatki i wyjaśnienia testów/kodu:** bez zbiorczych tabel, blok na test z konkretnymi wartościami
   (zasada 3, 27.10).
 
 0. **Na starcie:**
-   - `git log -1` i `git status --short` na laptopie: commit z 27.10 jest, gałąź nie przed GitHubem,
+   - `git log -1` i `git status --short` na laptopie: commit z 28.10 jest, gałąź nie przed GitHubem,
      zostaje tylko `?? "Strona - pomysły.txt"`;
    - `date`;
-   - lista sesji: czy po ostatniej była jakaś bez dziennika.
-1. **Kontrola biegów** według tabel w „Przewidywania od 10.10” (28.10: start 1728, `Dane` 2409, zakładka
-   2438, #46, `tail -n 18`); ceny z GPW (archiwum bywa pełne ok. 19:15).
+   - lista sesji: czy po ostatniej była jakaś bez dziennika (dzienniki są w dwóch folderach:
+     tu i w `../Nauka-DE/notatki/dziennik/`).
+1. **Kontrola biegów co kilka dni** według tabel w „Przewidywania od 10.10” — przy kontroli kilku dni
+   naraz wszystkie linie startu (`grep -n "=== Data pomiaru" … | tail -n N`); ostatni sprawdzony bieg:
+   27.10. Ceny z GPW (archiwum bywa pełne ok. 19:15).
 2. **Przegląd całości** (zasada 16, decyzja D6 b z 23.10) — pierwszy etap strony zamknięty; wynik do
    pliku przeglądu.
 3. **Kompakcja za październik** (początek listopada, z laptopa, nie między 17:55 a 18:35) —
@@ -773,6 +784,11 @@ nowe pomyłki idą do dziennika dnia. Tutaj zostają wnioski, które obowiązuj�
     danych** (27.10: w notatce „każda pomyłka daje `1 failed`” wzięte z pogody; na kopii projektu brak
     `removesuffix` dał 2 nieudane testy, `"\n"` — 3). Daty z kodu, nie z pamięci: „Gold zmieni się
     01.11” było nieścisłe — zmiana przychodzi z pierwszą sesją miesiąca (02.11).
+19. **Przy nowej rzeczy z wyglądem pokazać wybór przed budową, a przed publikacją sprawdzić treść
+    z zatwierdzonymi decyzjami** (28.10: kolory Nauki DE wybrane bez pytania, ciemna zieleń
+    „przygnębiająca”; polskie nazwy w kodzie lekcji mimo decyzji „po angielsku”). **Ograniczenia
+    platformy sprawdzić przed pobieraniem** (28.10: 27 MB silników, a claude.ai nie serwuje `.zip`
+    ani `.data`).
 
 ### Kopie
 
@@ -843,7 +859,7 @@ w przeglądarce. Archiwum z dzisiejszego dnia o 18:48 jeszcze puste (08.10), 27.
 **Co z `notatki/` jest w gicie, sprawdzone 11.09.** `notatki/plany/`
 i `notatki/Slownik.md` **są śledzone**. Poza gitem, przez `.gitignore`, są
 `notatki/dziennik/` i `notatki/.obsidian/`. Znaczy to, że **wszystkie wpisy
-dziennika (65 plików na 27.10), czyli cały zapis nauki z tego projektu,
+dziennika (66 plików na 28.10), czyli cały zapis nauki z tego projektu,
 istnieją wyłącznie na laptopie i w OneDrive, ani jeden nie jest
 w repozytorium**. **Decyzja Gracjana 06.10: zostaje tak** — dziennik tylko lokalnie (laptop
 i OneDrive), poza gitem. Świadomy koszt: jedna kopia, w zamian prywatność.

@@ -9,6 +9,8 @@ i przy awarii wysyła e-mail.
 Projekt do nauki data engineeringu. Stan opisany niżej dotyczy **27.10.2026** (dane do sesji
 27.10). Pełna lista wad i kolejność napraw:
 [`notatki/plany/Przeglad-2026-10-23-calosc.md`](notatki/plany/Przeglad-2026-10-23-calosc.md).
+Podsumowanie pierwszego etapu (21.07–27.10: co powstało, liczby, oś czasu, wnioski, co otwarte):
+[`notatki/plany/Etap-1-dokumentacja.md`](notatki/plany/Etap-1-dokumentacja.md).
 
 ---
 
